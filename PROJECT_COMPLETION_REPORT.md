@@ -221,7 +221,7 @@ const timeoutId = setTimeout(() => controller.abort(), 10000);
 
 ### Required Environment Variables
 ```
-GOOGLE_PLACES_API_KEY=AIzaSyCOHzERrUku61roVvqNkbEW_K_jEoCJGoI
+GOOGLE_PLACES_API_KEY=YOUR_RESTRICTED_GOOGLE_PLACES_API_KEY
 MONGODB_URI=mongodb://localhost:27017/optiontrip
 NODE_ENV=production
 ```
