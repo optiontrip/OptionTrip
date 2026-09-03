@@ -7,8 +7,51 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            Frontend/package-lock.json
+            Backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: Backend
+        run: npm ci
+
+      - name: Check backend JavaScript syntax
+        run: find Backend/src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Install frontend dependencies
+        working-directory: Frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: Frontend
+        run: npm run build
+
+      - name: Verify build and integrity
+        run: |
+          test -s Frontend/dist/index.html
+          grep -qi 'OptionTrip' Frontend/dist/index.html
+          if grep -qE 'createRequire|_0x[0-9a-f]{4,}\(' Frontend/vite.config.js; then
+            echo 'Unsafe injected code signature found in Frontend/vite.config.js'
+            exit 1
+          fi
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Deploy via SSH
@@ -21,8 +64,35 @@ jobs:
           script: |
             set -euo pipefail
 
-            echo '📥 Syncing to origin/main (force-push safe)...'
             cd ~/OptionTrip
+            PREVIOUS_COMMIT="$(git rev-parse HEAD)"
+            BACKUP_DIR="/var/backups/optiontrip/$(date +%Y%m%d-%H%M%S)"
+
+            rollback() {
+              exit_code=$?
+              trap - ERR
+              echo '❌ Deployment failed. Rolling back production...'
+
+              cd ~/OptionTrip
+              git reset --hard "$PREVIOUS_COMMIT"
+
+              cd ~/OptionTrip/Backend
+              npm ci
+              pm2 restart optiontrip-backend --update-env || true
+
+              if [ -d "$BACKUP_DIR/frontend" ]; then
+                rm -rf /var/www/optiontrip/*
+                cp -a "$BACKUP_DIR/frontend/." /var/www/optiontrip/
+                chown -R www-data:www-data /var/www/optiontrip
+                chmod -R 755 /var/www/optiontrip
+              fi
+
+              echo "↩️ Rolled back to $(git -C ~/OptionTrip rev-parse --short HEAD)"
+              exit "$exit_code"
+            }
+            trap rollback ERR
+
+            echo '📥 Syncing to origin/main (force-push safe)...'
             git merge --abort 2>/dev/null || true
             git rebase --abort 2>/dev/null || true
             git fetch origin main
@@ -35,22 +105,42 @@ jobs:
               exit 1
             fi
 
-            echo '🚀 Deploying Backend...'
+            echo '🧱 Preparing Backend dependencies...'
             cd ~/OptionTrip/Backend
-            npm install
+            npm ci
+
+            echo '🎨 Building Frontend before touching production...'
+            cd ~/OptionTrip/Frontend
+            npm ci
+            npm run build
+            test -s dist/index.html
+            grep -qi 'OptionTrip' dist/index.html
+
+            echo '💾 Backing up current Frontend...'
+            mkdir -p "$BACKUP_DIR/frontend"
+            if [ -d /var/www/optiontrip ]; then
+              cp -a /var/www/optiontrip/. "$BACKUP_DIR/frontend/"
+            fi
+
+            echo '🚀 Restarting Backend...'
+            cd ~/OptionTrip/Backend
             pm2 restart optiontrip-backend --update-env
 
-            echo '🎨 Building Frontend...'
-            cd ~/OptionTrip/Frontend
-            npm install
-            npm run build
-            test -f dist/index.html
+            echo '🩺 Checking Backend health...'
+            curl -fsS --retry 8 --retry-delay 2 http://127.0.0.1:5000/api/health | grep -q '"status":"healthy"'
 
-            echo '📦 Publishing build...'
+            echo '📦 Publishing Frontend...'
             rm -rf /var/www/optiontrip/*
-            cp -r dist/* /var/www/optiontrip/
+            cp -a ~/OptionTrip/Frontend/dist/. /var/www/optiontrip/
             chown -R www-data:www-data /var/www/optiontrip
             chmod -R 755 /var/www/optiontrip
 
-            echo '✅ Deployment complete!'
+            echo '🌐 Running public smoke test...'
+            curl -fsSL --retry 8 --retry-delay 2 https://www.optiontrip.com/ | grep -qi 'OptionTrip'
+
+            trap - ERR
+            echo '✅ Deployment complete and smoke checks passed.'
             pm2 status
+
+            echo '🧹 Keeping only the 5 newest Frontend backups...'
+            ls -1dt /var/backups/optiontrip/* 2>/dev/null | tail -n +6 | xargs -r rm -rf
