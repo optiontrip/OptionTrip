@@ -127,7 +127,7 @@ jobs:
             pm2 restart optiontrip-backend --update-env
 
             echo '🩺 Checking Backend health...'
-            curl -fsS --retry 8 --retry-delay 2 http://127.0.0.1:5000/api/health | grep -q '"status":"healthy"'
+            curl -fsS --retry 12 --retry-delay 2 --retry-connrefused --max-time 5 http://127.0.0.1:5000/api/health | grep -q '"status":"healthy"'
 
             echo '📦 Publishing Frontend...'
             rm -rf /var/www/optiontrip/*
@@ -136,7 +136,7 @@ jobs:
             chmod -R 755 /var/www/optiontrip
 
             echo '🌐 Running public smoke test...'
-            curl -fsSL --retry 8 --retry-delay 2 https://www.optiontrip.com/ | grep -qi 'OptionTrip'
+            curl -fsSL --retry 8 --retry-delay 2 --retry-connrefused https://www.optiontrip.com/ | grep -qi 'OptionTrip'
 
             trap - ERR
             echo '✅ Deployment complete and smoke checks passed.'
