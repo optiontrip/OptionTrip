@@ -140,7 +140,8 @@ jobs:
             chmod -R 755 /var/www/optiontrip
 
             echo '🌐 Running public smoke test...'
-            curl -fsSL --retry 8 --retry-delay 2 --retry-connrefused https://www.optiontrip.com/ | grep -qi 'OptionTrip'
+            PUBLIC_HTML="$(curl -fsSL --retry 8 --retry-delay 2 --retry-connrefused https://www.optiontrip.com/)"
+            printf '%s' "$PUBLIC_HTML" | grep -qi 'OptionTrip'
 
             trap - ERR
             echo '✅ Deployment complete and smoke checks passed.'
