@@ -1,3 +1,5 @@
+import { combineFlightSegments, normalizeGoogleSegments } from './flightSegmentNormalizer.js';
+
 const RAPIDAPI_KEY  = process.env.RAPIDAPI_KEY  || '';
 const RAPIDAPI_HOST = 'google-flights2.p.rapidapi.com';
 const TP_MARKER     = process.env.TRAVELPAYOUTS_MARKER || '370056';
@@ -68,6 +70,9 @@ const normalise = (raw, { origin, destination, departureDate, returnDate, adults
     overnight: !!l.overnight,
   }));
 
+  const outboundSegments = normalizeGoogleSegments(segs);
+  const returnSegments = normalizeGoogleSegments(rSegs);
+
   return {
     id:            raw.next_token || raw.booking_token || `${origin}-${destination}-${Date.now()}-${Math.random()}`,
     departureTime: extractTime(first.departure_airport?.time) || raw.departure_time || '',
@@ -79,6 +84,9 @@ const normalise = (raw, { origin, destination, departureDate, returnDate, adults
     destName:      last.arrival_airport?.airport_name   || '',
     stops:         segs.length > 1 ? segs.length - 1 : (raw.stops ?? 0),
     layovers,
+    segments:      combineFlightSegments(outboundSegments, returnSegments),
+    outboundSegments,
+    returnSegments,
     airline:       airlines.join(' · '),
     airlineLogo:   first.airline_logo || raw.airline_logo || '',
     flightNumber:  segs.map(s => s.flight_number).filter(Boolean).join(', '),
