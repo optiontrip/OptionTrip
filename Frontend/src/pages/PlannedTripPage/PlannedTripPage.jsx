@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import HeroSection from './sections/HeroSection';
 import LiveTripPanel from './sections/LiveTripPanel';
 import ActivitiesSection from './sections/ActivitiesSection';
+import ViOpportunityPanel from './sections/ViOpportunityPanel';
 import ViAssistant from '../../components/ViAssistant/ViAssistant';
 import PageMeta from '../../hooks/usePageMeta';
 import Loader from '../../components/Loader/Loader';
@@ -268,8 +269,13 @@ const PlannedTripPage = () => {
         isSaving={isSaving}
       />
 
-
       <LiveTripPanel tripData={{ ...tripData, travel_status: travelStatus }} daysData={tripDaysData} />
+
+      <ViOpportunityPanel
+        tripId={tripId}
+        selectedFlight={selectedFlight}
+        isAuthenticated={isAuthenticated}
+      />
 
       {isAuthenticated && travelStatus === 'planned' && (
         <div className="planned-trip-start-bar">
@@ -303,7 +309,6 @@ const PlannedTripPage = () => {
       />
       <ViAssistant />
 
-
       {isAuthenticated && (
         <div className="planned-trip-share-bar">
           {shareUrl ? (
@@ -336,7 +341,6 @@ const PlannedTripPage = () => {
           )}
         </div>
       )}
-
 
       {(selectedFlight || selectedHotel) && (
         <div className="planned-trip-summary-bar">
