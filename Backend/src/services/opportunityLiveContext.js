@@ -18,9 +18,17 @@ const normalizeCoordinates = (coordinates) => {
   return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
 };
 
+const countryFromComponents = (components = []) => {
+  const component = components.find((item) => item?.types?.includes('country'));
+  return component ? {
+    country: component.longText || null,
+    countryCode: component.shortText || null
+  } : { country: null, countryCode: null };
+};
+
 const resolveLocation = async (window = {}) => {
   const direct = normalizeCoordinates(window.coordinates);
-  if (direct) return { coordinates: direct, source: 'window' };
+  if (direct) return { coordinates: direct, source: 'window', country: null, countryCode: null };
 
   const query = typeof window.location === 'string'
     ? window.location.trim()
@@ -34,7 +42,7 @@ const resolveLocation = async (window = {}) => {
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location'
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.addressComponents'
       },
       body: JSON.stringify({
         textQuery: query.length <= 4 ? `${query} airport` : query,
@@ -49,12 +57,14 @@ const resolveLocation = async (window = {}) => {
     const lat = place?.location?.latitude;
     const lng = place?.location?.longitude;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    const country = countryFromComponents(place.addressComponents || []);
     return {
       coordinates: { lat, lng },
       source: 'google_places',
       placeId: place.id || null,
       name: place.displayName?.text || query,
-      address: place.formattedAddress || null
+      address: place.formattedAddress || null,
+      ...country
     };
   } catch {
     return null;
@@ -137,6 +147,7 @@ export const enrichOpportunityLiveContext = async (context = {}) => {
     liveContextSummary: {
       totalWindows: enriched.length,
       resolvedLocations: enriched.filter((window) => window.liveContext?.location).length,
+      resolvedCountries: enriched.filter((window) => window.liveContext?.location?.country).length,
       weatherWindows: enriched.filter((window) => window.liveContext?.weather).length,
       disruptiveWeatherWindows: enriched.filter((window) => window.liveContext?.weather?.disruptive).length
     }
