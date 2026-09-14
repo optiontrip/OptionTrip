@@ -52,6 +52,21 @@ const automaticReturnBufferCheck = (window = {}) => {
   };
 };
 
+const automaticTransportCheck = (window = {}) => {
+  if (!window.eligibility?.requiresLiveTransportCheck) return null;
+  const candidate = window.transportContext?.bestCandidate;
+  if (!candidate || !window.transportContext?.source) return null;
+
+  return {
+    status: candidate.feasible ? 'pass' : 'fail',
+    source: window.transportContext.source,
+    checkedAt: window.transportContext.checkedAt || new Date().toISOString(),
+    note: candidate.feasible
+      ? `${candidate.name || 'Candidate'} is estimated at ${candidate.oneWayMinutes} min each way, leaving ${candidate.remainingMinutes} min after ground travel.`
+      : `${candidate.name || 'Candidate'} needs about ${candidate.roundTripMinutes} min of ground travel, which does not leave the required activity buffer in this window.`
+  };
+};
+
 const checksForWindow = (window = {}, validation = {}) => {
   const windowChecks = validation?.windows?.[window.id] || {};
 
@@ -61,6 +76,11 @@ const checksForWindow = (window = {}, validation = {}) => {
 
     if (key === 'returnBuffer') {
       const automatic = automaticReturnBufferCheck(window);
+      if (automatic) return [key, automatic];
+    }
+
+    if (key === 'transport') {
+      const automatic = automaticTransportCheck(window);
       if (automatic) return [key, automatic];
     }
 
