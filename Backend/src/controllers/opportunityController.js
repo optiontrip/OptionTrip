@@ -5,6 +5,7 @@ import { applyOpportunityValidation } from '../services/opportunityValidation.js
 import { enrichOpportunityLiveContext } from '../services/opportunityLiveContext.js';
 import { enrichOpportunityNearbyPlaces } from '../services/opportunityNearbyPlaces.js';
 import { enrichOpportunityTransportContext } from '../services/opportunityTransportContext.js';
+import { enrichOpportunitySafetyContext } from '../services/opportunitySafetyContext.js';
 
 export const analyzeTripOpportunities = async (req, res) => {
   try {
@@ -44,7 +45,8 @@ export const analyzeTripOpportunities = async (req, res) => {
     const liveContext = await enrichOpportunityLiveContext(context);
     const placesContext = await enrichOpportunityNearbyPlaces(liveContext);
     const transportContext = await enrichOpportunityTransportContext(placesContext);
-    const validatedContext = applyOpportunityValidation(transportContext, validation);
+    const safetyContext = await enrichOpportunitySafetyContext(transportContext);
+    const validatedContext = applyOpportunityValidation(safetyContext, validation);
 
     return res.json({
       success: true,
@@ -57,7 +59,8 @@ export const analyzeTripOpportunities = async (req, res) => {
         liveContext: validatedContext.liveContextSummary,
         nearbyPlaces: validatedContext.nearbyPlacesSummary,
         transport: validatedContext.transportSummary,
-        note: 'Only opportunities with all required live checks passed should be displayed as actionable recommendations. Live route timing can satisfy transport checks and fresh Google Places hours can satisfy near-term opening-hours checks; future opening hours, entry and safety remain pending until independently validated.'
+        safety: validatedContext.safetySummary,
+        note: 'Only opportunities with all required live checks passed should be displayed as actionable recommendations. Current U.S. Department of State advisories are used as an official safety signal for confirmed U.S. travelers; Level 1 can pass and Level 4 can fail the safety gate, while Levels 2 and 3 remain pending for a more specific review. Entry rules remain independently required.'
       }
     });
   } catch (error) {
