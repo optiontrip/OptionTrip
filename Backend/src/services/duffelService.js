@@ -1,3 +1,5 @@
+import { combineFlightSegments, normalizeDuffelSegments } from './flightSegmentNormalizer.js';
+
 const DUFFEL_API_KEY = process.env.DUFFEL_API_KEY || '';
 const DUFFEL_BASE    = 'https://api.duffel.com';
 const TP_MARKER      = process.env.TRAVELPAYOUTS_MARKER || '370056';
@@ -73,6 +75,9 @@ const normalise = (offer, { origin, destination, departureDate, returnDate, adul
     name: seg.destination?.name     || '',
   }));
 
+  const outboundSegments = normalizeDuffelSegments(segs);
+  const returnSegments = normalizeDuffelSegments(rSegs);
+
   return {
     id:                offer.id || `duffel-${Date.now()}-${Math.random()}`,
     departureTime:     extractTime(first.departing_at),
@@ -86,6 +91,9 @@ const normalise = (offer, { origin, destination, departureDate, returnDate, adul
     destName:          last.destination?.name        || '',
     stops:             Math.max(0, segs.length - 1),
     layovers,
+    segments:          combineFlightSegments(outboundSegments, returnSegments),
+    outboundSegments,
+    returnSegments,
     airline:           airlines.join(' · ') || offer.owner?.name || '',
     airlineLogo:       offer.owner?.logo_symbol_url || first.marketing_carrier?.logo_symbol_url || '',
     flightNumber:      segs

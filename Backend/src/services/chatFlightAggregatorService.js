@@ -2,6 +2,7 @@ import { searchFlightsDuffel } from './duffelService.js';
 import { searchFlightsGoogle } from './googleFlightsService.js';
 import { searchFlights as searchFlightsAmadeus } from './amadeusService.js';
 import { searchFlights as searchFlightsTravelpayouts } from './travelpayoutsFlightService.js';
+import { normalizeAmadeusSegments } from './flightSegmentNormalizer.js';
 
 const PROVIDER_TIMEOUT_MS = 8000;
 const TOP_N = 6;
@@ -38,6 +39,9 @@ const normalizeDuffel = (flights) =>
     price: Number(f.price) || 0,
     currency: f.currency || 'USD',
     bookingUrl: f.bookingUrl,
+    segments: f.segments || [],
+    outboundSegments: f.outboundSegments || [],
+    returnSegments: f.returnSegments || [],
     isRoundTrip: !!f.isRoundTrip,
     returnDepartureTime: f.returnDepartureTime || '',
     returnArrivalTime: f.returnArrivalTime || '',
@@ -61,6 +65,9 @@ const normalizeGoogle = (flights) =>
     price: Number(f.price) || 0,
     currency: f.currency || 'USD',
     bookingUrl: f.bookingUrl,
+    segments: f.segments || [],
+    outboundSegments: f.outboundSegments || [],
+    returnSegments: f.returnSegments || [],
     isRoundTrip: !!f.isRoundTrip,
     returnDepartureTime: f.returnDepartureTime || '',
     returnArrivalTime: f.returnArrivalTime || '',
@@ -69,27 +76,33 @@ const normalizeGoogle = (flights) =>
 
 const normalizeAmadeus = (offers, { originCode, destinationCode }) =>
   (offers || []).map(offer => {
-    const itin = offer.itineraries?.[0];
+    const itineraries = offer.itineraries || [];
+    const itin = itineraries[0];
     const segs = itin?.segments || [];
     const first = segs[0];
     const last = segs[segs.length - 1] || first;
+    const segmentGroups = itineraries.map((item) => normalizeAmadeusSegments(item?.segments || []));
+    const segments = segmentGroups.flat();
     return {
       id: `amadeus-${offer.id}`,
       source: 'amadeus',
       origin: first?.departure?.iataCode || originCode,
       destination: last?.arrival?.iataCode || destinationCode,
-      departureTime: extractTime(first?.departure?.time),
-      arrivalTime: extractTime(last?.arrival?.time),
+      departureTime: extractTime(first?.departure?.time || first?.departure?.at),
+      arrivalTime: extractTime(last?.arrival?.time || last?.arrival?.at),
       duration: itin?.totalDuration || '',
-      stops: offer.numberOfStops ?? 0,
+      stops: offer.numberOfStops ?? Math.max(0, segs.length - 1),
       airline: offer.validatingCarrier || '',
       airlineLogo: '',
-      flightNumber: first ? `${first.carrierCode || ''}${first.flightNumber || ''}` : '',
+      flightNumber: first ? `${first.carrierCode || ''}${first.flightNumber || first.number || ''}` : '',
       cabinClass: '',
       price: Number(offer.price) || 0,
       currency: offer.currency || 'USD',
       bookingUrl: offer.bookingUrl,
-      isRoundTrip: (offer.itineraries || []).length > 1,
+      segments,
+      outboundSegments: segmentGroups[0] || [],
+      returnSegments: segmentGroups[1] || [],
+      isRoundTrip: itineraries.length > 1,
       returnDepartureTime: '',
       returnArrivalTime: '',
       returnDuration: ''
@@ -113,6 +126,9 @@ const normalizeTravelpayouts = (flights) =>
     price: Number(f.price) || 0,
     currency: f.currency || 'USD',
     bookingUrl: f.bookingUrl,
+    segments: Array.isArray(f.segments) ? f.segments : [],
+    outboundSegments: Array.isArray(f.outboundSegments) ? f.outboundSegments : [],
+    returnSegments: Array.isArray(f.returnSegments) ? f.returnSegments : [],
     isRoundTrip: !!f.isRoundTrip,
     returnDepartureTime: f.returnDepartureTime || '',
     returnArrivalTime: '',
