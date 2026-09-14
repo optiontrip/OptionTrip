@@ -1,11 +1,18 @@
 import Trip from '../models/Trip.js';
 import { buildOpportunityContext } from '../services/opportunityEngine.js';
 import { buildFlightTimelineEvents } from '../services/flightTimeline.js';
+import { applyOpportunityValidation } from '../services/opportunityValidation.js';
 
 export const analyzeTripOpportunities = async (req, res) => {
   try {
     const { tripId } = req.params;
-    const { events = [], traveler = {}, timezone = 'UTC', flight = null } = req.body || {};
+    const {
+      events = [],
+      traveler = {},
+      timezone = 'UTC',
+      flight = null,
+      validation = {}
+    } = req.body || {};
 
     const trip = await Trip.findOne({
       trip_id: tripId,
@@ -31,15 +38,17 @@ export const analyzeTripOpportunities = async (req, res) => {
       timezone
     });
 
+    const validatedContext = applyOpportunityValidation(context, validation);
+
     return res.json({
       success: true,
-      data: context,
+      data: validatedContext,
       meta: {
         generatedAt: new Date().toISOString(),
         derivedFlightEvents: flightEvents.length,
         flightSource: flight ? 'request' : (trip.selectedFlight ? 'savedTrip' : 'none'),
-        requiresLiveValidation: true,
-        note: 'Suggestions must be validated against current entry rules, opening hours, transport, safety, availability and return-time buffers before display as actionable recommendations.'
+        requiresLiveValidation: validatedContext.validationSummary.pendingWindows > 0,
+        note: 'Only opportunities with all required live checks passed should be displayed as actionable recommendations.'
       }
     });
   } catch (error) {
