@@ -25,6 +25,12 @@ const extractTime = (iso) => {
 const withJourney = (segments = [], journeyId = '') =>
   (segments || []).map((item) => ({ ...item, journeyId: item.journeyId || journeyId }));
 
+const journeyIdForIndex = (index) => {
+  if (index === 0) return 'outbound';
+  if (index === 1) return 'return';
+  return `journey-${index}`;
+};
+
 const normalizeDuffel = (flights) =>
   (flights || []).map(f => ({
     id: `duffel-${f.id}`,
@@ -85,7 +91,7 @@ const normalizeAmadeus = (offers, { originCode, destinationCode }) =>
     const first = segs[0];
     const last = segs[segs.length - 1] || first;
     const segmentGroups = itineraries.map((item, index) =>
-      normalizeAmadeusSegments(item?.segments || [], index === 0 ? 'outbound' : `journey-${index}`)
+      normalizeAmadeusSegments(item?.segments || [], journeyIdForIndex(index))
     );
     const segments = segmentGroups.flat();
     return {
@@ -106,9 +112,7 @@ const normalizeAmadeus = (offers, { originCode, destinationCode }) =>
       bookingUrl: offer.bookingUrl,
       segments,
       outboundSegments: segmentGroups[0] || [],
-      returnSegments: itineraries.length > 1
-        ? withJourney(segmentGroups[1] || [], 'return')
-        : [],
+      returnSegments: segmentGroups[1] || [],
       isRoundTrip: itineraries.length > 1,
       returnDepartureTime: '',
       returnArrivalTime: '',
