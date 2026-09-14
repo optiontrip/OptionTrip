@@ -35,13 +35,43 @@ const requiredForWindow = (window = {}) => {
   });
 };
 
-export const applyOpportunityValidation = (context = {}, validation = {}) => {
-  const checks = Object.fromEntries(
-    REQUIRED_KEYS.map((key) => [key, normalizeCheck(validation?.[key])])
-  );
+const automaticReturnBufferCheck = (window = {}) => {
+  if (!window.eligibility?.requiresReturnBufferValidation) return null;
 
+  const usableMinutes = Number(window.usableMinutes || 0);
+  const rawMinutes = Number(window.rawMinutes || 0);
+  const passed = usableMinutes >= 45 && rawMinutes > usableMinutes;
+
+  return {
+    status: passed ? 'pass' : 'fail',
+    source: 'opportunity-engine-buffer',
+    checkedAt: new Date().toISOString(),
+    note: passed
+      ? `Configured airport/return buffer leaves ${usableMinutes} usable minutes in a ${rawMinutes}-minute window.`
+      : 'The calculated window does not leave enough time after the configured airport/return buffer.'
+  };
+};
+
+const checksForWindow = (window = {}, validation = {}) => {
+  const windowChecks = validation?.windows?.[window.id] || {};
+
+  return Object.fromEntries(REQUIRED_KEYS.map((key) => {
+    const explicit = windowChecks?.[key] ?? validation?.[key];
+    if (explicit !== undefined) return [key, normalizeCheck(explicit)];
+
+    if (key === 'returnBuffer') {
+      const automatic = automaticReturnBufferCheck(window);
+      if (automatic) return [key, automatic];
+    }
+
+    return [key, normalizeCheck(null)];
+  }));
+};
+
+export const applyOpportunityValidation = (context = {}, validation = {}) => {
   const windows = (context.windows || []).map((window) => {
     const required = requiredForWindow(window);
+    const checks = checksForWindow(window, validation);
     const failed = required.filter((key) => checks[key].status === 'fail');
     const pending = required.filter((key) => checks[key].status !== 'pass');
 
