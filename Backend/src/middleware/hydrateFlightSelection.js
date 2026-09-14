@@ -16,6 +16,13 @@ const hasSegments = (flight = {}) =>
   || (Array.isArray(flight.outboundSegments) && flight.outboundSegments.length > 0)
   || (Array.isArray(flight.returnSegments) && flight.returnSegments.length > 0);
 
+const persistedSegments = (flight = {}) => {
+  const outbound = Array.isArray(flight.outboundSegments) ? flight.outboundSegments : [];
+  const returning = Array.isArray(flight.returnSegments) ? flight.returnSegments : [];
+  if (outbound.length || returning.length) return [...outbound, ...returning];
+  return Array.isArray(flight.segments) ? flight.segments : [];
+};
+
 const matchScore = (selected = {}, candidate = {}) => {
   let score = 0;
   const selectedProvider = normalizeProvider(selected.provider);
@@ -51,12 +58,9 @@ export const hydrateFlightSelection = async (req, _res, next) => {
     const userId = req.user?._id?.toString();
     if (!tripId || !userId) return next();
 
-    const trip = await Trip.findOne({
-      trip_id: tripId,
-      user_id: userId,
-      deleted: { $ne: true }
-    }).lean();
+    const trip = await Trip.findOne({ trip_id: tripId, deleted: { $ne: true } }).lean();
     if (!trip) return next();
+    if (trip.user_id && String(trip.user_id) !== userId) return next();
 
     const origin = normalizeCode(selectedFlight.departure);
     const destination = normalizeCode(selectedFlight.arrival);
@@ -79,25 +83,15 @@ export const hydrateFlightSelection = async (req, _res, next) => {
       .sort((a, b) => b.score - a.score);
 
     const best = ranked[0];
-    if (!best || best.score < 6 || !hasSegments(best.candidate)) return next();
+    const segments = best ? persistedSegments(best.candidate) : [];
+    if (!best || best.score < 6 || !segments.length) return next();
 
     req.body.selectedFlight = {
       ...selectedFlight,
-      segments: best.candidate.segments || [],
-      outboundSegments: best.candidate.outboundSegments || [],
-      returnSegments: best.candidate.returnSegments || [],
-      isRoundTrip: !!best.candidate.isRoundTrip,
-      returnDepartureTime: best.candidate.returnDepartureTime || '',
-      returnArrivalTime: best.candidate.returnArrivalTime || '',
-      returnDuration: best.candidate.returnDuration || '',
-      segmentHydration: {
-        source: best.candidate.source || null,
-        matchedAt: new Date().toISOString(),
-        confidenceScore: best.score
-      }
+      segments
     };
   } catch {
-    // Flight hydration is best-effort. Never block a user's explicit selection save.
+    // Hydration is best-effort. Never block a user's explicit selection save.
   }
 
   return next();
