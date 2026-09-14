@@ -116,7 +116,8 @@ const flightSegmentSchema = new mongoose.Schema({
   aircraft: String,
   departureTerminal: String,
   arrivalTerminal: String,
-  durationMinutes: Number
+  durationMinutes: Number,
+  journeyId: String
 }, { _id: false });
 
 const tripSchema = new mongoose.Schema({
