@@ -105,6 +105,20 @@ const tripOptionSchema = new mongoose.Schema({
   }
 }, { _id: false });
 
+const flightSegmentSchema = new mongoose.Schema({
+  id: String,
+  origin: String,
+  destination: String,
+  departureAt: String,
+  arrivalAt: String,
+  carrier: String,
+  flightNumber: String,
+  aircraft: String,
+  departureTerminal: String,
+  arrivalTerminal: String,
+  durationMinutes: Number
+}, { _id: false });
+
 const tripSchema = new mongoose.Schema({
   trip_id: {
     type: String,
@@ -203,6 +217,7 @@ const tripSchema = new mongoose.Schema({
     arrival: String,
     airline: String,
     flightNumber: String,
+    segments: [flightSegmentSchema],
     savedAt: { type: Date, default: Date.now }
   },
   selectedHotel: {
