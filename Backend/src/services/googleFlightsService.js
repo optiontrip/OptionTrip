@@ -70,8 +70,8 @@ const normalise = (raw, { origin, destination, departureDate, returnDate, adults
     overnight: !!l.overnight,
   }));
 
-  const outboundSegments = normalizeGoogleSegments(segs);
-  const returnSegments = normalizeGoogleSegments(rSegs);
+  const outboundSegments = normalizeGoogleSegments(segs, 'outbound');
+  const returnSegments = normalizeGoogleSegments(rSegs, 'return');
 
   return {
     id:            raw.next_token || raw.booking_token || `${origin}-${destination}-${Date.now()}-${Math.random()}`,
@@ -153,7 +153,7 @@ export const searchFlightsGoogle = async ({
     if (res.ok) break;
     if ((res.status === 502 || res.status === 504) && attempt < RETRIES) {
       const delay = attempt * 1500;
-      console.log(`⚠️  Google Flights ${res.status} — retry ${attempt}/${RETRIES - 1} in ${delay}ms`);
+      console.log(`⚠️  Google Flights ${res.status} - retry ${attempt}/${RETRIES - 1} in ${delay}ms`);
       await new Promise(r => setTimeout(r, delay));
       continue;
     }
