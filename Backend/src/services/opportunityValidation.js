@@ -37,11 +37,9 @@ const requiredForWindow = (window = {}) => {
 
 const automaticReturnBufferCheck = (window = {}) => {
   if (!window.eligibility?.requiresReturnBufferValidation) return null;
-
   const usableMinutes = Number(window.usableMinutes || 0);
   const rawMinutes = Number(window.rawMinutes || 0);
   const passed = usableMinutes >= 45 && rawMinutes > usableMinutes;
-
   return {
     status: passed ? 'pass' : 'fail',
     source: 'opportunity-engine-buffer',
@@ -56,7 +54,6 @@ const automaticTransportCheck = (window = {}) => {
   if (!window.eligibility?.requiresLiveTransportCheck) return null;
   const candidate = window.transportContext?.bestCandidate;
   if (!candidate || !window.transportContext?.source) return null;
-
   return {
     status: candidate.feasible ? 'pass' : 'fail',
     source: window.transportContext.source,
@@ -69,12 +66,10 @@ const automaticTransportCheck = (window = {}) => {
 
 const automaticOpeningHoursCheck = (window = {}) => {
   if (!window.eligibility?.requiresOpeningHoursCheck) return null;
-
   const bestPlaceId = window.transportContext?.bestCandidate?.placeId;
   const place = (window.nearbyPlaces || []).find((item) => item.placeId === bestPlaceId)
     || window.nearbyPlaces?.[0];
   if (!place) return null;
-
   if (place.businessStatus === 'CLOSED_PERMANENTLY') {
     return {
       status: 'fail',
@@ -83,21 +78,15 @@ const automaticOpeningHoursCheck = (window = {}) => {
       note: `${place.name || 'Candidate'} is marked permanently closed.`
     };
   }
-
   const now = new Date();
   const start = new Date(window.start);
   const end = new Date(window.end);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
-
-  // currentOpeningHours is a live signal. Only turn it into a gate for near-term windows;
-  // future trips keep the check pending until a fresh analysis is run closer to the visit.
   const hoursUntilStart = (start.getTime() - now.getTime()) / 3600000;
   if (hoursUntilStart < -1 || hoursUntilStart > 6) return null;
-
   const nextOpen = place.nextOpenTime ? new Date(place.nextOpenTime) : null;
   const nextClose = place.nextCloseTime ? new Date(place.nextCloseTime) : null;
   const minimumActivityEnd = new Date(start.getTime() + 30 * 60000);
-
   if (place.openNow === true && nextClose && !Number.isNaN(nextClose.getTime())) {
     if (nextClose >= minimumActivityEnd) {
       return {
@@ -115,7 +104,6 @@ const automaticOpeningHoursCheck = (window = {}) => {
       note: `${place.name || 'Candidate'} is open now but closes before the minimum activity window is available.`
     };
   }
-
   if (place.openNow === false && nextOpen && !Number.isNaN(nextOpen.getTime()) && nextOpen >= end) {
     return {
       status: 'fail',
@@ -124,32 +112,42 @@ const automaticOpeningHoursCheck = (window = {}) => {
       note: `${place.name || 'Candidate'} is closed and is not scheduled to open before this free-time window ends.`
     };
   }
-
   return null;
+};
+
+const automaticSafetyCheck = (window = {}) => {
+  if (!window.eligibility?.requiresSafetyCheck) return null;
+  const safety = window.safetyContext;
+  if (!safety || !['pass', 'fail'].includes(safety.validationStatus)) return null;
+  return {
+    status: safety.validationStatus,
+    source: safety.source || 'official_travel_advisory',
+    checkedAt: safety.checkedAt || new Date().toISOString(),
+    note: `${safety.country || 'Destination'}: Level ${safety.level} - ${safety.label}. ${safety.note || ''}`.trim()
+  };
 };
 
 const checksForWindow = (window = {}, validation = {}) => {
   const windowChecks = validation?.windows?.[window.id] || {};
-
   return Object.fromEntries(REQUIRED_KEYS.map((key) => {
     const explicit = windowChecks?.[key] ?? validation?.[key];
     if (explicit !== undefined) return [key, normalizeCheck(explicit)];
-
     if (key === 'returnBuffer') {
       const automatic = automaticReturnBufferCheck(window);
       if (automatic) return [key, automatic];
     }
-
     if (key === 'transport') {
       const automatic = automaticTransportCheck(window);
       if (automatic) return [key, automatic];
     }
-
     if (key === 'openingHours') {
       const automatic = automaticOpeningHoursCheck(window);
       if (automatic) return [key, automatic];
     }
-
+    if (key === 'safety') {
+      const automatic = automaticSafetyCheck(window);
+      if (automatic) return [key, automatic];
+    }
     return [key, normalizeCheck(null)];
   }));
 };
@@ -160,7 +158,6 @@ export const applyOpportunityValidation = (context = {}, validation = {}) => {
     const checks = checksForWindow(window, validation);
     const failed = required.filter((key) => checks[key].status === 'fail');
     const pending = required.filter((key) => checks[key].status !== 'pass');
-
     return {
       ...window,
       validation: {
@@ -173,7 +170,6 @@ export const applyOpportunityValidation = (context = {}, validation = {}) => {
       }
     };
   });
-
   return {
     ...context,
     windows,
