@@ -3,6 +3,7 @@ import { buildOpportunityContext } from '../services/opportunityEngine.js';
 import { buildFlightTimelineEvents } from '../services/flightTimeline.js';
 import { applyOpportunityValidation } from '../services/opportunityValidation.js';
 import { enrichOpportunityLiveContext } from '../services/opportunityLiveContext.js';
+import { enrichOpportunityNearbyPlaces } from '../services/opportunityNearbyPlaces.js';
 
 export const analyzeTripOpportunities = async (req, res) => {
   try {
@@ -41,17 +42,19 @@ export const analyzeTripOpportunities = async (req, res) => {
 
     const validatedContext = applyOpportunityValidation(context, validation);
     const liveContext = await enrichOpportunityLiveContext(validatedContext);
+    const enrichedContext = await enrichOpportunityNearbyPlaces(liveContext);
 
     return res.json({
       success: true,
-      data: liveContext,
+      data: enrichedContext,
       meta: {
         generatedAt: new Date().toISOString(),
         derivedFlightEvents: flightEvents.length,
         flightSource: flight ? 'request' : (trip.selectedFlight ? 'savedTrip' : 'none'),
-        requiresLiveValidation: liveContext.validationSummary.pendingWindows > 0,
-        liveContext: liveContext.liveContextSummary,
-        note: 'Only opportunities with all required live checks passed should be displayed as actionable recommendations. Weather context is live enrichment and does not replace entry, safety, transport, opening-hours or return-buffer validation.'
+        requiresLiveValidation: enrichedContext.validationSummary.pendingWindows > 0,
+        liveContext: enrichedContext.liveContextSummary,
+        nearbyPlaces: enrichedContext.nearbyPlacesSummary,
+        note: 'Only opportunities with all required live checks passed should be displayed as actionable recommendations. Weather and nearby-place data are live enrichment and do not replace entry, safety, transport, opening-hours or return-buffer validation.'
       }
     });
   } catch (error) {
