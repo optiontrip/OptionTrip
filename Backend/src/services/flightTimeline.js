@@ -10,6 +10,12 @@ const normalizeAirport = (value) => {
   return value.iataCode || value.code || value.airport || value.name || null;
 };
 
+const journeyIdForIndex = (index) => {
+  if (index === 0) return 'outbound';
+  if (index === 1) return 'return';
+  return `journey-${index}`;
+};
+
 const normalizeSegment = (segment = {}, index = 0, fallbackJourneyId = null) => {
   const departure = segment.departure || {};
   const arrival = segment.arrival || {};
@@ -64,7 +70,7 @@ export const normalizeFlightSegments = (selectedFlight = {}) => {
     return selectedFlight.itineraries
       .flatMap((itinerary, itineraryIndex) =>
         (itinerary?.segments || []).map((item, segmentIndex) =>
-          normalizeSegment(item, segmentIndex, itineraryIndex === 0 ? 'outbound' : `journey-${itineraryIndex}`)
+          normalizeSegment(item, segmentIndex, journeyIdForIndex(itineraryIndex))
         )
       )
       .filter(Boolean)

@@ -76,25 +76,33 @@ const enrichWindow = async (window = {}) => {
 
   const routed = await Promise.all(candidates.map(async (place) => {
     const destination = normalizeCoordinates(place.coordinates);
-    const outbound = await routeMinutes({ origin, destination });
-    if (!outbound) return null;
+    const [outbound, inbound] = await Promise.all([
+      routeMinutes({ origin, destination }),
+      routeMinutes({ origin: destination, destination: origin })
+    ]);
+    if (!outbound || !inbound) return null;
 
-    // For airport/free-time recommendations we need enough time to return to the same hub.
-    const roundTripMinutes = outbound.minutes * 2;
+    const roundTripMinutes = outbound.minutes + inbound.minutes;
     const usableMinutes = Number(window.usableMinutes || 0);
     const activityBufferMinutes = 60;
     const feasible = usableMinutes >= roundTripMinutes + activityBufferMinutes;
+    const outboundDistance = Number(outbound.distanceMeters || 0);
+    const inboundDistance = Number(inbound.distanceMeters || 0);
 
     return {
       placeId: place.placeId,
       name: place.name,
       opportunityType: place.opportunityType,
+      outboundMinutes: outbound.minutes,
+      returnMinutes: inbound.minutes,
       oneWayMinutes: outbound.minutes,
       roundTripMinutes,
-      distanceMetersOneWay: outbound.distanceMeters,
+      distanceMetersOutbound: outbound.distanceMeters,
+      distanceMetersReturn: inbound.distanceMeters,
+      distanceMetersRoundTrip: outboundDistance + inboundDistance || null,
       activityBufferMinutes,
       feasible,
-      remainingMinutes: feasible ? usableMinutes - roundTripMinutes : Math.max(0, usableMinutes - roundTripMinutes)
+      remainingMinutes: Math.max(0, usableMinutes - roundTripMinutes)
     };
   }));
 
@@ -109,6 +117,8 @@ const enrichWindow = async (window = {}) => {
       source: transportCandidates.length ? 'google_routes' : null,
       checkedAt: transportCandidates.length ? new Date().toISOString() : null,
       mode: 'DRIVE',
+      trafficAware: true,
+      requiresBothDirections: true,
       candidates: transportCandidates,
       bestCandidate: transportCandidates[0] || null
     }
