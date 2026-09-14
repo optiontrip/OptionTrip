@@ -115,6 +115,13 @@ const buildEligibilityRequirements = ({ beforeEvent, afterEvent, usableMinutes }
   };
 };
 
+const crossesFlightJourneyBoundary = (beforeEvent, afterEvent) => {
+  if (beforeEvent.type !== 'flight' || afterEvent.type !== 'flight') return false;
+  const beforeJourney = beforeEvent.metadata?.journeyId;
+  const afterJourney = afterEvent.metadata?.journeyId;
+  return !!beforeJourney && !!afterJourney && beforeJourney !== afterJourney;
+};
+
 export const detectFreeTimeWindows = ({ events = [], timezone = 'UTC', traveler = {} } = {}) => {
   const normalized = events
     .map(normalizeEvent)
@@ -126,6 +133,11 @@ export const detectFreeTimeWindows = ({ events = [], timezone = 'UTC', traveler 
   for (let index = 0; index < normalized.length - 1; index += 1) {
     const beforeEvent = normalized[index];
     const afterEvent = normalized[index + 1];
+
+    // A round-trip stay at the destination is not a layover. Only create
+    // flight-to-flight free-time windows inside the same journey/slice.
+    if (crossesFlightJourneyBoundary(beforeEvent, afterEvent)) continue;
+
     const start = beforeEvent.end || beforeEvent.start;
     const end = afterEvent.start;
     const rawMinutes = minutesBetween(start, end);
@@ -150,6 +162,7 @@ export const detectFreeTimeWindows = ({ events = [], timezone = 'UTC', traveler 
       daypart,
       location: beforeEvent.location || afterEvent.location || null,
       coordinates: beforeEvent.coordinates || afterEvent.coordinates || null,
+      journeyId: beforeEvent.metadata?.journeyId || afterEvent.metadata?.journeyId || null,
       beforeEvent: { id: beforeEvent.id, type: beforeEvent.type, title: beforeEvent.title },
       afterEvent: { id: afterEvent.id, type: afterEvent.type, title: afterEvent.title },
       opportunityTypes,
