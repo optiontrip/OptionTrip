@@ -2,6 +2,7 @@ import Trip from '../models/Trip.js';
 import { buildOpportunityContext } from '../services/opportunityEngine.js';
 import { buildFlightTimelineEvents } from '../services/flightTimeline.js';
 import { applyOpportunityValidation } from '../services/opportunityValidation.js';
+import { enrichOpportunityLiveContext } from '../services/opportunityLiveContext.js';
 
 export const analyzeTripOpportunities = async (req, res) => {
   try {
@@ -39,16 +40,18 @@ export const analyzeTripOpportunities = async (req, res) => {
     });
 
     const validatedContext = applyOpportunityValidation(context, validation);
+    const liveContext = await enrichOpportunityLiveContext(validatedContext);
 
     return res.json({
       success: true,
-      data: validatedContext,
+      data: liveContext,
       meta: {
         generatedAt: new Date().toISOString(),
         derivedFlightEvents: flightEvents.length,
         flightSource: flight ? 'request' : (trip.selectedFlight ? 'savedTrip' : 'none'),
-        requiresLiveValidation: validatedContext.validationSummary.pendingWindows > 0,
-        note: 'Only opportunities with all required live checks passed should be displayed as actionable recommendations.'
+        requiresLiveValidation: liveContext.validationSummary.pendingWindows > 0,
+        liveContext: liveContext.liveContextSummary,
+        note: 'Only opportunities with all required live checks passed should be displayed as actionable recommendations. Weather context is live enrichment and does not replace entry, safety, transport, opening-hours or return-buffer validation.'
       }
     });
   } catch (error) {
