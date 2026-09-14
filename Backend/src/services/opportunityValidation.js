@@ -67,6 +67,67 @@ const automaticTransportCheck = (window = {}) => {
   };
 };
 
+const automaticOpeningHoursCheck = (window = {}) => {
+  if (!window.eligibility?.requiresOpeningHoursCheck) return null;
+
+  const bestPlaceId = window.transportContext?.bestCandidate?.placeId;
+  const place = (window.nearbyPlaces || []).find((item) => item.placeId === bestPlaceId)
+    || window.nearbyPlaces?.[0];
+  if (!place) return null;
+
+  if (place.businessStatus === 'CLOSED_PERMANENTLY') {
+    return {
+      status: 'fail',
+      source: 'google_places_live_hours',
+      checkedAt: new Date().toISOString(),
+      note: `${place.name || 'Candidate'} is marked permanently closed.`
+    };
+  }
+
+  const now = new Date();
+  const start = new Date(window.start);
+  const end = new Date(window.end);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+
+  // currentOpeningHours is a live signal. Only turn it into a gate for near-term windows;
+  // future trips keep the check pending until a fresh analysis is run closer to the visit.
+  const hoursUntilStart = (start.getTime() - now.getTime()) / 3600000;
+  if (hoursUntilStart < -1 || hoursUntilStart > 6) return null;
+
+  const nextOpen = place.nextOpenTime ? new Date(place.nextOpenTime) : null;
+  const nextClose = place.nextCloseTime ? new Date(place.nextCloseTime) : null;
+  const minimumActivityEnd = new Date(start.getTime() + 30 * 60000);
+
+  if (place.openNow === true && nextClose && !Number.isNaN(nextClose.getTime())) {
+    if (nextClose >= minimumActivityEnd) {
+      return {
+        status: 'pass',
+        source: 'google_places_live_hours',
+        checkedAt: now.toISOString(),
+        note: `${place.name || 'Candidate'} is open and its live closing time leaves at least 30 minutes at the venue.`
+      };
+    }
+    if (nextClose <= start) return null;
+    return {
+      status: 'fail',
+      source: 'google_places_live_hours',
+      checkedAt: now.toISOString(),
+      note: `${place.name || 'Candidate'} is open now but closes before the minimum activity window is available.`
+    };
+  }
+
+  if (place.openNow === false && nextOpen && !Number.isNaN(nextOpen.getTime()) && nextOpen >= end) {
+    return {
+      status: 'fail',
+      source: 'google_places_live_hours',
+      checkedAt: now.toISOString(),
+      note: `${place.name || 'Candidate'} is closed and is not scheduled to open before this free-time window ends.`
+    };
+  }
+
+  return null;
+};
+
 const checksForWindow = (window = {}, validation = {}) => {
   const windowChecks = validation?.windows?.[window.id] || {};
 
@@ -81,6 +142,11 @@ const checksForWindow = (window = {}, validation = {}) => {
 
     if (key === 'transport') {
       const automatic = automaticTransportCheck(window);
+      if (automatic) return [key, automatic];
+    }
+
+    if (key === 'openingHours') {
+      const automatic = automaticOpeningHoursCheck(window);
       if (automatic) return [key, automatic];
     }
 
