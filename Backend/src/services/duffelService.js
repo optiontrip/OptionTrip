@@ -75,8 +75,8 @@ const normalise = (offer, { origin, destination, departureDate, returnDate, adul
     name: seg.destination?.name     || '',
   }));
 
-  const outboundSegments = normalizeDuffelSegments(segs);
-  const returnSegments = normalizeDuffelSegments(rSegs);
+  const outboundSegments = normalizeDuffelSegments(segs, 'outbound');
+  const returnSegments = normalizeDuffelSegments(rSegs, 'return');
 
   return {
     id:                offer.id || `duffel-${Date.now()}-${Math.random()}`,

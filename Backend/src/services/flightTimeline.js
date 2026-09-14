@@ -10,7 +10,7 @@ const normalizeAirport = (value) => {
   return value.iataCode || value.code || value.airport || value.name || null;
 };
 
-const normalizeSegment = (segment = {}, index = 0) => {
+const normalizeSegment = (segment = {}, index = 0, fallbackJourneyId = null) => {
   const departure = segment.departure || {};
   const arrival = segment.arrival || {};
 
@@ -43,20 +43,44 @@ const normalizeSegment = (segment = {}, index = 0) => {
     flightNumber: carrier && number && !String(number).startsWith(String(carrier))
       ? `${carrier}${number}`
       : (number || null),
-    terminalDeparture: departure.terminal || segment.departureTerminal || null,
-    terminalArrival: arrival.terminal || segment.arrivalTerminal || null
+    terminalDeparture: departure.terminal || segment.departureTerminal || segment.terminal || null,
+    terminalArrival: arrival.terminal || segment.arrivalTerminal || null,
+    aircraft: segment.aircraft || null,
+    journeyId: segment.journeyId || fallbackJourneyId || null
   };
 };
 
 export const normalizeFlightSegments = (selectedFlight = {}) => {
   const directSegments = Array.isArray(selectedFlight.segments) ? selectedFlight.segments : [];
-  const itinerarySegments = Array.isArray(selectedFlight.itineraries)
-    ? selectedFlight.itineraries.flatMap((itinerary) => itinerary?.segments || [])
-    : [];
 
-  const source = directSegments.length ? directSegments : itinerarySegments;
-  return source
-    .map(normalizeSegment)
+  if (directSegments.length) {
+    return directSegments
+      .map((item, index) => normalizeSegment(item, index, item?.journeyId || null))
+      .filter(Boolean)
+      .sort((a, b) => new Date(a.departureAt) - new Date(b.departureAt));
+  }
+
+  if (Array.isArray(selectedFlight.itineraries)) {
+    return selectedFlight.itineraries
+      .flatMap((itinerary, itineraryIndex) =>
+        (itinerary?.segments || []).map((item, segmentIndex) =>
+          normalizeSegment(item, segmentIndex, itineraryIndex === 0 ? 'outbound' : `journey-${itineraryIndex}`)
+        )
+      )
+      .filter(Boolean)
+      .sort((a, b) => new Date(a.departureAt) - new Date(b.departureAt));
+  }
+
+  const grouped = [
+    ...(Array.isArray(selectedFlight.outboundSegments)
+      ? selectedFlight.outboundSegments.map((item, index) => normalizeSegment(item, index, 'outbound'))
+      : []),
+    ...(Array.isArray(selectedFlight.returnSegments)
+      ? selectedFlight.returnSegments.map((item, index) => normalizeSegment(item, index, 'return'))
+      : [])
+  ];
+
+  return grouped
     .filter(Boolean)
     .sort((a, b) => new Date(a.departureAt) - new Date(b.departureAt));
 };
@@ -77,10 +101,12 @@ export const buildFlightTimelineEvents = (selectedFlight = {}) => {
     metadata: {
       source: 'selectedFlight',
       segmentIndex: index,
+      journeyId: segment.journeyId,
       origin: segment.origin,
       destination: segment.destination,
       carrier: segment.carrier,
       flightNumber: segment.flightNumber,
+      aircraft: segment.aircraft,
       terminalDeparture: segment.terminalDeparture,
       terminalArrival: segment.terminalArrival
     }
