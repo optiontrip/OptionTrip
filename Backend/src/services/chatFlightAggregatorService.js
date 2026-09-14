@@ -22,6 +22,9 @@ const extractTime = (iso) => {
   return m ? m[1] : '';
 };
 
+const withJourney = (segments = [], journeyId = '') =>
+  (segments || []).map((item) => ({ ...item, journeyId: item.journeyId || journeyId }));
+
 const normalizeDuffel = (flights) =>
   (flights || []).map(f => ({
     id: `duffel-${f.id}`,
@@ -40,8 +43,8 @@ const normalizeDuffel = (flights) =>
     currency: f.currency || 'USD',
     bookingUrl: f.bookingUrl,
     segments: f.segments || [],
-    outboundSegments: f.outboundSegments || [],
-    returnSegments: f.returnSegments || [],
+    outboundSegments: withJourney(f.outboundSegments, 'outbound'),
+    returnSegments: withJourney(f.returnSegments, 'return'),
     isRoundTrip: !!f.isRoundTrip,
     returnDepartureTime: f.returnDepartureTime || '',
     returnArrivalTime: f.returnArrivalTime || '',
@@ -66,8 +69,8 @@ const normalizeGoogle = (flights) =>
     currency: f.currency || 'USD',
     bookingUrl: f.bookingUrl,
     segments: f.segments || [],
-    outboundSegments: f.outboundSegments || [],
-    returnSegments: f.returnSegments || [],
+    outboundSegments: withJourney(f.outboundSegments, 'outbound'),
+    returnSegments: withJourney(f.returnSegments, 'return'),
     isRoundTrip: !!f.isRoundTrip,
     returnDepartureTime: f.returnDepartureTime || '',
     returnArrivalTime: f.returnArrivalTime || '',
@@ -81,7 +84,9 @@ const normalizeAmadeus = (offers, { originCode, destinationCode }) =>
     const segs = itin?.segments || [];
     const first = segs[0];
     const last = segs[segs.length - 1] || first;
-    const segmentGroups = itineraries.map((item) => normalizeAmadeusSegments(item?.segments || []));
+    const segmentGroups = itineraries.map((item, index) =>
+      normalizeAmadeusSegments(item?.segments || [], index === 0 ? 'outbound' : `journey-${index}`)
+    );
     const segments = segmentGroups.flat();
     return {
       id: `amadeus-${offer.id}`,
@@ -101,7 +106,9 @@ const normalizeAmadeus = (offers, { originCode, destinationCode }) =>
       bookingUrl: offer.bookingUrl,
       segments,
       outboundSegments: segmentGroups[0] || [],
-      returnSegments: segmentGroups[1] || [],
+      returnSegments: itineraries.length > 1
+        ? withJourney(segmentGroups[1] || [], 'return')
+        : [],
       isRoundTrip: itineraries.length > 1,
       returnDepartureTime: '',
       returnArrivalTime: '',
@@ -110,30 +117,35 @@ const normalizeAmadeus = (offers, { originCode, destinationCode }) =>
   });
 
 const normalizeTravelpayouts = (flights) =>
-  (flights || []).map(f => ({
-    id: `tp-${f.id}`,
-    source: 'travelpayouts',
-    origin: f.origin,
-    destination: f.destination,
-    departureTime: extractTime(f.departureAt),
-    arrivalTime: '',
-    duration: f.duration || '',
-    stops: f.stops ?? 0,
-    airline: f.airline || '',
-    airlineLogo: '',
-    flightNumber: f.flightNumber || '',
-    cabinClass: '',
-    price: Number(f.price) || 0,
-    currency: f.currency || 'USD',
-    bookingUrl: f.bookingUrl,
-    segments: Array.isArray(f.segments) ? f.segments : [],
-    outboundSegments: Array.isArray(f.outboundSegments) ? f.outboundSegments : [],
-    returnSegments: Array.isArray(f.returnSegments) ? f.returnSegments : [],
-    isRoundTrip: !!f.isRoundTrip,
-    returnDepartureTime: f.returnDepartureTime || '',
-    returnArrivalTime: '',
-    returnDuration: ''
-  }));
+  (flights || []).map(f => {
+    const outboundSegments = withJourney(f.outboundSegments, 'outbound');
+    const returnSegments = withJourney(f.returnSegments, 'return');
+    const directSegments = Array.isArray(f.segments) ? f.segments : [];
+    return {
+      id: `tp-${f.id}`,
+      source: 'travelpayouts',
+      origin: f.origin,
+      destination: f.destination,
+      departureTime: extractTime(f.departureAt),
+      arrivalTime: '',
+      duration: f.duration || '',
+      stops: f.stops ?? 0,
+      airline: f.airline || '',
+      airlineLogo: '',
+      flightNumber: f.flightNumber || '',
+      cabinClass: '',
+      price: Number(f.price) || 0,
+      currency: f.currency || 'USD',
+      bookingUrl: f.bookingUrl,
+      segments: directSegments.length ? directSegments : [...outboundSegments, ...returnSegments],
+      outboundSegments,
+      returnSegments,
+      isRoundTrip: !!f.isRoundTrip,
+      returnDepartureTime: f.returnDepartureTime || '',
+      returnArrivalTime: '',
+      returnDuration: ''
+    };
+  });
 
 export const aggregateFlightSearch = async ({
   origin, destination, departureDate, returnDate = null, adults = 1, travelClass = 'economy'
