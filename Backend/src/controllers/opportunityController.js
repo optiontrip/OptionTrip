@@ -6,6 +6,7 @@ import { enrichOpportunityLiveContext } from '../services/opportunityLiveContext
 import { enrichOpportunityNearbyPlaces } from '../services/opportunityNearbyPlaces.js';
 import { enrichOpportunityTransportContext } from '../services/opportunityTransportContext.js';
 import { enrichOpportunitySafetyContext } from '../services/opportunitySafetyContext.js';
+import { enrichOpportunityEntryContext } from '../services/opportunityEntryContext.js';
 
 export const analyzeTripOpportunities = async (req, res) => {
   try {
@@ -46,7 +47,8 @@ export const analyzeTripOpportunities = async (req, res) => {
     const placesContext = await enrichOpportunityNearbyPlaces(liveContext);
     const transportContext = await enrichOpportunityTransportContext(placesContext);
     const safetyContext = await enrichOpportunitySafetyContext(transportContext);
-    const validatedContext = applyOpportunityValidation(safetyContext, validation);
+    const entryContext = await enrichOpportunityEntryContext(safetyContext);
+    const validatedContext = applyOpportunityValidation(entryContext, validation);
 
     return res.json({
       success: true,
@@ -60,7 +62,8 @@ export const analyzeTripOpportunities = async (req, res) => {
         nearbyPlaces: validatedContext.nearbyPlacesSummary,
         transport: validatedContext.transportSummary,
         safety: validatedContext.safetySummary,
-        note: 'Only opportunities with all required live checks passed should be displayed as actionable recommendations. Current U.S. Department of State advisories are used as an official safety signal for confirmed U.S. travelers; Level 1 can pass and Level 4 can fail the safety gate, while Levels 2 and 3 remain pending for a more specific review. Entry rules remain independently required.'
+        entry: validatedContext.entrySummary,
+        note: 'Only opportunities with all required live checks passed should be displayed as actionable recommendations. U.S. Department of State country information is used as an official entry signal only for explicitly confirmed U.S. passport holders, and the entry gate remains pending unless passport/document status is sufficiently confirmed. No visa eligibility is guessed.'
       }
     });
   } catch (error) {
