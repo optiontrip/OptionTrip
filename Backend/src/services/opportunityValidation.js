@@ -127,6 +127,18 @@ const automaticSafetyCheck = (window = {}) => {
   };
 };
 
+const automaticEntryCheck = (window = {}) => {
+  if (!window.eligibility?.requiresPassportOrVisaValidation) return null;
+  const entry = window.entryContext;
+  if (!entry || !['pass', 'fail'].includes(entry.validationStatus)) return null;
+  return {
+    status: entry.validationStatus,
+    source: entry.source || 'official_entry_requirements',
+    checkedAt: entry.checkedAt || new Date().toISOString(),
+    note: `${entry.country || 'Destination'}: ${entry.touristVisaRequirement || 'entry requirement checked'}. ${entry.note || ''}`.trim()
+  };
+};
+
 const checksForWindow = (window = {}, validation = {}) => {
   const windowChecks = validation?.windows?.[window.id] || {};
   return Object.fromEntries(REQUIRED_KEYS.map((key) => {
@@ -146,6 +158,10 @@ const checksForWindow = (window = {}, validation = {}) => {
     }
     if (key === 'safety') {
       const automatic = automaticSafetyCheck(window);
+      if (automatic) return [key, automatic];
+    }
+    if (key === 'entry') {
+      const automatic = automaticEntryCheck(window);
       if (automatic) return [key, automatic];
     }
     return [key, normalizeCheck(null)];
