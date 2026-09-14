@@ -57,7 +57,7 @@ export const analyzeTripOpportunities = async (req, res) => {
         liveContext: validatedContext.liveContextSummary,
         nearbyPlaces: validatedContext.nearbyPlacesSummary,
         transport: validatedContext.transportSummary,
-        note: 'Only opportunities with all required live checks passed should be displayed as actionable recommendations. Live route timing can satisfy the transport check when available; entry, safety and opening-hours checks still remain independent requirements.'
+        note: 'Only opportunities with all required live checks passed should be displayed as actionable recommendations. Live route timing can satisfy transport checks and fresh Google Places hours can satisfy near-term opening-hours checks; future opening hours, entry and safety remain pending until independently validated.'
       }
     });
   } catch (error) {
