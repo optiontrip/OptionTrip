@@ -5,7 +5,7 @@ import { buildFlightTimelineEvents } from '../services/flightTimeline.js';
 export const analyzeTripOpportunities = async (req, res) => {
   try {
     const { tripId } = req.params;
-    const { events = [], traveler = {}, timezone = 'UTC' } = req.body || {};
+    const { events = [], traveler = {}, timezone = 'UTC', flight = null } = req.body || {};
 
     const trip = await Trip.findOne({
       trip_id: tripId,
@@ -17,7 +17,8 @@ export const analyzeTripOpportunities = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Trip not found' });
     }
 
-    const flightEvents = buildFlightTimelineEvents(trip.selectedFlight || {});
+    const flightSource = flight || trip.selectedFlight || {};
+    const flightEvents = buildFlightTimelineEvents(flightSource);
     const mergedEvents = [...flightEvents, ...events];
 
     const context = buildOpportunityContext({
@@ -36,6 +37,7 @@ export const analyzeTripOpportunities = async (req, res) => {
       meta: {
         generatedAt: new Date().toISOString(),
         derivedFlightEvents: flightEvents.length,
+        flightSource: flight ? 'request' : (trip.selectedFlight ? 'savedTrip' : 'none'),
         requiresLiveValidation: true,
         note: 'Suggestions must be validated against current entry rules, opening hours, transport, safety, availability and return-time buffers before display as actionable recommendations.'
       }
