@@ -85,6 +85,8 @@ const searchPlaces = async ({ query, coordinates }) => {
       businessStatus: place.businessStatus || null,
       primaryType: place.primaryType || null,
       openNow: place.currentOpeningHours?.openNow ?? null,
+      nextOpenTime: place.currentOpeningHours?.nextOpenTime || null,
+      nextCloseTime: place.currentOpeningHours?.nextCloseTime || null,
       weekdayDescriptions: place.regularOpeningHours?.weekdayDescriptions || [],
       source: 'google_places'
     }));
