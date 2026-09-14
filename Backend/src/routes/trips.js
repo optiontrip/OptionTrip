@@ -30,6 +30,7 @@ import {
   validateOptionSelection
 } from '../middleware/validation.js';
 import { authenticate } from '../middleware/auth.js';
+import { hydrateFlightSelection } from '../middleware/hydrateFlightSelection.js';
 
 const router = express.Router();
 
@@ -63,7 +64,7 @@ router.patch('/:tripId/select-option', validateTripId, validateOptionSelection, 
 
 router.post('/:tripId/save', authenticate, validateTripId, saveTrip);
 
-router.patch('/:tripId/selection', authenticate, validateTripId, updateTripSelection);
+router.patch('/:tripId/selection', authenticate, validateTripId, hydrateFlightSelection, updateTripSelection);
 
 router.delete('/:tripId', authenticate, validateTripId, deleteTrip);
 
