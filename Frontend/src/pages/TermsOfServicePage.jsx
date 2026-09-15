@@ -1,189 +1,35 @@
 import React from 'react';
 import PageMeta from '../hooks/usePageMeta';
+import { CONTACT_EMAIL } from '../config/contact';
 
 const sections = [
-  {
-    title: '1. Acceptance of Terms',
-    text: 'By accessing or using Option Trip ("the Service"), you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using or accessing this site. These terms apply to all users, visitors, and others who access or use the Service.',
-  },
-  {
-    title: '2. Description of Service',
-    text: 'Option Trip is a travel planning platform, powered by Travel Partner Vi, that enables users to create personalized travel itineraries, discover destinations, and plan trips using our Travel Partner Vi assistant. The Service is provided "as is" and we reserve the right to modify, suspend, or discontinue it at any time.',
-  },
-  {
-    title: '3. User Accounts',
-    text: 'To access certain features, you must create an account. You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You must notify us immediately at optiontripcom@gmail.com of any unauthorized use. You must be at least 13 years old to create an account. Providing false information during registration may result in account termination.',
-  },
-  {
-    title: '4. Acceptable Use',
-    text: 'You agree not to: use the Service for any unlawful purpose; transmit any harmful, threatening, or offensive content; attempt to gain unauthorized access to any part of the Service; use automated tools to scrape or collect data without permission; impersonate any person or entity; interfere with the proper functioning of the Service; or violate any applicable local, national, or international law.',
-  },
-  {
-    title: '5. AI-Generated Content',
-    text: 'Our Travel Partner Vi uses artificial intelligence to generate travel itineraries and recommendations. While we strive for accuracy, AI-generated content may contain errors or outdated information. Option Trip is not responsible for inaccuracies in AI-generated travel plans. Users are responsible for verifying travel requirements, visa conditions, safety advisories, and booking details independently before traveling.',
-  },
-  {
-    title: '6. Intellectual Property',
-    text: 'The Service and its original content, features, and functionality are and will remain the exclusive property of Option Trip and its licensors. Our trademarks may not be used in connection with any product or service without the prior written consent of Option Trip. User-generated content remains your property; by submitting content you grant us a non-exclusive license to use it in connection with providing the Service.',
-  },
-  {
-    title: '7. Third-Party Services',
-    text: 'Option Trip may integrate with or link to third-party services (including Google, social media platforms, and booking providers). We are not responsible for the content, privacy practices, or terms of any third-party services. Your use of third-party services is governed by their respective terms and privacy policies.',
-  },
-  {
-    title: '8. Disclaimer of Warranties',
-    text: 'The Service is provided on an "as is" and "as available" basis without warranties of any kind, either express or implied, including but not limited to implied warranties of merchantability, fitness for a particular purpose, or non-infringement. Option Trip does not warrant that the Service will be uninterrupted, error-free, or completely secure.',
-  },
-  {
-    title: '9. Limitation of Liability',
-    text: 'To the maximum extent permitted by law, Option Trip shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses resulting from your use of the Service, even if Option Trip has been advised of the possibility of such damages.',
-  },
-  {
-    title: '10. Indemnification',
-    text: 'You agree to indemnify and hold harmless Option Trip, its affiliates, officers, agents, and employees from any claims, damages, losses, and expenses (including reasonable legal fees) arising from your use of the Service, violation of these Terms, or violation of any rights of a third party.',
-  },
-  {
-    title: '11. Termination',
-    text: 'We reserve the right to terminate or suspend your account and access to the Service immediately, without prior notice, for conduct that we determine violates these Terms, is harmful to other users, us, or third parties, or for any other reason at our sole discretion. Upon termination, your right to use the Service will cease immediately.',
-  },
-  {
-    title: '12. Changes to Terms',
-    text: 'We reserve the right to modify these Terms at any time. We will notify users of material changes by email or by posting a notice on the platform. Your continued use of the Service after such modifications constitutes your acceptance of the updated Terms.',
-  },
-  {
-    title: '13. Governing Law',
-    text: 'These Terms shall be governed by and construed in accordance with applicable laws, without regard to conflict of law provisions. Any disputes relating to these Terms shall be subject to the exclusive jurisdiction of the courts in the relevant jurisdiction.',
-  },
-  {
-    title: '14. Contact',
-    text: 'For questions about these Terms of Service, please contact us at optiontripcom@gmail.com or visit www.OptionTrip.com.',
-  },
+  { title: '1. Acceptance of Terms', text: 'By accessing or using Option Trip ("the Service"), you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using or accessing this site. These terms apply to all users, visitors, and others who access or use the Service.' },
+  { title: '2. Description of Service', text: 'Option Trip is a travel planning platform, powered by Travel Partner Vi, that enables users to create personalized travel itineraries, discover destinations, and plan trips using our Travel Partner Vi assistant. The Service is provided "as is" and we reserve the right to modify, suspend, or discontinue it at any time.' },
+  { title: '3. User Accounts', text: `To access certain features, you must create an account. You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You must notify us immediately at ${CONTACT_EMAIL} of any unauthorized use. You must be at least 13 years old to create an account. Providing false information during registration may result in account termination.` },
+  { title: '4. Acceptable Use', text: 'You agree not to: use the Service for any unlawful purpose; transmit any harmful, threatening, or offensive content; attempt to gain unauthorized access to any part of the Service; use automated tools to scrape or collect data without permission; impersonate any person or entity; interfere with the proper functioning of the Service; or violate any applicable local, national, or international law.' },
+  { title: '5. AI-Generated Content', text: 'Our Travel Partner Vi uses artificial intelligence to generate travel itineraries and recommendations. While we strive for accuracy, AI-generated content may contain errors or outdated information. Option Trip is not responsible for inaccuracies in AI-generated travel plans. Users are responsible for verifying travel requirements, visa conditions, safety advisories, and booking details independently before traveling.' },
+  { title: '6. Intellectual Property', text: 'The Service and its original content, features, and functionality are and will remain the exclusive property of Option Trip and its licensors. Our trademarks may not be used in connection with any product or service without the prior written consent of Option Trip. User-generated content remains your property; by submitting content you grant us a non-exclusive license to use it in connection with providing the Service.' },
+  { title: '7. Third-Party Services', text: 'Option Trip may integrate with or link to third-party services (including Google, social media platforms, and booking providers). We are not responsible for the content, privacy practices, or terms of any third-party services. Your use of third-party services is governed by their respective terms and privacy policies.' },
+  { title: '8. Disclaimer of Warranties', text: 'The Service is provided on an "as is" and "as available" basis without warranties of any kind, either express or implied, including but not limited to implied warranties of merchantability, fitness for a particular purpose, or non-infringement. Option Trip does not warrant that the Service will be uninterrupted, error-free, or completely secure.' },
+  { title: '9. Limitation of Liability', text: 'To the maximum extent permitted by law, Option Trip shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses resulting from your use of the Service, even if Option Trip has been advised of the possibility of such damages.' },
+  { title: '10. Indemnification', text: 'You agree to indemnify and hold harmless Option Trip, its affiliates, officers, agents, and employees from any claims, damages, losses, and expenses (including reasonable legal fees) arising from your use of the Service, violation of these Terms, or violation of any rights of a third party.' },
+  { title: '11. Termination', text: 'We reserve the right to terminate or suspend your account and access to the Service immediately, without prior notice, for conduct that we determine violates these Terms, is harmful to other users, us, or third parties, or for any other reason at our sole discretion. Upon termination, your right to use the Service will cease immediately.' },
+  { title: '12. Changes to Terms', text: 'We reserve the right to modify these Terms at any time. We will notify users of material changes by email or by posting a notice on the platform. Your continued use of the Service after such modifications constitutes your acceptance of the updated Terms.' },
+  { title: '13. Governing Law', text: 'These Terms shall be governed by and construed in accordance with applicable laws, without regard to conflict of law provisions. Any disputes relating to these Terms shall be subject to the exclusive jurisdiction of the courts in the relevant jurisdiction.' },
+  { title: '14. Contact', text: `For questions about these Terms of Service, please contact us at ${CONTACT_EMAIL} or visit www.OptionTrip.com.` },
 ];
 
-const TermsOfServicePage = () => {
-  return (
-    <>
-      <PageMeta
-        title="Terms of Service"
-        description="The terms you agree to when using OptionTrip — user responsibilities, service scope, and our commitments to you."
-        keywords="terms of service, user agreement, optiontrip terms"
-        path="/terms"
-      />
-
-      <div
-        className="banner pt-10 pb-0 overflow-hidden"
-        style={{ backgroundImage: `url(/images/testimonial.png)` }}
-      >
-        <div className="container">
-          <div className="banner-in">
-            <div className="row align-items-center">
-              <div className="col-lg-12 mb-4">
-                <div className="banner-content text-center">
-                  <h4 className="theme mb-0">Legal</h4>
-                  <h1>Terms of Service</h1>
-                  <p className="mb-4">
-                    Please read these terms carefully before using Option Trip. They govern your use of our platform.
-                  </p>
-                  <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px' }}>
-                    Last updated: March 1, 2026
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-
-      <section style={{ padding: '80px 0', background: '#fff' }}>
-        <div className="container">
-          <div className="row justify-content-center">
-            <div className="col-lg-9">
-
-              <div
-                style={{
-                  background: 'linear-gradient(135deg, rgba(10,83,157,0.05), rgba(2,158,157,0.08))',
-                  borderRadius: '16px',
-                  padding: '28px 32px',
-                  marginBottom: '48px',
-                  borderLeft: '4px solid #029e9d',
-                }}
-              >
-                <p style={{ color: '#555', lineHeight: '1.8', margin: 0 }}>
-                  Welcome to Option Trip. These Terms of Service ("Terms") govern your access to and use of the Option Trip website, mobile applications, and services (collectively, the "Service") operated by Option Trip. These Terms form a legally binding agreement between you and Option Trip.
-                </p>
-              </div>
-
-
-              <div
-                style={{
-                  background: '#f8f9fa',
-                  borderRadius: '14px',
-                  padding: '24px',
-                  marginBottom: '48px',
-                }}
-              >
-                <h6 style={{ color: '#17233e', marginBottom: '14px', fontWeight: '700' }}>
-                  Quick Navigation
-                </h6>
-                <div className="row g-2">
-                  {sections.map((s, i) => (
-                    <div className="col-lg-6" key={i}>
-                      <a
-                        href={`#section-${i}`}
-                        style={{
-                          display: 'block',
-                          color: '#029e9d',
-                          fontSize: '13px',
-                          textDecoration: 'none',
-                          padding: '4px 0',
-                        }}
-                      >
-                        <i className="fas fa-chevron-right" style={{ fontSize: '10px', marginRight: '6px' }}></i>
-                        {s.title}
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-
-              {sections.map((section, i) => (
-                <div key={i} id={`section-${i}`} style={{ marginBottom: '40px' }}>
-                  <h3
-                    style={{
-                      color: '#17233e',
-                      borderBottom: '2px solid #f0f0f0',
-                      paddingBottom: '12px',
-                      marginBottom: '16px',
-                    }}
-                  >
-                    {section.title}
-                  </h3>
-                  <p style={{ color: '#777', lineHeight: '1.8', margin: 0 }}>{section.text}</p>
-                </div>
-              ))}
-
-
-              <div
-                style={{
-                  background: 'linear-gradient(135deg, #0A539D, #029e9d)',
-                  borderRadius: '16px',
-                  padding: '28px 32px',
-                  marginTop: '40px',
-                  textAlign: 'center',
-                }}
-              >
-                <p style={{ color: '#fff', lineHeight: '1.7', margin: 0, fontSize: '15px' }}>
-                  By using Option Trip, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </>
-  );
-};
+const TermsOfServicePage = () => (
+  <>
+    <PageMeta title="Terms of Service" description="The terms you agree to when using OptionTrip — user responsibilities, service scope, and our commitments to you." keywords="terms of service, user agreement, optiontrip terms" path="/terms" />
+    <div className="banner pt-10 pb-0 overflow-hidden" style={{ backgroundImage: `url(/images/testimonial.png)` }}><div className="container"><div className="banner-in"><div className="row align-items-center"><div className="col-lg-12 mb-4"><div className="banner-content text-center"><h4 className="theme mb-0">Legal</h4><h1>Terms of Service</h1><p className="mb-4">Please read these terms carefully before using Option Trip. They govern your use of our platform.</p><p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px' }}>Last updated: March 1, 2026</p></div></div></div></div></div></div>
+    <section style={{ padding: '80px 0', background: '#fff' }}><div className="container"><div className="row justify-content-center"><div className="col-lg-9">
+      <div style={{ background: 'linear-gradient(135deg, rgba(10,83,157,0.05), rgba(2,158,157,0.08))', borderRadius: '16px', padding: '28px 32px', marginBottom: '48px', borderLeft: '4px solid #029e9d' }}><p style={{ color: '#555', lineHeight: '1.8', margin: 0 }}>Welcome to Option Trip. These Terms of Service ("Terms") govern your access to and use of the Option Trip website, mobile applications, and services (collectively, the "Service") operated by Option Trip. These Terms form a legally binding agreement between you and Option Trip.</p></div>
+      <div style={{ background: '#f8f9fa', borderRadius: '14px', padding: '24px', marginBottom: '48px' }}><h6 style={{ color: '#17233e', marginBottom: '14px', fontWeight: '700' }}>Quick Navigation</h6><div className="row g-2">{sections.map((s, i) => <div className="col-lg-6" key={i}><a href={`#section-${i}`} style={{ display: 'block', color: '#029e9d', fontSize: '13px', textDecoration: 'none', padding: '4px 0' }}><i className="fas fa-chevron-right" style={{ fontSize: '10px', marginRight: '6px' }}></i>{s.title}</a></div>)}</div></div>
+      {sections.map((section, i) => <div key={i} id={`section-${i}`} style={{ marginBottom: '40px' }}><h3 style={{ color: '#17233e', borderBottom: '2px solid #f0f0f0', paddingBottom: '12px', marginBottom: '16px' }}>{section.title}</h3><p style={{ color: '#777', lineHeight: '1.8', margin: 0 }}>{section.text}</p></div>)}
+      <div style={{ background: 'linear-gradient(135deg, #0A539D, #029e9d)', borderRadius: '16px', padding: '28px 32px', marginTop: '40px', textAlign: 'center' }}><p style={{ color: '#fff', lineHeight: '1.7', margin: 0, fontSize: '15px' }}>By using Option Trip, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.</p></div>
+    </div></div></div></section>
+  </>
+);
 
 export default TermsOfServicePage;
