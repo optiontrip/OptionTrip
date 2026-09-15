@@ -1,0 +1,215 @@
+/* Mobile-specific footer polish. Desktop layout remains in Footer.css. */
+.footer-main,
+.footer-subscribe-strip {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+@media (max-width: 767px) {
+  .footer-subscribe-strip {
+    padding: 30px 0;
+  }
+
+  .footer-subscribe-strip .container,
+  .footer-main .container {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .footer-subscribe-inner {
+    gap: 18px;
+  }
+
+  .footer-subscribe-title {
+    font-size: 21px;
+    line-height: 1.25;
+  }
+
+  .footer-subscribe-subtitle {
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 34rem;
+  }
+
+  .footer-subscribe-btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 22px;
+  }
+
+  .footer-main {
+    padding-top: 28px;
+    background-color: #0f1e32;
+  }
+
+  .footer-columns {
+    padding-bottom: 24px;
+  }
+
+  .footer-columns-grid {
+    gap: 14px;
+  }
+
+  .footer-col {
+    min-width: 0;
+  }
+
+  .footer-col--about {
+    padding: 20px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 18px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018));
+    box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+  }
+
+  .footer-logo {
+    height: 40px;
+    margin-bottom: 14px;
+  }
+
+  .footer-about-desc {
+    font-size: 14px;
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+
+  .footer-contact-list {
+    gap: 6px;
+    margin-bottom: 18px;
+  }
+
+  .footer-contact-list li {
+    min-height: 44px;
+    gap: 10px;
+  }
+
+  .footer-contact-icon {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #17b7b4;
+    background: rgba(2,158,157,0.12);
+    font-size: 13px;
+  }
+
+  .footer-contact-list a {
+    font-size: 14px;
+    overflow-wrap: anywhere;
+  }
+
+  .footer-trust-block {
+    padding-top: 14px;
+  }
+
+  .footer-trust-list {
+    gap: 4px;
+  }
+
+  .footer-trust-list li {
+    min-height: 38px;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .footer-col:not(.footer-col--about) {
+    padding: 18px 18px 10px;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    background: rgba(255,255,255,0.025);
+  }
+
+  .footer-col-title {
+    font-size: 14px;
+    line-height: 1.25;
+    margin-bottom: 8px;
+    letter-spacing: 0.055em;
+  }
+
+  .footer-col-links {
+    gap: 0;
+  }
+
+  .footer-col-links li {
+    width: 100%;
+    display: block;
+    border-bottom: 1px solid rgba(255,255,255,0.045);
+  }
+
+  .footer-col-links li:last-child {
+    border-bottom: 0;
+  }
+
+  .footer-col-links li a {
+    min-height: 42px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    line-height: 1.45;
+    padding: 8px 0;
+    overflow-wrap: anywhere;
+  }
+
+  .footer-locale-section {
+    padding: 18px 0;
+  }
+
+  .footer-locale-bar {
+    gap: 10px;
+  }
+
+  .footer-locale-item {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .footer-bottom {
+    padding-top: 18px;
+    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .footer-bottom-inner {
+    gap: 14px;
+  }
+
+  .footer-copyright-text {
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .footer-social a {
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.05);
+  }
+}
+
+@media (max-width: 480px) {
+  .footer-columns-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-col--about,
+  .footer-col:not(.footer-col--about) {
+    border-radius: 14px;
+  }
+
+  .footer-col--about {
+    padding: 18px;
+  }
+
+  .footer-col:not(.footer-col--about) {
+    padding: 16px 16px 8px;
+  }
+}
