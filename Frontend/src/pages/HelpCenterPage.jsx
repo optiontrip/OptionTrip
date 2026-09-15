@@ -1,310 +1,42 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageMeta from '../hooks/usePageMeta';
+import { CONTACT_EMAIL, CONTACT_MAILTO } from '../config/contact';
 
 const faqs = [
-  {
-    category: 'Getting Started',
-    icon: 'fas fa-rocket',
-    color: '#e8f0fe',
-    accent: '#0A539D',
-    questions: [
-      {
-        q: 'How do I create an account on Option Trip?',
-        a: 'Click the "Sign Up" button in the top navigation. You can register with your email address or quickly sign in using Google, Facebook, or Twitter. Registration is free and takes less than a minute.',
-      },
-      {
-        q: 'Is Option Trip free to use?',
-        a: 'Yes! Planning trips with VI TravelBuddy is completely free. You can create itineraries, explore destinations, and get travel recommendations at no cost. Premium features may be introduced in the future.',
-      },
-      {
-        q: 'What is VI TravelBuddy?',
-        a: 'VI is your Travel Partner — a personal travel assistant that creates personalized travel itineraries, suggests destinations, answers travel questions, and adapts plans based on your preferences, all through a simple conversation.',
-      },
-      {
-        q: 'Which languages does Option Trip support?',
-        a: 'Option Trip supports 22 languages including English, French, German, Spanish, Italian, Arabic, Hindi, Chinese, Japanese, and many more. Use the language switcher in the header to change your language.',
-      },
-    ],
-  },
-  {
-    category: 'Trip Planning',
-    icon: 'fas fa-map-marked-alt',
-    color: '#e8f8f6',
-    accent: '#029e9d',
-    questions: [
-      {
-        q: 'How do I plan a trip with VI?',
-        a: 'Simply go to the home page and tell VI where you want to go, your travel dates, budget, and preferences. VI will generate a complete itinerary. You can refine it by chatting with VI directly.',
-      },
-      {
-        q: 'Can I save and edit my trip plans?',
-        a: 'Yes! All your trip plans are saved to your account under "My Trips." You can view, edit, and revisit them anytime. Create a free account to save unlimited trips.',
-      },
-      {
-        q: 'How accurate are VI\'s itinerary suggestions?',
-        a: 'VI draws on extensive travel data to generate high-quality itineraries. However, we always recommend verifying visa requirements, operating hours, and booking availability independently before traveling.',
-      },
-      {
-        q: 'Can VI plan trips for groups and families?',
-        a: 'Absolutely. Tell VI your group size, ages (especially for families with children), and any special requirements. VI will tailor the itinerary to suit everyone in your group.',
-      },
-    ],
-  },
-  {
-    category: 'Account & Settings',
-    icon: 'fas fa-user-cog',
-    color: '#fff3e0',
-    accent: '#e65100',
-    questions: [
-      {
-        q: 'How do I change my language or currency?',
-        a: 'Use the Language, Currency, and Country selectors in the website header or footer. Your preferences will be saved for your next visit if you are logged in.',
-      },
-      {
-        q: 'How do I reset my password?',
-        a: 'Click "Login" then "Forgot Password." Enter your email address and we\'ll send you a password reset link. If you signed up with Google or another OAuth provider, use that service to log in.',
-      },
-      {
-        q: 'How do I delete my account?',
-        a: 'To delete your account and all associated data, please contact us at optiontripcom@gmail.com with the subject "Account Deletion Request." We will process your request within 30 days.',
-      },
-    ],
-  },
-  {
-    category: 'Privacy & Security',
-    icon: 'fas fa-lock',
-    color: '#e8f5e9',
-    accent: '#2e7d32',
-    questions: [
-      {
-        q: 'Is my personal data safe with Option Trip?',
-        a: 'Yes. We use industry-standard encryption (TLS) for all data in transit and encrypt sensitive stored data. We never sell your personal data to third parties. Read our Privacy Policy for full details.',
-      },
-      {
-        q: 'Does Option Trip share my data with airlines or stay providers?',
-        a: 'No. We do not share your personal data with travel providers. Option Trip helps you plan trips, but booking is done directly with providers. We are not a booking platform.',
-      },
-      {
-        q: 'How do I access or delete my data?',
-        a: 'You have full rights over your data. To access, correct, or delete your personal data, contact us at optiontripcom@gmail.com. We will respond within 30 days. See our Data Protection page for details.',
-      },
-    ],
-  },
+  { category: 'Getting Started', icon: 'fas fa-rocket', questions: [
+    { q: 'What is OptionTrip?', a: 'OptionTrip is a travel technology platform being built around Travel Partner Vi. It brings trip discovery, planning, comparison, destination context, and travel tools into one connected experience.' },
+    { q: 'What is Travel Partner Vi?', a: 'Vi is the central travel assistant inside OptionTrip. You can use Vi to discuss a destination, trip idea, dates, budget, interests, and other preferences and continue planning from that context.' },
+    { q: 'Can I change language, currency, and country?', a: 'Yes. Use the language, currency, and country selectors available on OptionTrip. We are continuing to improve consistency across translated pages.' },
+  ]},
+  { category: 'Planning & Booking', icon: 'fas fa-map-marked-alt', questions: [
+    { q: 'How do I start planning?', a: 'Open Travel Partner Vi or the planning tools and tell us where you want to go, or describe the type of trip you want. Add dates, budget, travelers, and preferences when you know them.' },
+    { q: 'Does OptionTrip sell every travel service directly?', a: 'Not yet. OptionTrip combines its own planning experience with travel inventory and legitimate partner integrations. Some booking actions may continue on a partner or provider website.' },
+    { q: 'Should I verify important travel requirements?', a: 'Yes. Entry rules, visas, operating hours, schedules, prices, safety information, and availability can change. OptionTrip is building more live and official-source checks, but travelers should verify critical requirements before relying on them.' },
+  ]},
+  { category: 'Account & Data', icon: 'fas fa-user-cog', questions: [
+    { q: 'Where can I get account help?', a: `Use the Contact page or email ${CONTACT_EMAIL}. Include the email associated with your OptionTrip account and a short description of the problem.` },
+    { q: 'How do I request access, correction, or deletion of my data?', a: `Email ${CONTACT_EMAIL} with your request. You can also review the Privacy Policy and Data Protection pages for current information about data requests.` },
+  ]},
+  { category: 'Support & Feedback', icon: 'fas fa-life-ring', questions: [
+    { q: 'How do I contact the OptionTrip team?', a: `Email ${CONTACT_EMAIL} or use the Contact Us form. Travel questions, product feedback, partnership enquiries, and bug reports are welcome.` },
+    { q: 'I found a broken page or incorrect information. What should I do?', a: `Please send the page address and a short description to ${CONTACT_EMAIL}. Screenshots are especially useful for visual or translation problems.` },
+  ]},
 ];
 
 const HelpCenterPage = () => {
   const [openCat, setOpenCat] = useState(0);
   const [openQ, setOpenQ] = useState(null);
-
-  return (
-    <>
-      <PageMeta
-        title="Help Center"
-        description="Answers to common questions about OptionTrip — trip planning, bookings, Vi assistant, accounts, and more."
-        keywords="help center, support, FAQ, optiontrip help, travel help"
-        path="/help-center"
-      />
-
-      <div
-        className="banner pt-10 pb-0 overflow-hidden"
-        style={{ backgroundImage: `url(/images/bg/bg1.jpg)` }}
-      >
-        <div className="container">
-          <div className="banner-in">
-            <div className="row align-items-center">
-              <div className="col-lg-12 mb-4">
-                <div className="banner-content text-center">
-                  <h4 className="theme mb-0" style={{ color: '#fdc703', textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>Support</h4>
-                  <h1 style={{ color: 'rgb(255 255 255 / 85%)', textShadow: '0 3px 12px rgba(0,0,0,0.5)' }}>Help Center</h1>
-                  <p className="mb-4" style={{ color: 'rgba(255,255,255,0.9)', textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>
-                    Find answers to common questions, learn how to use Option Trip, and get support when you need it.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-
-      <section style={{ padding: '60px 0', background: '#fff' }}>
-        <div className="container">
-          <div className="row g-4">
-            {[
-              { icon: 'fas fa-envelope', title: 'Email Support', desc: 'Get a response within 24 hours.', action: 'optiontripcom@gmail.com', href: 'mailto:optiontripcom@gmail.com', color: '#e8f0fe', accent: '#0A539D' },
-              { icon: 'fas fa-robot', title: 'Ask VI', desc: 'Your Travel Partner is available 24/7 on the home page.', action: 'Chat with VI', href: '/', color: '#e8f8f6', accent: '#029e9d' },
-              { icon: 'fab fa-twitter', title: 'Twitter Support', desc: 'Reach us @OptionTripCom for quick help.', action: '@OptionTripCom', href: 'https://www.x.com/OptionTripCom', color: '#e0f7fa', accent: '#00838f' },
-            ].map((c, i) => (
-              <div className="col-lg-4" key={i}>
-                <div
-                  style={{
-                    background: c.color,
-                    borderRadius: '16px',
-                    padding: '28px',
-                    textAlign: 'center',
-                    height: '100%',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '56px',
-                      height: '56px',
-                      borderRadius: '14px',
-                      background: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto 16px',
-                    }}
-                  >
-                    <i className={c.icon} style={{ color: c.accent, fontSize: '22px' }}></i>
-                  </div>
-                  <h5 style={{ color: '#17233e', marginBottom: '8px' }}>{c.title}</h5>
-                  <p style={{ color: '#777', fontSize: '14px', marginBottom: '16px' }}>{c.desc}</p>
-                  <a
-                    href={c.href}
-                    className="btn-main btn-sm-page"
-                    target={c.href.startsWith('http') ? '_blank' : undefined}
-                    rel={c.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                  >
-                    {c.action}
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-
-      <section style={{ padding: '40px 0 80px', background: '#f8f9fa' }}>
-        <div className="container">
-          <div className="text-center mb-5">
-            <h4 className="theme mb-2" style={{ color: '#029e9d' }}>FAQ</h4>
-            <h2 style={{ color: '#17233e' }}>Frequently Asked Questions</h2>
-            <p style={{ color: '#777' }}>Browse by category or scroll through to find what you need.</p>
-          </div>
-
-          <div className="row g-5">
-
-            <div className="col-lg-3">
-              <div style={{ position: 'sticky', top: '100px' }}>
-                {faqs.map((cat, i) => (
-                  <button
-                    key={i}
-                    onClick={() => { setOpenCat(i); setOpenQ(null); }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      width: '100%',
-                      padding: '12px 16px',
-                      borderRadius: '10px',
-                      border: 'none',
-                      background: openCat === i ? 'linear-gradient(135deg, #0A539D, #029e9d)' : '#fff',
-                      color: openCat === i ? '#fff' : '#555',
-                      fontWeight: '600',
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      marginBottom: '8px',
-                      textAlign: 'left',
-                      transition: 'all 0.3s',
-                    }}
-                  >
-                    <i className={cat.icon} style={{ width: '16px', textAlign: 'center' }}></i>
-                    {cat.category}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-
-            <div className="col-lg-9">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px' }}>
-                <div
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '12px',
-                    background: faqs[openCat].color,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <i className={faqs[openCat].icon} style={{ color: faqs[openCat].accent, fontSize: '20px' }}></i>
-                </div>
-                <h4 style={{ color: '#17233e', margin: 0 }}>{faqs[openCat].category}</h4>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {faqs[openCat].questions.map((item, qi) => (
-                  <div
-                    key={qi}
-                    style={{
-                      background: '#fff',
-                      borderRadius: '14px',
-                      overflow: 'hidden',
-                      border: `2px solid ${openQ === qi ? '#029e9d' : 'transparent'}`,
-                      boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-                      transition: 'all 0.3s',
-                    }}
-                  >
-                    <button
-                      onClick={() => setOpenQ(openQ === qi ? null : qi)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        width: '100%',
-                        padding: '18px 22px',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        gap: '12px',
-                      }}
-                    >
-                      <span style={{ color: '#17233e', fontWeight: '600', fontSize: '15px', lineHeight: '1.4' }}>
-                        {item.q}
-                      </span>
-                      <i
-                        className={`fas fa-chevron-${openQ === qi ? 'up' : 'down'}`}
-                        style={{ color: '#029e9d', fontSize: '14px', flexShrink: 0 }}
-                      ></i>
-                    </button>
-                    {openQ === qi && (
-                      <div style={{ padding: '0 22px 18px' }}>
-                        <p style={{ color: '#777', lineHeight: '1.7', margin: 0, fontSize: '15px' }}>{item.a}</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-
-      <section
-        style={{
-          padding: '70px 0',
-          background: 'linear-gradient(135deg, #0A539D 0%, #029e9d 100%)',
-          textAlign: 'center',
-        }}
-      >
-        <div className="container">
-          <h2 style={{ color: '#fff', marginBottom: '14px' }}>Still Need Help?</h2>
-          <p style={{ color: 'rgba(255,255,255,0.85)', marginBottom: '28px', fontSize: '17px' }}>
-            Our team is happy to assist. Reach out and we'll get back to you as soon as possible.
-          </p>
-          <a href="mailto:optiontripcom@gmail.com" className="btn-white">Contact Support</a>
-        </div>
-      </section>
-    </>
-  );
+  return <>
+    <PageMeta title="OptionTrip Help Center" description="Get help with OptionTrip, Travel Partner Vi, trip planning, accounts, data requests, and feedback." keywords="OptionTrip help, support, Travel Partner Vi, travel help" path="/help-center" />
+    <div className="banner pt-8 pb-7 overflow-hidden" style={{ backgroundImage: `url(/images/bg/bg1.jpg)` }}><div className="container"><div className="banner-content text-center"><h4 style={{color:'#fdc703'}}>OptionTrip Support</h4><h1 style={{color:'#fff'}}>Help Center</h1><p style={{color:'rgba(255,255,255,.92)'}}>Find practical answers or contact our team when something needs personal attention.</p></div></div></div>
+    <section style={{padding:'55px 0',background:'#fff'}}><div className="container"><div className="row g-4">
+      <div className="col-lg-4"><div className="p-4 rounded h-100" style={{background:'#e8f0fe'}}><h4>Email Support</h4><p>Questions, account help, partnerships, feedback, or bug reports.</p><a href={CONTACT_MAILTO}>{CONTACT_EMAIL}</a></div></div>
+      <div className="col-lg-4"><div className="p-4 rounded h-100" style={{background:'#e8f8f6'}}><h4>Travel Partner Vi</h4><p>Use Vi for travel planning and trip questions inside OptionTrip.</p><Link to="/travel-buddy">Open Vi</Link></div></div>
+      <div className="col-lg-4"><div className="p-4 rounded h-100" style={{background:'#fff7e6'}}><h4>Contact Form</h4><p>Send a structured message directly to the OptionTrip team.</p><Link to="/contact">Contact Us</Link></div></div>
+    </div></div></section>
+    <section style={{padding:'50px 0 80px',background:'#f8f9fa'}}><div className="container"><div className="text-center mb-5"><h4 style={{color:'#029e9d'}}>FAQ</h4><h2>Frequently Asked Questions</h2></div><div className="row g-4"><div className="col-lg-3">{faqs.map((cat,i)=><button key={cat.category} onClick={()=>{setOpenCat(i);setOpenQ(null);}} style={{display:'block',width:'100%',padding:'12px 14px',marginBottom:8,border:0,borderRadius:10,textAlign:'left',background:openCat===i?'#029e9d':'#fff',color:openCat===i?'#fff':'#333'}}><i className={`${cat.icon} me-2`}></i>{cat.category}</button>)}</div><div className="col-lg-9"><h4 className="mb-3">{faqs[openCat].category}</h4>{faqs[openCat].questions.map((item,i)=><div key={item.q} style={{background:'#fff',borderRadius:12,marginBottom:10,overflow:'hidden'}}><button onClick={()=>setOpenQ(openQ===i?null:i)} style={{width:'100%',padding:'17px 20px',border:0,background:'transparent',textAlign:'left',fontWeight:600}}>{item.q}</button>{openQ===i&&<p style={{padding:'0 20px 18px',margin:0,color:'#666'}}>{item.a}</p>}</div>)}</div></div></div></section>
+    <section style={{padding:'60px 0',background:'linear-gradient(135deg,#0A539D,#029e9d)',textAlign:'center'}}><div className="container"><h2 style={{color:'#fff'}}>Still Need Help?</h2><p style={{color:'rgba(255,255,255,.9)'}}>Contact the OptionTrip team and tell us what you need.</p><a href={CONTACT_MAILTO} className="btn-white">Email {CONTACT_EMAIL}</a></div></section>
+  </>;
 };
-
 export default HelpCenterPage;
