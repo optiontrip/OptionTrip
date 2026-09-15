@@ -121,24 +121,14 @@ const AuthModal = ({ isOpen, onClose, onSuccess, initialTab = 'login' }) => {
   return (
     <div className="auth-modal-overlay" onClick={handleOverlayClick}>
       <div className="auth-modal">
-        <button className="auth-modal__close" onClick={onClose}>
+        <button type="button" className="auth-modal__close" onClick={onClose} aria-label="Close authentication dialog">
           <i className="fa fa-times"></i>
         </button>
 
         <div className="auth-modal__header">
           <div className="auth-modal__tabs">
-            <button
-              className={`auth-modal__tab ${activeTab === 'login' ? 'active' : ''}`}
-              onClick={() => { setActiveTab('login'); setError(''); }}
-            >
-              Login
-            </button>
-            <button
-              className={`auth-modal__tab ${activeTab === 'register' ? 'active' : ''}`}
-              onClick={() => { setActiveTab('register'); setError(''); }}
-            >
-              Sign Up
-            </button>
+            <button type="button" className={`auth-modal__tab ${activeTab === 'login' ? 'active' : ''}`} onClick={() => { setActiveTab('login'); setError(''); }}>Login</button>
+            <button type="button" className={`auth-modal__tab ${activeTab === 'register' ? 'active' : ''}`} onClick={() => { setActiveTab('register'); setError(''); }}>Sign Up</button>
           </div>
         </div>
 
@@ -154,159 +144,44 @@ const AuthModal = ({ isOpen, onClose, onSuccess, initialTab = 'login' }) => {
             <form onSubmit={handleLoginSubmit} className="auth-modal__form">
               <div className="auth-modal__form-group">
                 <label htmlFor="login-email">Email Address</label>
-                <input
-                  type="email"
-                  id="login-email"
-                  name="email"
-                  value={loginForm.email}
-                  onChange={handleLoginChange}
-                  placeholder="Enter your email"
-                  required
-                  disabled={isLoading}
-                />
+                <input type="email" id="login-email" name="email" value={loginForm.email} onChange={handleLoginChange} placeholder="Enter your email" required disabled={isLoading} />
               </div>
 
               <div className="auth-modal__form-group">
                 <label htmlFor="login-password">Password</label>
-                <input
-                  type="password"
-                  id="login-password"
-                  name="password"
-                  value={loginForm.password}
-                  onChange={handleLoginChange}
-                  placeholder="Enter your password"
-                  required
-                  disabled={isLoading}
-                />
+                <input type="password" id="login-password" name="password" value={loginForm.password} onChange={handleLoginChange} placeholder="Enter your password" required disabled={isLoading} />
               </div>
 
               <div className="auth-modal__form-row">
                 <label className="auth-modal__checkbox">
-                  <input
-                    type="checkbox"
-                    name="remember"
-                    checked={loginForm.remember}
-                    onChange={handleLoginChange}
-                    disabled={isLoading}
-                  />
+                  <input type="checkbox" name="remember" checked={loginForm.remember} onChange={handleLoginChange} disabled={isLoading} />
                   <span>Remember me</span>
                 </label>
-                <a href="#" className="auth-modal__link">Forgot password?</a>
               </div>
 
-              <button
-                type="submit"
-                className="auth-modal__submit"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <span className="auth-modal__spinner"></span>
-                    Logging in...
-                  </>
-                ) : (
-                  'Login'
-                )}
+              <button type="submit" className="auth-modal__submit" disabled={isLoading}>
+                {isLoading ? <><span className="auth-modal__spinner"></span>Logging in...</> : 'Login'}
               </button>
 
-              <p className="auth-modal__switch">
-                Don't have an account?{' '}
-                <button type="button" onClick={() => setActiveTab('register')}>
-                  Sign Up
-                </button>
-              </p>
+              <p className="auth-modal__switch">Don't have an account?{' '}<button type="button" onClick={() => setActiveTab('register')}>Sign Up</button></p>
             </form>
           ) : (
             <form onSubmit={handleRegisterSubmit} className="auth-modal__form">
-              <div className="auth-modal__form-group">
-                <label htmlFor="register-name">Full Name</label>
-                <input
-                  type="text"
-                  id="register-name"
-                  name="name"
-                  value={registerForm.name}
-                  onChange={handleRegisterChange}
-                  placeholder="Enter your full name"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="auth-modal__form-group">
-                <label htmlFor="register-email">Email Address</label>
-                <input
-                  type="email"
-                  id="register-email"
-                  name="email"
-                  value={registerForm.email}
-                  onChange={handleRegisterChange}
-                  placeholder="Enter your email"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="auth-modal__form-group">
-                <label htmlFor="register-password">Password</label>
-                <input
-                  type="password"
-                  id="register-password"
-                  name="password"
-                  value={registerForm.password}
-                  onChange={handleRegisterChange}
-                  placeholder="Create a password"
-                  required
-                  minLength={6}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="auth-modal__form-group">
-                <label htmlFor="register-confirm">Confirm Password</label>
-                <input
-                  type="password"
-                  id="register-confirm"
-                  name="confirmPassword"
-                  value={registerForm.confirmPassword}
-                  onChange={handleRegisterChange}
-                  placeholder="Confirm your password"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
+              <div className="auth-modal__form-group"><label htmlFor="register-name">Full Name</label><input type="text" id="register-name" name="name" value={registerForm.name} onChange={handleRegisterChange} placeholder="Enter your full name" required disabled={isLoading} /></div>
+              <div className="auth-modal__form-group"><label htmlFor="register-email">Email Address</label><input type="email" id="register-email" name="email" value={registerForm.email} onChange={handleRegisterChange} placeholder="Enter your email" required disabled={isLoading} /></div>
+              <div className="auth-modal__form-group"><label htmlFor="register-password">Password</label><input type="password" id="register-password" name="password" value={registerForm.password} onChange={handleRegisterChange} placeholder="Create a password" required minLength={6} disabled={isLoading} /></div>
+              <div className="auth-modal__form-group"><label htmlFor="register-confirm">Confirm Password</label><input type="password" id="register-confirm" name="confirmPassword" value={registerForm.confirmPassword} onChange={handleRegisterChange} placeholder="Confirm your password" required disabled={isLoading} /></div>
 
               <label className="auth-modal__checkbox">
-                <input
-                  type="checkbox"
-                  name="acceptTerms"
-                  checked={registerForm.acceptTerms}
-                  onChange={handleRegisterChange}
-                  disabled={isLoading}
-                />
+                <input type="checkbox" name="acceptTerms" checked={registerForm.acceptTerms} onChange={handleRegisterChange} disabled={isLoading} />
                 <span>I accept the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a></span>
               </label>
 
-              <button
-                type="submit"
-                className="auth-modal__submit"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <span className="auth-modal__spinner"></span>
-                    Creating account...
-                  </>
-                ) : (
-                  'Create Account'
-                )}
+              <button type="submit" className="auth-modal__submit" disabled={isLoading}>
+                {isLoading ? <><span className="auth-modal__spinner"></span>Creating account...</> : 'Create Account'}
               </button>
 
-              <p className="auth-modal__switch">
-                Already have an account?{' '}
-                <button type="button" onClick={() => setActiveTab('login')}>
-                  Login
-                </button>
-              </p>
+              <p className="auth-modal__switch">Already have an account?{' '}<button type="button" onClick={() => setActiveTab('login')}>Login</button></p>
             </form>
           )}
         </div>
