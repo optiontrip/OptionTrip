@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -44,9 +48,26 @@ jobs:
           test -s Frontend/dist/index.html
           grep -qi 'OptionTrip' Frontend/dist/index.html
 
-      - name: Integrity guard
+      - name: Security integrity guard
         run: |
           if grep -qE 'createRequire|_0x[0-9a-f]{4,}\(' Frontend/vite.config.js; then
             echo 'Unsafe injected code signature found in Frontend/vite.config.js'
+            exit 1
+          fi
+
+      - name: Product integrity guard
+        run: |
+          if grep -RIn --exclude-dir=node_modules --exclude-dir=dist --include='*.js' --include='*.jsx' --include='*.html' 'optiontripcom@gmail.com' Frontend/src Frontend/index.html Backend/src; then
+            echo 'Legacy public Gmail address found. Use info@optiontrip.com.'
+            exit 1
+          fi
+
+          if grep -RIn --exclude-dir=node_modules --exclude-dir=dist --include='*.js' --include='*.jsx' -E '20 Years Experiences|530 Tour Packages|850 Happy Customers|320 Award Winning' Frontend/src; then
+            echo 'Fabricated template statistics found in production source.'
+            exit 1
+          fi
+
+          if grep -RIn --exclude-dir=node_modules --exclude-dir=dist --include='*.js' --include='*.jsx' -E 'Sarah Chen|Michael Rodriguez' Frontend/src; then
+            echo 'Fabricated testimonial content found in production source.'
             exit 1
           fi
