@@ -25,6 +25,21 @@ const persistCache = () => {
   }
 };
 
+const getBoundaryWhitespace = (text) => {
+  const value = String(text ?? '');
+  return {
+    leading: value.match(/^\s*/)?.[0] || '',
+    trailing: value.match(/\s*$/)?.[0] || '',
+    core: value.trim(),
+  };
+};
+
+const restoreBoundaryWhitespace = (original, translated) => {
+  const { leading, trailing } = getBoundaryWhitespace(original);
+  const translatedCore = String(translated ?? '').trim();
+  return `${leading}${translatedCore}${trailing}`;
+};
+
 const callGoogle = async (text, source, target) => {
   const url = `${GOOGLE_URL}?client=gtx&sl=${encodeURIComponent(source)}&tl=${encodeURIComponent(target)}&dt=t&q=${encodeURIComponent(text)}`;
   const res = await fetch(url);
@@ -34,19 +49,19 @@ const callGoogle = async (text, source, target) => {
 };
 
 export const translateText = async (text, targetLang, sourceLang = 'en') => {
-  const t = text?.trim();
+  const { core: t } = getBoundaryWhitespace(text);
   if (!t) return text;
   const target = (targetLang || 'en').split('-')[0];
   if (target === sourceLang || target === 'en') return text;
 
   const key = `${sourceLang}:${target}:${t}`;
-  if (memCache.has(key)) return memCache.get(key);
+  if (memCache.has(key)) return restoreBoundaryWhitespace(text, memCache.get(key));
 
   try {
     const translated = await callGoogle(t, sourceLang, target);
     memCache.set(key, translated);
     persistCache();
-    return translated;
+    return restoreBoundaryWhitespace(text, translated);
   } catch {
     return text;
   }
@@ -61,25 +76,25 @@ export const translateBatch = async (texts, targetLang, sourceLang = 'en') => {
   const toFetch = [];
 
   for (let i = 0; i < texts.length; i++) {
-    const t = texts[i]?.trim();
+    const { core: t } = getBoundaryWhitespace(texts[i]);
     const key = `${sourceLang}:${target}:${t}`;
     if (memCache.has(key)) {
-      results[i] = memCache.get(key);
+      results[i] = restoreBoundaryWhitespace(texts[i], memCache.get(key));
     } else {
-      toFetch.push({ idx: i, text: t });
+      toFetch.push({ idx: i, text: t, original: texts[i] });
     }
   }
 
   if (toFetch.length > 0) {
     await Promise.all(
-      toFetch.map(async ({ idx, text }) => {
+      toFetch.map(async ({ idx, text, original }) => {
         try {
           const translated = await callGoogle(text, sourceLang, target);
           const key = `${sourceLang}:${target}:${text}`;
           memCache.set(key, translated);
-          results[idx] = translated;
+          results[idx] = restoreBoundaryWhitespace(original, translated);
         } catch {
-          results[idx] = texts[idx];
+          results[idx] = original;
         }
       })
     );
@@ -90,11 +105,11 @@ export const translateBatch = async (texts, targetLang, sourceLang = 'en') => {
 };
 
 export const getCached = (text, targetLang, sourceLang = 'en') => {
-  const t = text?.trim();
+  const { core: t } = getBoundaryWhitespace(text);
   if (!t) return null;
   const target = (targetLang || 'en').split('-')[0];
   const key = `${sourceLang}:${target}:${t}`;
-  return memCache.has(key) ? memCache.get(key) : null;
+  return memCache.has(key) ? restoreBoundaryWhitespace(text, memCache.get(key)) : null;
 };
 
 export const isFullyCached = (texts, targetLang, sourceLang = 'en') => {
