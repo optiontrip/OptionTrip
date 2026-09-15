@@ -1,3 +1,5 @@
+import { getCuratedTranslation } from './curatedTranslations';
+
 const GOOGLE_URL = 'https://translate.googleapis.com/translate_a/single';
 const LS_KEY = 'ot_translate_cache';
 const MAX_CACHE = 3000;
@@ -86,6 +88,11 @@ const restoreBoundaryWhitespace = (original, translated, node = null) => {
   return `${safeLeading}${translatedCore}${safeTrailing}`;
 };
 
+const curatedFor = (text, targetLang, node = null) => {
+  const curated = getCuratedTranslation(text, targetLang);
+  return curated ? restoreBoundaryWhitespace(text, curated, node) : null;
+};
+
 const callGoogle = async (text, source, target) => {
   const url = `${GOOGLE_URL}?client=gtx&sl=${encodeURIComponent(source)}&tl=${encodeURIComponent(target)}&dt=t&q=${encodeURIComponent(text)}`;
   const res = await fetch(url);
@@ -99,6 +106,9 @@ export const translateText = async (text, targetLang, sourceLang = 'en', node = 
   if (!t) return text;
   const target = (targetLang || 'en').split('-')[0];
   if (target === sourceLang || target === 'en') return text;
+
+  const curated = curatedFor(text, target, node);
+  if (curated) return curated;
 
   const key = `${sourceLang}:${target}:${t}`;
   if (memCache.has(key)) return restoreBoundaryWhitespace(text, memCache.get(key), node);
@@ -122,6 +132,12 @@ export const translateBatch = async (texts, targetLang, sourceLang = 'en') => {
   const toFetch = [];
 
   for (let i = 0; i < texts.length; i++) {
+    const curated = curatedFor(texts[i], target);
+    if (curated) {
+      results[i] = curated;
+      continue;
+    }
+
     const { core: t } = getBoundaryWhitespace(texts[i]);
     const key = `${sourceLang}:${target}:${t}`;
     if (memCache.has(key)) {
@@ -154,6 +170,10 @@ export const getCached = (text, targetLang, sourceLang = 'en', node = null) => {
   const { core: t } = getBoundaryWhitespace(text);
   if (!t) return null;
   const target = (targetLang || 'en').split('-')[0];
+
+  const curated = curatedFor(text, target, node);
+  if (curated) return curated;
+
   const key = `${sourceLang}:${target}:${t}`;
   return memCache.has(key) ? restoreBoundaryWhitespace(text, memCache.get(key), node) : null;
 };
@@ -163,7 +183,9 @@ export const ensureSafeTextBoundary = (original, translated, node) =>
 
 export const isFullyCached = (texts, targetLang, sourceLang = 'en') => {
   const target = (targetLang || 'en').split('-')[0];
-  return texts.every(t => memCache.has(`${sourceLang}:${target}:${t?.trim()}`));
+  return texts.every(t =>
+    Boolean(getCuratedTranslation(t, target)) || memCache.has(`${sourceLang}:${target}:${t?.trim()}`)
+  );
 };
 
 export const translateMissingKeys = async (enBundle, targetBundle, targetLang) => {
