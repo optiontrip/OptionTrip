@@ -5,6 +5,7 @@ import CurrencySwitcher from '../CurrencySwitcher/CurrencySwitcher';
 import CountrySwitcher from '../CountrySwitcher/CountrySwitcher';
 import { CONTACT_EMAIL, CONTACT_MAILTO } from '../../config/contact';
 import './Footer.css';
+import './Footer.mobile.css';
 
 const Footer=()=> <>
 <div className="footer-subscribe-strip"><div className="container"><div className="footer-subscribe-inner"><div className="footer-subscribe-text"><h4 className="footer-subscribe-title">Stay Inspired</h4><p className="footer-subscribe-subtitle">OptionTrip travel news and personalized updates are being expanded.</p></div><div><a className="footer-subscribe-btn" href="https://blog.optiontrip.com" target="_blank" rel="noopener noreferrer">Travel News</a></div></div></div></div>
