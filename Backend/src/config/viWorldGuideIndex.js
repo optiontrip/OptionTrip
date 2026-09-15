@@ -1,0 +1,11 @@
+export { VI_WORLD_GUIDE_PROMPT } from './viWorldGuidePrompt.js';
+export { VI_TRAVEL_PHASES, normalizeViTravelPhase } from './viWorldGuidePhases.js';
+export { VI_DISCOVERY_MODES, buildDiscoverySignals } from './viDiscoveryModes.js';
+export { VI_TRUST_RULES, isViLiveFactType } from './viTrustRules.js';
+export { VI_TRIP_CONTINUITY } from './viTripContinuity.js';
+export { VI_TRAVEL_CAPABILITIES, getViTravelCapabilityContext } from './viTravelCapabilityCatalog.js';
+export { VI_PROVIDER_STAGES, canExposeProviderAsLive, nextProviderStage } from './viProviderLifecycle.js';
+export { VI_TRAVELER_VALUE_FACTORS, VI_COMMERCIAL_RANKING_RULE } from './viTravelerValueRanking.js';
+export { VI_SERVICE_UNIVERSE } from './viServiceUniverse.js';
+export { getViWorldGuideContract } from './viWorldGuideContract.js';
+export { validateViWorldGuideContract } from './viWorldGuideAcceptance.js';
