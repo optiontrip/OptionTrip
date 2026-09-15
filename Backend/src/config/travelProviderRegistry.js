@@ -1,10 +1,11 @@
 const hasEnv = (...names) => names.every(name => Boolean(process.env[name]));
 
-const provider = ({ verticals, credentialEnv = [], access = 'credentials', notes = null }) => ({
+const provider = ({ verticals, credentialEnv = [], access = 'credentials', notes = null, integration = 'api' }) => ({
   verticals,
   credentialEnv,
   access,
   notes,
+  integration,
   enabled: () => credentialEnv.length === 0 || hasEnv(...credentialEnv),
 });
 
@@ -13,6 +14,24 @@ export const TRAVEL_PROVIDER_REGISTRY = Object.freeze({
     verticals: ['flights', 'hotels'],
     credentialEnv: ['TRAVELPAYOUTS_TOKEN', 'TRAVELPAYOUTS_MARKER'],
     access: 'token',
+  }),
+  travelpayouts_car_rental_widget: provider({
+    verticals: ['cars'],
+    access: 'widget',
+    integration: 'widget',
+    notes: 'Live affiliate widget already integrated in OptionTrip.',
+  }),
+  travelpayouts_esim_widget: provider({
+    verticals: ['esim'],
+    access: 'widget',
+    integration: 'widget',
+    notes: 'Live affiliate widget already integrated in OptionTrip.',
+  }),
+  travelpayouts_tours_widget: provider({
+    verticals: ['activities'],
+    access: 'widget',
+    integration: 'widget',
+    notes: 'Live affiliate widget already integrated in OptionTrip.',
   }),
   amadeus: provider({
     verticals: ['flights'],
@@ -39,7 +58,7 @@ export const TRAVEL_PROVIDER_REGISTRY = Object.freeze({
     verticals: ['esim'],
     credentialEnv: ['TRAVELPAYOUTS_AIRALO_FEED_URL'],
     access: 'feed',
-    notes: 'Travelpayouts feed URL must be issued to OptionTrip before this adapter becomes live.',
+    notes: 'Optional richer feed integration. OptionTrip already has a live eSIM affiliate widget.',
   }),
   tiqets: provider({
     verticals: ['activities'],
@@ -72,6 +91,7 @@ export const getProviderCapabilities = () => Object.entries(TRAVEL_PROVIDER_REGI
   verticals: [...config.verticals],
   configured: config.enabled(),
   access: config.access,
+  integration: config.integration,
   missingCredentials: config.credentialEnv.filter(name => !process.env[name]),
 }));
 
@@ -88,6 +108,7 @@ export const getProviderReadiness = providerName => {
     verticals: [...config.verticals],
     configured: missingCredentials.length === 0,
     access: config.access,
+    integration: config.integration,
     missingCredentials,
     notes: config.notes,
   };
