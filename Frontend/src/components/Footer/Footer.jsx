@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
 import CurrencySwitcher from '../CurrencySwitcher/CurrencySwitcher';
 import CountrySwitcher from '../CountrySwitcher/CountrySwitcher';
+import { CONTACT_EMAIL, CONTACT_MAILTO } from '../../config/contact';
 import './Footer.css';
 
 const Footer = () => {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
-  const { t } = useTranslation();
 
   const handleSubscribe = (e) => {
     e.preventDefault();
@@ -21,26 +20,18 @@ const Footer = () => {
 
   return (
     <>
-
       <div className="footer-subscribe-strip">
         <div className="container">
           <div className="footer-subscribe-inner">
             <div className="footer-subscribe-text">
               <h4 className="footer-subscribe-title">Stay Inspired</h4>
-              <p className="footer-subscribe-subtitle">Get travel ideas and updates from Option Trip</p>
+              <p className="footer-subscribe-subtitle">Travel ideas, useful updates, and inspiration from OptionTrip.</p>
             </div>
             {subscribed ? (
-              <p className="footer-subscribe-success">✓ You're subscribed! Check your inbox soon.</p>
+              <p className="footer-subscribe-success">✓ Thanks! Your subscription request was received.</p>
             ) : (
               <form className="footer-subscribe-form" onSubmit={handleSubscribe}>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email address"
-                  className="footer-subscribe-input"
-                  required
-                />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email address" className="footer-subscribe-input" required />
                 <button type="submit" className="footer-subscribe-btn">Subscribe</button>
               </form>
             )}
@@ -48,54 +39,36 @@ const Footer = () => {
         </div>
       </div>
 
-
       <footer className="footer-main" style={{ backgroundImage: `url(/images/background_pattern.png)` }}>
-
-
         <div className="footer-columns">
           <div className="container">
             <div className="footer-columns-grid">
-
-
               <div className="footer-col footer-col--about">
-                <img src="/images/logo-white.png" alt="Option Trip" className="footer-logo" />
-                <p className="footer-about-desc">
-                  Option Trip is powered by Travel Partner Vi, a smart travel planning platform that helps users create personalized trips using intelligent recommendations.
-                </p>
+                <img src="/images/logo-white.png" alt="OptionTrip" className="footer-logo" />
+                <p className="footer-about-desc">OptionTrip is a young travel technology team building a simpler way to discover, plan, compare, prepare for, and experience trips with Travel Partner Vi at the center.</p>
                 <ul className="footer-contact-list">
-                  <li>
-                    <i className="fab fa-envelope footer-contact-icon"></i>
-                    <a href="mailto:optiontripcom@gmail.com">optiontripcom@gmail.com</a>
-                  </li>
-                  <li>
-                    <i className="fas fa-globe footer-contact-icon"></i>
-                    <a href="https://www.optiontrip.com" target="_blank" rel="noopener noreferrer">www.OptionTrip.com</a>
-                  </li>
+                  <li><i className="fab fa-envelope footer-contact-icon"></i><a href={CONTACT_MAILTO}>{CONTACT_EMAIL}</a></li>
+                  <li><i className="fas fa-globe footer-contact-icon"></i><a href="https://optiontrip.com" target="_blank" rel="noopener noreferrer">OptionTrip.com</a></li>
                 </ul>
-
-
                 <div className="footer-trust-block">
                   <ul className="footer-trust-list">
-                    <li><i className="fas fa-robot"></i> Powered by Travel Partner Vi</li>
-                    <li><i className="fas fa-route"></i> Personalized travel routes</li>
-                    <li><i className="fas fa-star"></i> Smart travel recommendations</li>
+                    <li><i className="fas fa-robot"></i> Travel Partner Vi</li>
+                    <li><i className="fas fa-route"></i> Personalized trip planning</li>
+                    <li><i className="fas fa-star"></i> Useful travel recommendations</li>
                   </ul>
-                  <p className="footer-powered-by">Powered by <strong>VI TravelBuddy</strong></p>
                 </div>
               </div>
-
 
               <div className="footer-col">
                 <h4 className="footer-col-title">Company</h4>
                 <ul className="footer-col-links">
-                  <li><Link to="/about">About Option Trip</Link></li>
+                  <li><Link to="/about">About OptionTrip</Link></li>
                   <li><Link to="/how-it-works">How It Works</Link></li>
-                  <li><Link to="/travel-buddy">TravelBuddy (VI)</Link></li>
-                  <li><a href="https://blog.optiontrip.com" target="_blank" rel="noopener noreferrer">Blog</a></li>
-                  <li><a href="mailto:optiontripcom@gmail.com">Contact Us</a></li>
+                  <li><Link to="/travel-buddy">Travel Partner Vi</Link></li>
+                  <li><a href="https://blog.optiontrip.com" target="_blank" rel="noopener noreferrer">Travel News</a></li>
+                  <li><Link to="/contact">Contact Us</Link></li>
                 </ul>
               </div>
-
 
               <div className="footer-col">
                 <h4 className="footer-col-title">Travel</h4>
@@ -108,17 +81,15 @@ const Footer = () => {
                 </ul>
               </div>
 
-
               <div className="footer-col">
                 <h4 className="footer-col-title">Support</h4>
                 <ul className="footer-col-links">
                   <li><Link to="/help-center">Help Center</Link></li>
-                  <li><a href="mailto:optiontripcom@gmail.com">Contact Support</a></li>
-                  <li><a href="mailto:optiontripcom@gmail.com">Travel Questions</a></li>
-                  <li><a href="mailto:optiontripcom@gmail.com">Feedback</a></li>
+                  <li><Link to="/contact">Contact Support</Link></li>
+                  <li><a href={`${CONTACT_MAILTO}?subject=Travel%20Question`}>Travel Questions</a></li>
+                  <li><a href={`${CONTACT_MAILTO}?subject=OptionTrip%20Feedback`}>Feedback</a></li>
                 </ul>
               </div>
-
 
               <div className="footer-col">
                 <h4 className="footer-col-title">Legal</h4>
@@ -129,40 +100,15 @@ const Footer = () => {
                   <li><Link to="/data-protection">Data Protection</Link></li>
                 </ul>
               </div>
-
             </div>
           </div>
         </div>
 
-
-        <div className="footer-locale-section">
-          <div className="container">
-            <div className="footer-locale-bar">
-              <div className="footer-locale-item"><LanguageSwitcher /></div>
-              <div className="footer-locale-item"><CurrencySwitcher /></div>
-              <div className="footer-locale-item"><CountrySwitcher /></div>
-            </div>
-          </div>
-        </div>
-
-
-        <div className="footer-bottom">
-          <div className="container">
-            <div className="footer-bottom-inner">
-              <p className="footer-copyright-text">© 2026 Option Trip. All rights reserved.</p>
-              <div className="footer-social">
-                <a href="https://www.facebook.com/optiontrip" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i className="fab fa-facebook"></i></a>
-                <a href="https://www.x.com/OptionTripCom" target="_blank" rel="noopener noreferrer" aria-label="X / Twitter"><i className="fab fa-twitter"></i></a>
-                <a href="https://www.instagram.com/option_trip" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i className="fab fa-instagram"></i></a>
-              </div>
-            </div>
-          </div>
-        </div>
-
+        <div className="footer-locale-section"><div className="container"><div className="footer-locale-bar"><div className="footer-locale-item"><LanguageSwitcher /></div><div className="footer-locale-item"><CurrencySwitcher /></div><div className="footer-locale-item"><CountrySwitcher /></div></div></div></div>
+        <div className="footer-bottom"><div className="container"><div className="footer-bottom-inner"><p className="footer-copyright-text">© 2026 OptionTrip. All rights reserved.</p><div className="footer-social"><a href="https://www.facebook.com/optiontrip" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i className="fab fa-facebook"></i></a><a href="https://www.x.com/OptionTripCom" target="_blank" rel="noopener noreferrer" aria-label="X / Twitter"><i className="fab fa-twitter"></i></a><a href="https://www.instagram.com/option_trip" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i className="fab fa-instagram"></i></a></div></div></div></div>
       </footer>
     </>
   );
 };
 
 export default Footer;
-
