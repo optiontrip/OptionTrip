@@ -48,6 +48,7 @@ import ExploreAnywhereDetailPage from './pages/ExploreAnywhereDetailPage';
 import HotelSearch from './pages/HotelSearch';
 import CarRentalSearch from './pages/CarRentalSearch';
 import EsimSearch from './pages/EsimSearch';
+import TravelServicesPage from './pages/TravelServicesPage/TravelServicesPage';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -116,6 +117,7 @@ function App() {
                     <Route path="/hotels" element={<HotelSearch />} />
                     <Route path="/car-rental" element={<CarRentalSearch />} />
                     <Route path="/esim" element={<EsimSearch />} />
+                    <Route path="/services" element={<TravelServicesPage />} />
                     <Route path="/plan-my-day" element={<PlanMyDay />} />
                     <Route path="/where-can-i-go" element={<WhereCanIGo />} />
                     <Route path="/help-center" element={<HelpCenterPage />} />
