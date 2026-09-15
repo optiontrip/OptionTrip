@@ -6,34 +6,22 @@ const BackToTop = () => {
 
   useEffect(() => {
     const toggleVisibility = () => {
-      if (window.pageYOffset > 300) {
-        setIsVisible(true);
-      } else {
-        setIsVisible(false);
-      }
+      setIsVisible(window.pageYOffset > 300);
     };
 
     window.addEventListener('scroll', toggleVisibility);
-
-    return () => {
-      window.removeEventListener('scroll', toggleVisibility);
-    };
+    return () => window.removeEventListener('scroll', toggleVisibility);
   }, []);
 
   const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <div id="back-to-top" className={isVisible ? 'visible' : ''}>
-      <a href="#" onClick={(e) => { e.preventDefault(); scrollToTop(); }}></a>
+      <button type="button" onClick={scrollToTop} aria-label="Back to top" />
     </div>
   );
 };
 
 export default BackToTop;
-
-
