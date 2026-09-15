@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PageMeta from '../hooks/usePageMeta';
 import Banner from '../components/Banner/Banner';
-import BestTours from '../components/BestTours/BestTours';
 import FeaturedBlogSection from '../components/FeaturedBlogSection/FeaturedBlogSection';
 import WhyChooseUs from '../components/WhyChooseUs/WhyChooseUs';
 import HowItWorksSection from '../components/HowItWorksSection/HowItWorksSection';
@@ -51,23 +50,11 @@ const Home = () => {
       <WelcomeModal />
       <Banner />
       <HomeBookingSection />
-
-
-
       <HowItWorksSection />
       <WhyChooseUs ctaOnly />
-      <BestTours />
-
       <FeaturedBlogSection />
-
-
-
-
-
     </>
   );
 };
 
 export default Home;
-
-
