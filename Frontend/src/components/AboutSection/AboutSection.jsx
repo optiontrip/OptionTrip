@@ -2,13 +2,6 @@ import React from 'react';
 import './AboutSection.css';
 
 const AboutSection = () => {
-  const stats = [
-    { value: 20, label: 'Years Experiences' },
-    { value: 530, label: 'Tour Packages' },
-    { value: 850, label: 'Happy Customers' },
-    { value: 320, label: 'Award Winning' }
-  ];
-
   return (
     <section className="about-us pt-0" style={{backgroundImage: `url(/images/bg/bg-trans.png)`}}>
       <div className="container">
@@ -16,26 +9,25 @@ const AboutSection = () => {
           <div className="row d-flex align-items-center justify-content-between">
             <div className="col-lg-6 mb-4 pe-4">
               <div className="about-image overflow-hidden">
-                <img src="/images/travel1.png" alt="About Us" />
+                <img src="/images/travel1.png" alt="Traveler using OptionTrip" />
               </div>
             </div>
             <div className="col-lg-6 mb-4 ps-4">
               <div className="about-content text-center text-lg-start mb-4">
-                <h4 className="theme d-inline-block mb-0">Get To Know Us</h4>
-                <h2 className="border-b mb-2 pb-1">Explore Tours Around the World With Us</h2>
+                <h4 className="theme d-inline-block mb-0">Why OptionTrip</h4>
+                <h2 className="border-b mb-2 pb-1">One Travel Partner Instead Of Dozens Of Disconnected Searches</h2>
                 <p className="border-b mb-2 pb-2">
-                  OptionTrip revolutionizes travel planning with Travel Partner Vi, who understands your unique preferences and creates personalized itineraries in minutes. Vi analyzes millions of travel data points, reviews, and real-time information to craft the perfect journey for every traveler.<br /><br />Whether you're seeking adventure, relaxation, culture, or business travel, Travel Partner Vi adapts to your needs, budget, and schedule. Experience seamless trip planning with recommendations that get smarter with every interaction.
+                  Travel planning usually gets scattered across search engines, booking sites, maps, notes, emails, and screenshots. OptionTrip is being built to connect those decisions around one trip and one assistant: Vi.<br /><br />The goal is simple: help you make better travel decisions before departure, stay useful while you are away, and remember enough about your preferences and past journeys to make the next trip easier.
                 </p>
                 <div className="about-listing">
-                  <ul className="d-flex justify-content-between">
-                    <li><i className="icon-location-pin theme"></i> Tour Guide</li>
-                    <li><i className="icon-briefcase theme"></i> Friendly Price</li>
-                    <li><i className="icon-folder theme"></i> Reliable Tour Package</li>
+                  <ul className="d-flex justify-content-between flex-wrap gap-3">
+                    <li><i className="icon-location-pin theme"></i> Trip Context</li>
+                    <li><i className="icon-compass theme"></i> Personalized Vi</li>
+                    <li><i className="icon-briefcase theme"></i> Connected Booking</li>
                   </ul>
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -45,4 +37,3 @@ const AboutSection = () => {
 };
 
 export default AboutSection;
-
