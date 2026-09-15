@@ -1,51 +1,47 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import './AboutUs.css';
 
 const AboutUs = () => {
   const steps = [
     {
-      icon: 'icon-flag',
-      title: 'Tell Us What You want To Do',
-      description: 'Describe your dream trip in natural language. Travel Partner Vi understands your travel goals, interests, and style preferences.'
+      icon: 'icon-compass',
+      title: 'Discover & Plan',
+      description: 'Tell Vi where you want to go or what kind of experience you want. Vi turns your dates, budget, interests, and preferences into a practical trip plan.'
+    },
+    {
+      icon: 'icon-briefcase',
+      title: 'Compare & Book',
+      description: 'Bring flights, stays, transportation, activities, and other travel services into one decision flow so you can compare useful options without rebuilding the trip from scratch.'
     },
     {
       icon: 'icon-location-pin',
-      title: 'Share Your Travel Locations',
-      description: 'Tell us your destination or let Travel Partner Vi suggest perfect places based on your interests, budget, and travel dates.'
+      title: 'Travel With Vi',
+      description: 'Keep the trip context with you. Vi can use your itinerary and destination context to help with timing, weather, nearby ideas, route decisions, and changes while you travel.'
     },
     {
-      icon: 'icon-directions',
-      title: 'Share Your Travel Preference',
-      description: 'Set your budget, travel dates, accommodation style, and activity preferences. Travel Partner Vi learns what matters most to you.'
-    },
-    {
-      icon: 'icon-compass',
-      title: 'Get Your Perfect Trip with us',
-      description: 'Receive a fully personalized itinerary with day-by-day plans, recommendations, and booking options tailored just for you.'
+      icon: 'icon-flag',
+      title: 'Remember & Return',
+      description: 'Keep completed trips connected to your travel history so future recommendations can become more relevant and every journey can help shape the next one.'
     }
   ];
 
   return (
     <section className="about-us pb-6 pt-6" style={{backgroundImage: `url(/images/shape4.png)`, backgroundPosition: 'center'}}>
       <div className="container">
-        <div className="section-title mb-6 w-50 mx-auto text-center">
-          <h4 className="mb-1 theme1">3 Steps to the Perfect Tour</h4>
-          <h2 className="mb-1">Find <span className="theme">Travel Perfection</span></h2>
-          <p>Planning your perfect trip is simple with Travel Partner Vi. Just three easy steps to your personalized travel experience.</p>
+        <div className="section-title mb-6 w-75 mx-auto text-center">
+          <h4 className="mb-1 theme1">One Connected Travel Journey</h4>
+          <h2 className="mb-1">Vi Stays With You <span className="theme">Beyond The Search Box</span></h2>
+          <p>OptionTrip is designed around the whole travel lifecycle, not a collection of disconnected template pages.</p>
         </div>
-
         <div className="why-us">
           <div className="why-us-box">
             <div className="row">
               {steps.map((step, index) => (
                 <div key={index} className="col-lg-3 col-md-6 col-sm-6 mb-4">
-                  <div className="why-us-item text-center p-4 py-5 border rounded bg-white">
+                  <div className="why-us-item text-center p-4 py-5 border rounded bg-white h-100">
                     <div className="why-us-content">
-                      <div className="why-us-icon">
-                        <i className={`${step.icon} theme`}></i>
-                      </div>
-                      <h4><Link to="/about">{step.title}</Link></h4>
+                      <div className="why-us-icon"><i className={`${step.icon} theme`}></i></div>
+                      <h4>{step.title}</h4>
                       <p className="mb-0">{step.description}</p>
                     </div>
                   </div>
@@ -61,4 +57,3 @@ const AboutUs = () => {
 };
 
 export default AboutUs;
-
