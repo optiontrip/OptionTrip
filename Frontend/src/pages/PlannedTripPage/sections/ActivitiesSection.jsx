@@ -23,56 +23,10 @@ import TripMapTab from './TripMapTab';
 import CalendarTab from './CalendarTab';
 
 const ActivityCardSkeleton = () => (
-  <div className="act-sk-card">
-    <div className="act-sk-main">
-      <div className="act-sk-image act-sk-shimmer" />
-      <div className="act-sk-content">
-        <div className="act-sk-header-row">
-          <div className="act-sk-shimmer" style={{ width: 20, height: 20, borderRadius: 4 }} />
-          <div className="act-sk-shimmer" style={{ width: 80, height: 16 }} />
-          <div className="act-sk-vdivider" />
-          <div className="act-sk-shimmer" style={{ width: 160, height: 16 }} />
-          <div className="act-sk-shimmer act-sk-badge" />
-        </div>
-        <div className="act-sk-shimmer" style={{ width: '65%', height: 22 }} />
-        <div className="act-sk-rating-row">
-          <div className="act-sk-shimmer" style={{ width: 90, height: 14 }} />
-          <div className="act-sk-shimmer" style={{ width: 70, height: 14 }} />
-        </div>
-        <div className="act-sk-desc">
-          <div className="act-sk-shimmer" style={{ width: '100%', height: 13 }} />
-          <div className="act-sk-shimmer" style={{ width: '82%', height: 13 }} />
-          <div className="act-sk-shimmer" style={{ width: '55%', height: 13 }} />
-        </div>
-        <div className="act-sk-tags">
-          <div className="act-sk-shimmer act-sk-pill" />
-          <div className="act-sk-shimmer act-sk-pill" style={{ width: 80 }} />
-          <div className="act-sk-shimmer act-sk-pill" style={{ width: 60 }} />
-        </div>
-        <div className="act-sk-location">
-          <div className="act-sk-shimmer" style={{ width: 16, height: 16, borderRadius: '50%' }} />
-          <div className="act-sk-shimmer" style={{ width: 200, height: 13 }} />
-        </div>
-      </div>
-      <div className="act-sk-actions">
-        <div className="act-sk-shimmer act-sk-btn" />
-        <div className="act-sk-shimmer act-sk-btn act-sk-btn--sm" />
-      </div>
-    </div>
-  </div>
+  <div className="act-sk-card"><div className="act-sk-main"><div className="act-sk-image act-sk-shimmer" /><div className="act-sk-content"><div className="act-sk-header-row"><div className="act-sk-shimmer" style={{ width: 20, height: 20, borderRadius: 4 }} /><div className="act-sk-shimmer" style={{ width: 80, height: 16 }} /><div className="act-sk-vdivider" /><div className="act-sk-shimmer" style={{ width: 160, height: 16 }} /><div className="act-sk-shimmer act-sk-badge" /></div><div className="act-sk-shimmer" style={{ width: '65%', height: 22 }} /><div className="act-sk-rating-row"><div className="act-sk-shimmer" style={{ width: 90, height: 14 }} /><div className="act-sk-shimmer" style={{ width: 70, height: 14 }} /></div><div className="act-sk-desc"><div className="act-sk-shimmer" style={{ width: '100%', height: 13 }} /><div className="act-sk-shimmer" style={{ width: '82%', height: 13 }} /><div className="act-sk-shimmer" style={{ width: '55%', height: 13 }} /></div><div className="act-sk-tags"><div className="act-sk-shimmer act-sk-pill" /><div className="act-sk-shimmer act-sk-pill" style={{ width: 80 }} /><div className="act-sk-shimmer act-sk-pill" style={{ width: 60 }} /></div><div className="act-sk-location"><div className="act-sk-shimmer" style={{ width: 16, height: 16, borderRadius: '50%' }} /><div className="act-sk-shimmer" style={{ width: 200, height: 13 }} /></div></div><div className="act-sk-actions"><div className="act-sk-shimmer act-sk-btn" /><div className="act-sk-shimmer act-sk-btn act-sk-btn--sm" /></div></div></div>
 );
 
-const ItinerarySkeletonSection = () => (
-  <div className="act-sk-section">
-    <div className="act-sk-day-header">
-      <div className="act-sk-shimmer" style={{ width: 120, height: 28 }} />
-      <div className="act-sk-shimmer" style={{ width: 200, height: 16 }} />
-    </div>
-    <ActivityCardSkeleton />
-    <ActivityCardSkeleton />
-    <ActivityCardSkeleton />
-  </div>
-);
+const ItinerarySkeletonSection = () => <div className="act-sk-section"><div className="act-sk-day-header"><div className="act-sk-shimmer" style={{ width: 120, height: 28 }} /><div className="act-sk-shimmer" style={{ width: 200, height: 16 }} /></div><ActivityCardSkeleton /><ActivityCardSkeleton /><ActivityCardSkeleton /></div>;
 
 const ActivitiesSection = ({ tripId, tripData, daysData: propDaysData, isGenerating, totalDays, onFlightSelected, onHotelSelected }) => {
   const [activeTab, setActiveTab] = useState(0);
@@ -84,380 +38,80 @@ const ActivitiesSection = ({ tripId, tripData, daysData: propDaysData, isGenerat
   const { isAuthenticated } = useAuth();
   const { formatPrice } = useCurrency();
 
+  React.useEffect(() => { if (propDaysData?.length > 0) setLocalDaysData(propDaysData); }, [propDaysData]);
+
   React.useEffect(() => {
-    if (propDaysData && propDaysData.length > 0) {
-      setLocalDaysData(propDaysData);
-    }
-  }, [propDaysData]);
+    const routeToService = event => {
+      const service = event?.detail?.service;
+      const tabByService = { itinerary: 0, stays: 1, hotels: 1, cars: 2, flights: 3, map: 4, calendar: 5, esim: 6, tours: 7, activities: 7 };
+      if (service && Object.prototype.hasOwnProperty.call(tabByService, service)) {
+        setActiveTab(tabByService[service]);
+        window.setTimeout(() => document.getElementById('trip-services')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+      }
+    };
+    window.addEventListener('optiontrip:open-service', routeToService);
+    return () => window.removeEventListener('optiontrip:open-service', routeToService);
+  }, []);
 
-  const daysData = useMemo(() => {
-    return localDaysData.length > 0 ? localDaysData : (propDaysData || []);
-  }, [localDaysData, propDaysData]);
-
+  const daysData = useMemo(() => localDaysData.length > 0 ? localDaysData : (propDaysData || []), [localDaysData, propDaysData]);
   const tabs = useMemo(() => [
-    {
-      id: 'tab1',
-      title: 'Your Trip',
-      icon: ExploreIcon,
-      value: 0,
-    },
-    {
-      id: 'tab2',
-      title: 'Stays',
-      icon: HotelIcon,
-      value: 1,
-    },
-    {
-      id: 'tab3',
-      title: 'Rental Cars',
-      icon: DirectionsCarIcon,
-      value: 2,
-    },
-    {
-      id: 'tab4',
-      title: 'Flights',
-      icon: FlightIcon,
-      value: 3,
-    },
-    {
-      id: 'tab5',
-      title: 'Map Your Trip',
-      icon: MapIcon,
-      value: 4,
-    },
-    {
-      id: 'tab6',
-      title: 'Calendar',
-      icon: CalendarMonthIcon,
-      value: 5,
-    },
-    {
-      id: 'tab7',
-      title: 'eSIM',
-      icon: SimCardIcon,
-      value: 6,
-    },
-    {
-      id: 'tab8',
-      title: 'Tours',
-      icon: TourIcon,
-      value: 7,
-    },
+    { id: 'tab1', title: 'Your Trip', icon: ExploreIcon, value: 0 },
+    { id: 'tab2', title: 'Stays', icon: HotelIcon, value: 1 },
+    { id: 'tab3', title: 'Rental Cars', icon: DirectionsCarIcon, value: 2 },
+    { id: 'tab4', title: 'Flights', icon: FlightIcon, value: 3 },
+    { id: 'tab5', title: 'Map Your Trip', icon: MapIcon, value: 4 },
+    { id: 'tab6', title: 'Calendar', icon: CalendarMonthIcon, value: 5 },
+    { id: 'tab7', title: 'eSIM', icon: SimCardIcon, value: 6 },
+    { id: 'tab8', title: 'Tours', icon: TourIcon, value: 7 },
   ], []);
 
   const dayTabs = useMemo(() => {
-    const loadedTabs = daysData.map((day, index) => ({
-      value: day.day_number || index + 1,
-      label: `Day ${day.day_number || index + 1}`,
-      isLoading: false,
-    }));
-
-    if (isGenerating && totalDays) {
-      const nextDayNumber = daysData.length + 1;
-      if (nextDayNumber <= totalDays) {
-        loadedTabs.push({
-          value: nextDayNumber,
-          label: `Day ${nextDayNumber}`,
-          isLoading: true,
-        });
-      }
-    }
-
+    const loadedTabs = daysData.map((day, index) => ({ value: day.day_number || index + 1, label: `Day ${day.day_number || index + 1}`, isLoading: false }));
+    if (isGenerating && totalDays) { const nextDayNumber = daysData.length + 1; if (nextDayNumber <= totalDays) loadedTabs.push({ value: nextDayNumber, label: `Day ${nextDayNumber}`, isLoading: true }); }
     return loadedTabs;
   }, [daysData, isGenerating, totalDays]);
 
-  const currentDayData = useMemo(() => {
-    if (!daysData || daysData.length === 0) return null;
-    return daysData[activeDayTab - 1];
-  }, [daysData, activeDayTab]);
-
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
+  const currentDayData = useMemo(() => (!daysData?.length ? null : daysData[activeDayTab - 1]), [daysData, activeDayTab]);
+  const formatDate = dateString => !dateString ? '' : new Date(dateString).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
   const handleSaveTrip = async () => {
-    if (!isAuthenticated) {
-      setShowAuthModal(true);
-      return;
-    }
-
+    if (!isAuthenticated) { setShowAuthModal(true); return; }
     setIsSaving(true);
-    try {
-      const token = getAccessToken();
-      await saveTrip(tripId, token);
-      setIsSaved(true);
-    } catch (err) {
-      console.error('Error saving trip:', err);
-      alert('Failed to save trip. Please try again.');
-    } finally {
-      setIsSaving(false);
-    }
+    try { await saveTrip(tripId, getAccessToken()); setIsSaved(true); } catch (err) { console.error('Error saving trip:', err); alert('Failed to save trip. Please try again.'); } finally { setIsSaving(false); }
   };
-
-  const handleAuthSuccess = () => {
-    handleSaveTrip();
+  const handleAuthSuccess = () => handleSaveTrip();
+  const handleRemoveActivity = activityToRemove => {
+    if (!window.confirm(`Are you sure you want to remove "${activityToRemove.title || activityToRemove.name || 'this activity'}" from your itinerary?`)) return;
+    setLocalDaysData(prevDays => prevDays.map(day => {
+      if (day.day_number !== activeDayTab) return day;
+      const updatedActivities = day.activities.filter(activity => (activity.place_id || activity.title || activity.name) !== (activityToRemove.place_id || activityToRemove.title || activityToRemove.name));
+      return { ...day, activities: updatedActivities, total_cost: updatedActivities.reduce((sum, act) => sum + (typeof act.cost === 'number' ? act.cost : (parseInt(act.cost) || 0)), 0) };
+    }));
   };
-
-  const handleRemoveActivity = (activityToRemove) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to remove "${activityToRemove.title || activityToRemove.name || 'this activity'}" from your itinerary?`
-    );
-
-    if (!confirmed) return;
-
-    setLocalDaysData(prevDays => {
-      return prevDays.map(day => {
-        if (day.day_number === activeDayTab) {
-          const updatedActivities = day.activities.filter(activity => {
-            const activityId = activity.place_id || activity.title || activity.name;
-            const removeId = activityToRemove.place_id || activityToRemove.title || activityToRemove.name;
-            return activityId !== removeId;
-          });
-
-          const newTotalCost = updatedActivities.reduce((sum, act) => {
-            const cost = typeof act.cost === 'number' ? act.cost : (parseInt(act.cost) || 0);
-            return sum + cost;
-          }, 0);
-
-          return {
-            ...day,
-            activities: updatedActivities,
-            total_cost: newTotalCost
-          };
-        }
-        return day;
-      });
-    });
-  };
-
-  const handleOpenGoogleDirections = (activity) => {
-    const destination = activity.address || activity.location?.name || activity.title;
-    if (destination) {
-      const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
-      window.open(url, '_blank');
-    }
-  };
-
-  const handleActivityBook = (activity) => {
-    const placeName = activity.place_name || activity.title || activity.name || '';
-    const address = activity.address || '';
-    const destinationName = tripData?.destination?.name || '';
-    const destinationCountry = tripData?.destination?.country || '';
-
-    let searchQuery = placeName;
-
-    if (address) {
-      searchQuery = `${placeName}, ${address}`;
-    } else if (destinationName) {
-      searchQuery = `${placeName}, ${destinationName}`;
-      if (destinationCountry && !destinationName.includes(destinationCountry)) {
-        searchQuery += `, ${destinationCountry}`;
-      }
-    }
-
-    if (activity.place_id) {
-      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}&query_place_id=${activity.place_id}`;
-      window.open(url, '_blank');
-    } else {
-      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`;
-      window.open(url, '_blank');
-    }
-  };
-
-  const renderItineraryTab = () => {
-    if (!daysData || daysData.length === 0) {
-      if (isGenerating) {
-        return <ItinerarySkeletonSection />;
-      }
-      return (
-        <div className="activities-section__empty">
-          <div className="activities-section__empty-icon">📅</div>
-          <p className="activities-section__empty-text">
-            No itinerary available for this trip
-          </p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="activities-section__itinerary">
-
-        <div className="activities-section__day-tabs-wrapper">
-          <div className="activities-section__day-tabs">
-            {dayTabs.map((dayTab) => (
-              <button
-                key={dayTab.value}
-                className={`activities-section__day-tab ${
-                  activeDayTab === dayTab.value ? 'active' : ''
-                } ${dayTab.isLoading ? 'loading' : ''}`}
-                onClick={() => !dayTab.isLoading && setActiveDayTab(dayTab.value)}
-                disabled={dayTab.isLoading}
-              >
-                {dayTab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-
-        {currentDayData && (
-          <div className="activities-section__day-content">
-
-            <div className="activities-section__day-header">
-              <div className="activities-section__day-header-top">
-                <h3 className="activities-section__day-title">
-                  Day {activeDayTab}: {(currentDayData.title || 'Explore the City').replace(/^Day\s+\d+\s*:\s*/i, '')}
-                </h3>
-                <div className="activities-section__day-meta">
-                  <span className="activities-section__day-date">
-                    📅 {formatDate(currentDayData.date)}
-                  </span>
-                </div>
-              </div>
-              {currentDayData.summary && (
-                <p className="activities-section__day-description">
-                  {currentDayData.summary}
-                </p>
-              )}
-            </div>
-
-
-            <div className="activities-section__activities">
-              {currentDayData.activities && currentDayData.activities.length > 0 ? (
-                currentDayData.activities.map((activity, index) => (
-                  <div key={index} className="activities-section__activity-card-wrapper">
-                    <ActivityCard
-                      activity={activity}
-                      searchCenter={{
-                        title: tripData?.destination?.name,
-                        geo_location: [
-                          tripData?.destination?.geometry?.lng,
-                          tripData?.destination?.geometry?.lat
-                        ]
-                      }}
-                      dayData={currentDayData}
-                      isEditable={true}
-                      onActivityBook={handleActivityBook}
-                      onSwapActivity={(activity) => console.log('Swap:', activity)}
-                      onRemoveActivity={handleRemoveActivity}
-                      onOpenGoogleDirections={handleOpenGoogleDirections}
-                    />
-                  </div>
-                ))
-              ) : (
-                <div className="activities-section__empty-day">
-                  <p className="activities-section__empty-text">
-                    No activities planned for this day
-                  </p>
-                </div>
-              )}
-            </div>
-
-
-            <div className="activities-section__day-footer">
-              <div className="activities-section__day-footer-content">
-                <span className="activities-section__day-footer-label">
-                  Total Day Cost
-                </span>
-                <span className="activities-section__day-footer-value">
-                  {formatPrice(currentDayData.total_cost || 0)}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
+  const handleAddActivity = () => window.dispatchEvent(new CustomEvent('vi:open', { detail: { message: `Suggest an activity I can add to day ${activeDayTab} of this trip.` } }));
 
   return (
-    <section className="activities-section">
+    <section className="activities-section" id="trip-services">
       <div className="activities-section__container">
-
-        <div className="activities-section__tabs-wrapper">
-          <div className="activities-section__tabs">
-            {tabs.map((tab) => {
-              const IconComponent = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  className={`activities-section__tab ${
-                    activeTab === tab.value ? 'active' : ''
-                  }`}
-                  onClick={() => setActiveTab(tab.value)}
-                >
-                  <IconComponent className="activities-section__tab-icon" />
-                  <span className="activities-section__tab-title">{tab.title}</span>
-                </button>
-              );
-            })}
-          </div>
+        <div className="activities-section__tabs" role="tablist" aria-label="Trip services">
+          {tabs.map(tab => { const IconComponent = tab.icon; return <button key={tab.id} className={`activities-section__tab ${activeTab === tab.value ? 'activities-section__tab--active' : ''}`} onClick={() => setActiveTab(tab.value)} role="tab" aria-selected={activeTab === tab.value}><IconComponent className="activities-section__tab-icon" /><span>{tab.title}</span></button>; })}
         </div>
-
-
-        <div className="activities-section__tab-content">
-          {activeTab === 0 && renderItineraryTab()}
-          {activeTab === 1 && <HotelTab  tripData={tripData} onHotelSelected={onHotelSelected} />}
+        <div className="activities-section__content">
+          {activeTab === 0 && <>
+            <div className="activities-section__header"><div><h2 className="activities-section__title">Your Itinerary</h2><p className="activities-section__subtitle">Your personalized day-by-day travel plan</p></div><button className={`activities-section__save-btn ${isSaved ? 'activities-section__save-btn--saved' : ''}`} onClick={handleSaveTrip} disabled={isSaving || isSaved}>{isSaving ? 'Saving...' : isSaved ? 'Saved' : 'Save Trip'}</button></div>
+            {dayTabs.length > 0 && <div className="activities-section__day-tabs">{dayTabs.map(day => <button key={day.value} className={`activities-section__day-tab ${activeDayTab === day.value ? 'activities-section__day-tab--active' : ''} ${day.isLoading ? 'activities-section__day-tab--loading' : ''}`} onClick={() => !day.isLoading && setActiveDayTab(day.value)} disabled={day.isLoading}>{day.label}{day.isLoading && <span className="activities-section__day-tab-spinner" />}</button>)}</div>}
+            {currentDayData ? <div className="activities-section__day-content"><div className="activities-section__day-header"><div><h3 className="activities-section__day-title">Day {currentDayData.day_number}</h3><p className="activities-section__day-date">{formatDate(currentDayData.date)}</p></div>{currentDayData.total_cost !== undefined && <div className="activities-section__day-cost"><span>Day Total</span><strong>{formatPrice(currentDayData.total_cost)}</strong></div>}</div><div className="activities-section__activities-list">{currentDayData.activities?.map((activity, index) => <ActivityCard key={activity.place_id || index} activity={activity} onRemove={() => handleRemoveActivity(activity)} />)}<button type="button" className="activities-section__add-activity" onClick={handleAddActivity}>+ Ask Vi to add an activity</button></div></div> : isGenerating ? <ItinerarySkeletonSection /> : <div className="activities-section__empty"><p>Your itinerary is being prepared.</p></div>}
+          </>}
+          {activeTab === 1 && <HotelTab tripData={tripData} onHotelSelected={onHotelSelected} />}
           {activeTab === 2 && <CarRentalTab tripData={tripData} />}
           {activeTab === 3 && <FlightTab tripData={tripData} onFlightSelected={onFlightSelected} />}
-          {activeTab === 4 && (
-            <TripMapTab tripData={tripData} daysData={daysData} />
-          )}
-          {activeTab === 5 && (
-            <CalendarTab tripData={tripData} daysData={daysData} />
-          )}
-          {activeTab === 6 && <EsimTab tripData={tripData} source="trip_itinerary" />}
-          {activeTab === 7 && <ToursTab tripData={tripData} source="trip_itinerary" />}
-        </div>
-
-
-        <div className="activities-section__actions">
-          <div className="activities-section__actions-content">
-            <div className="activities-section__actions-text">
-              <h3 className="activities-section__actions-title">
-                Your Trip, Ready to Go
-              </h3>
-              <p className="activities-section__actions-subtitle">
-                Save it, share it, and start packing
-              </p>
-            </div>
-            <div className="activities-section__actions-buttons">
-              <button
-                className={`activities-section__action-btn primary ${isSaved ? 'saved' : ''}`}
-                onClick={handleSaveTrip}
-                disabled={isSaving || isSaved}
-              >
-                {isSaving ? (
-                  <>
-                    <span className="activities-section__save-spinner"></span>
-                    Saving...
-                  </>
-                ) : isSaved ? (
-                  '✓ Saved'
-                ) : (
-                  '💾 Save Trip'
-                )}
-              </button>
-
-
-            </div>
-          </div>
+          {activeTab === 4 && <TripMapTab tripData={tripData} daysData={daysData} />}
+          {activeTab === 5 && <CalendarTab tripData={tripData} daysData={daysData} />}
+          {activeTab === 6 && <EsimTab tripData={tripData} />}
+          {activeTab === 7 && <ToursTab tripData={tripData} />}
         </div>
       </div>
-
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        onSuccess={handleAuthSuccess}
-        initialTab="login"
-      />
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={handleAuthSuccess} />}
     </section>
   );
 };
