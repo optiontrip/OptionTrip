@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { translateBatch, getCached } from '../../services/translateService';
+import { translateBatch, getCached, ensureSafeTextBoundary } from '../../services/translateService';
 
 const CHUNK_SIZE = 40;
 
@@ -97,9 +97,10 @@ const AutoTranslate = () => {
       const orig = nodeOriginals.current.get(node);
       if (!orig) return;
       const key = `${lang}:${orig}`;
-      let result = localCache.current.get(key) ?? getCached(orig, lang);
-      if (result) {
-        localCache.current.set(key, result);
+      const cached = localCache.current.get(key) ?? getCached(orig, lang);
+      if (cached) {
+        localCache.current.set(key, cached);
+        const result = ensureSafeTextBoundary(orig, cached, node);
         if (result !== node.textContent) node.textContent = result;
       }
     });
@@ -195,7 +196,8 @@ const AutoTranslate = () => {
           nodeOriginals.current.set(node, node.textContent);
         }
         const orig   = nodeOriginals.current.get(node);
-        const result = orig && localCache.current.get(`${lang}:${orig}`);
+        const cached = orig && localCache.current.get(`${lang}:${orig}`);
+        const result = cached && ensureSafeTextBoundary(orig, cached, node);
         if (result && result !== node.textContent) node.textContent = result;
       });
 
