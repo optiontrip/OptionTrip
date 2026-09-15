@@ -34,10 +34,56 @@ const getBoundaryWhitespace = (text) => {
   };
 };
 
-const restoreBoundaryWhitespace = (original, translated) => {
+const WORD_CHAR_RE = /[\p{L}\p{N}]/u;
+
+const startsWithWordChar = (value) => WORD_CHAR_RE.test(String(value || '').charAt(0));
+const endsWithWordChar = (value) => {
+  const text = String(value || '');
+  return WORD_CHAR_RE.test(text.charAt(text.length - 1));
+};
+
+const hasWordSiblingBefore = (node) => {
+  if (!node) return false;
+  let sibling = node.previousSibling;
+  while (sibling) {
+    const text = sibling.textContent || '';
+    if (text.trim()) return endsWithWordChar(text.trim());
+    sibling = sibling.previousSibling;
+  }
+  return false;
+};
+
+const hasWordSiblingAfter = (node) => {
+  if (!node) return false;
+  let sibling = node.nextSibling;
+  while (sibling) {
+    const text = sibling.textContent || '';
+    if (text.trim()) return startsWithWordChar(text.trim());
+    sibling = sibling.nextSibling;
+  }
+  return false;
+};
+
+const restoreBoundaryWhitespace = (original, translated, node = null) => {
   const { leading, trailing } = getBoundaryWhitespace(original);
   const translatedCore = String(translated ?? '').trim();
-  return `${leading}${translatedCore}${trailing}`;
+  if (!translatedCore) return original;
+
+  let safeLeading = leading;
+  let safeTrailing = trailing;
+
+  // Translation happens per DOM text node. When JSX splits a visual sentence
+  // across sibling nodes/elements, trimming the translated node can glue two
+  // words together. Preserve authored whitespace and defensively add one space
+  // only when two word-like boundaries would otherwise touch.
+  if (!safeLeading && startsWithWordChar(translatedCore) && hasWordSiblingBefore(node)) {
+    safeLeading = ' ';
+  }
+  if (!safeTrailing && endsWithWordChar(translatedCore) && hasWordSiblingAfter(node)) {
+    safeTrailing = ' ';
+  }
+
+  return `${safeLeading}${translatedCore}${safeTrailing}`;
 };
 
 const callGoogle = async (text, source, target) => {
@@ -48,20 +94,20 @@ const callGoogle = async (text, source, target) => {
   return (data[0] || []).map(item => (item[0] || '')).join('').trim() || text;
 };
 
-export const translateText = async (text, targetLang, sourceLang = 'en') => {
+export const translateText = async (text, targetLang, sourceLang = 'en', node = null) => {
   const { core: t } = getBoundaryWhitespace(text);
   if (!t) return text;
   const target = (targetLang || 'en').split('-')[0];
   if (target === sourceLang || target === 'en') return text;
 
   const key = `${sourceLang}:${target}:${t}`;
-  if (memCache.has(key)) return restoreBoundaryWhitespace(text, memCache.get(key));
+  if (memCache.has(key)) return restoreBoundaryWhitespace(text, memCache.get(key), node);
 
   try {
     const translated = await callGoogle(t, sourceLang, target);
     memCache.set(key, translated);
     persistCache();
-    return restoreBoundaryWhitespace(text, translated);
+    return restoreBoundaryWhitespace(text, translated, node);
   } catch {
     return text;
   }
@@ -104,13 +150,16 @@ export const translateBatch = async (texts, targetLang, sourceLang = 'en') => {
   return results;
 };
 
-export const getCached = (text, targetLang, sourceLang = 'en') => {
+export const getCached = (text, targetLang, sourceLang = 'en', node = null) => {
   const { core: t } = getBoundaryWhitespace(text);
   if (!t) return null;
   const target = (targetLang || 'en').split('-')[0];
   const key = `${sourceLang}:${target}:${t}`;
-  return memCache.has(key) ? restoreBoundaryWhitespace(text, memCache.get(key)) : null;
+  return memCache.has(key) ? restoreBoundaryWhitespace(text, memCache.get(key), node) : null;
 };
+
+export const ensureSafeTextBoundary = (original, translated, node) =>
+  restoreBoundaryWhitespace(original, translated, node);
 
 export const isFullyCached = (texts, targetLang, sourceLang = 'en') => {
   const target = (targetLang || 'en').split('-')[0];
