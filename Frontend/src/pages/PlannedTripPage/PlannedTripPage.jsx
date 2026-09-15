@@ -14,6 +14,26 @@ import './PlannedTripPage.css';
 
 const PlannedTripHeader = ({ tripId }) => <header className="planned-trip-header"><div className="planned-trip-header__container"><Link to="/" className="planned-trip-header__logo"><img src="/images/newLogo.png" alt="OptionTrip" /></Link><nav className="planned-trip-header__nav" aria-label="Trip navigation"><Link to="/" className="planned-trip-header__link">Home</Link>{tripId && <Link to={`/trips/${tripId}`} className="planned-trip-header__link">Trip Options</Link>}<Link to="/blog" className="planned-trip-header__link">Blogs</Link></nav></div></header>;
 
+const formatMoney = (value, currency = 'USD') => {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return null;
+  try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: String(currency || 'USD').toUpperCase(), maximumFractionDigits: 0 }).format(amount); }
+  catch { return `${String(currency || 'USD').toUpperCase()} ${amount.toLocaleString()}`; }
+};
+
+const getPriceStatus = item => {
+  const meta = item?.priceMeta;
+  if (!meta) return null;
+  if (meta.isEstimate) return 'Estimate';
+  const age = Number(meta.freshnessSeconds || 0);
+  if (meta.isCached) {
+    if (age < 60) return 'Checked just now';
+    if (age < 3600) return `Checked ${Math.max(1, Math.floor(age / 60))} min ago`;
+    return `Checked ${Math.max(1, Math.floor(age / 3600))} hr ago`;
+  }
+  return 'Provider price';
+};
+
 const PlannedTripPage = () => {
   const { tripId } = useParams();
   const navigate = useNavigate();
@@ -92,6 +112,11 @@ const PlannedTripPage = () => {
 
   const destination = typeof tripData.destination === 'string' ? tripData.destination : (tripData.destination?.name || tripData.destination?.city || 'your destination');
   const tripTitle = `Trip to ${destination}`;
+  const flightPrice = formatMoney(selectedFlight?.price, selectedFlight?.currency || 'USD');
+  const hotelPrice = formatMoney(selectedHotel?.price, selectedHotel?.currency || 'USD');
+  const flightPriceStatus = getPriceStatus(selectedFlight);
+  const sameCurrency = !selectedFlight?.price || !selectedHotel?.price || String(selectedFlight?.currency || 'USD').toUpperCase() === String(selectedHotel?.currency || 'USD').toUpperCase();
+  const estimatedTotal = sameCurrency && (selectedFlight?.price || selectedHotel?.price) ? formatMoney((Number(selectedFlight?.price) || 0) + (Number(selectedHotel?.price) || 0), selectedFlight?.currency || selectedHotel?.currency || 'USD') : null;
 
   return <div className="planned-trip-page">
     <PageMeta title={tripTitle} description={`Your private OptionTrip itinerary for ${destination}, with planning, booking tools and Travel Partner Vi.`} noIndex />
@@ -104,7 +129,7 @@ const PlannedTripPage = () => {
     <ActivitiesSection tripId={tripId} tripData={tripData} daysData={tripDaysData} selectedOptionId={tripData.selected_option_id} onRefreshData={loadTripData} isGenerating={isGenerating} totalDays={generationProgress.total} onFlightSelected={setSelectedFlight} onHotelSelected={setSelectedHotel} />
     <ViAssistant />
     {isAuthenticated && <div className="planned-trip-share-bar">{shareUrl ? <button className="planned-trip-share-bar__copy" onClick={() => navigator.clipboard?.writeText(shareUrl)} title={shareUrl}>Copy share link · {shareUrl.split('/').pop().slice(0, 8)}…</button> : <button className="planned-trip-share-bar__btn" disabled={isSharing} onClick={async () => { setIsSharing(true); setActionError(null); try { const res = await shareTrip(tripId, getAccessToken()); if (res.success) { const url = `${window.location.origin}/shared/${res.data.shareToken}`; setShareUrl(url); await navigator.clipboard?.writeText(url); } else setActionError('We could not create a share link. Please try again.'); } catch (err) { console.error(err); setActionError('We could not create a share link. Please try again.'); } finally { setIsSharing(false); } }}>{isSharing ? 'Generating…' : '🔗 Share trip'}</button>}</div>}
-    {(selectedFlight || selectedHotel) && <div className="planned-trip-summary-bar"><div className="planned-trip-summary-bar__inner"><span className="planned-trip-summary-bar__label">Trip Summary:</span>{selectedFlight && <span className="planned-trip-summary-bar__item planned-trip-summary-bar__item--flight">✈ {selectedFlight.departure} → {selectedFlight.arrival}{selectedFlight.price ? ` · $${selectedFlight.price}` : ''}</span>}{selectedHotel && <span className="planned-trip-summary-bar__item planned-trip-summary-bar__item--hotel">🏨 {selectedHotel.name}{selectedHotel.price ? ` · $${selectedHotel.price}/night` : ''}</span>}{(selectedFlight?.price || selectedHotel?.price) && <span className="planned-trip-summary-bar__total">Est. total: ${((selectedFlight?.price || 0) + (selectedHotel?.price || 0)).toLocaleString()}</span>}{tripStatus === 'confirmed' ? <span className="planned-trip-summary-bar__confirmed">✓ Booked</span> : <button className="planned-trip-summary-bar__confirm-btn" disabled={markingBooked} onClick={async () => { if (!requireAuth()) return; setMarkingBooked(true); setActionError(null); try { await confirmTrip(tripId, getAccessToken()); setTripStatus('confirmed'); } catch (err) { console.error(err); setActionError('We could not mark this trip as booked. Please try again.'); } finally { setMarkingBooked(false); } }}>{markingBooked ? 'Saving…' : 'Mark as booked'}</button>}</div></div>}
+    {(selectedFlight || selectedHotel) && <div className="planned-trip-summary-bar"><div className="planned-trip-summary-bar__inner"><span className="planned-trip-summary-bar__label">Trip Summary:</span>{selectedFlight && <span className="planned-trip-summary-bar__item planned-trip-summary-bar__item--flight">✈ <span>{selectedFlight.departure}</span> <span aria-hidden="true">→</span> <span>{selectedFlight.arrival}</span>{flightPrice && <span> · {flightPrice}</span>}{flightPriceStatus && <small className="planned-trip-summary-bar__price-status"> · {flightPriceStatus}</small>}</span>}{selectedHotel && <span className="planned-trip-summary-bar__item planned-trip-summary-bar__item--hotel">🏨 <span>{selectedHotel.name}</span>{hotelPrice && <span> · {hotelPrice}/night</span>}</span>}{estimatedTotal && <span className="planned-trip-summary-bar__total">Est. selected items: {estimatedTotal}</span>}{!sameCurrency && <span className="planned-trip-summary-bar__total">Totals shown separately by currency</span>}{tripStatus === 'confirmed' ? <span className="planned-trip-summary-bar__confirmed">✓ Booked</span> : <button className="planned-trip-summary-bar__confirm-btn" disabled={markingBooked} onClick={async () => { if (!requireAuth()) return; setMarkingBooked(true); setActionError(null); try { await confirmTrip(tripId, getAccessToken()); setTripStatus('confirmed'); } catch (err) { console.error(err); setActionError('We could not mark this trip as booked. Please try again.'); } finally { setMarkingBooked(false); } }}>{markingBooked ? 'Saving…' : 'Mark as booked'}</button>}</div></div>}
   </div>;
 };
 
