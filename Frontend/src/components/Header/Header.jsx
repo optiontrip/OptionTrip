@@ -24,6 +24,7 @@ const LANGUAGES = [
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isAuthDropdownOpen, setIsAuthDropdownOpen] = useState(false);
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
@@ -34,6 +35,7 @@ const Header = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const [langDropdownPos, setLangDropdownPos] = useState({ top: 0, right: 0 });
   const closeTimeout = useRef(null);
+  const bookingRef = useRef(null);
   const langRef = useRef(null);
   const langBtnRef = useRef(null);
 
@@ -63,10 +65,15 @@ const Header = () => {
   }, [t, i18n.language]);
 
   useEffect(() => {
-    const handler = e => { if (!langBtnRef.current?.contains(e.target) && !langRef.current?.contains(e.target)) setIsLangOpen(false); };
-    if (isLangOpen) document.addEventListener('mousedown', handler);
+    const handler = e => {
+      if (!langBtnRef.current?.contains(e.target) && !langRef.current?.contains(e.target)) setIsLangOpen(false);
+      if (!bookingRef.current?.contains(e.target)) setIsBookingOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [isLangOpen]);
+  }, []);
+
+  useEffect(() => { setIsBookingOpen(false); setIsMenuOpen(false); }, [location.pathname, i18n.language]);
 
   const toggleMenu = () => setIsMenuOpen(v => !v);
   const closeMenu = () => setIsMenuOpen(false);
@@ -92,7 +99,7 @@ const Header = () => {
       <div className="navbar-header"><Link className="navbar-brand" to="/"><img src="/images/newLogo.png" alt="OptionTrip" style={{ height: '70px' }} /></Link></div>
       <div className={`navbar-collapse1 d-flex align-items-center ${isMenuOpen ? 'show' : ''}`}><ul className="nav navbar-nav" id="responsive-menu">
         <li className={`dropdown submenu ${isActive('/')}`}><Link to="/" className="dropdown-toggle">{t('common.home')}</Link></li>
-        <li className="dropdown submenu nav-bookings"><button type="button" className="dropdown-toggle nav-bookings__toggle">{t('common.booking', { defaultValue: 'Booking' })}</button><div className="dropdown-menu nav-bookings__mega"><BookingServiceMenu /></div></li>
+        <li ref={bookingRef} className={`dropdown submenu nav-bookings ${isBookingOpen ? 'nav-bookings--open' : ''}`} onMouseEnter={() => setIsBookingOpen(true)} onMouseLeave={() => setIsBookingOpen(false)}><button type="button" className="dropdown-toggle nav-bookings__toggle" onClick={() => setIsBookingOpen(v => !v)} aria-haspopup="true" aria-expanded={isBookingOpen}>{t('common.booking', { defaultValue: 'Booking' })}<i className={`icon-arrow-down nav-bookings__arrow ${isBookingOpen ? 'open' : ''}`} /></button>{isBookingOpen && <div className="nav-bookings__mega"><BookingServiceMenu onNavigate={() => setIsBookingOpen(false)} /></div>}</li>
         <li className={`dropdown submenu ${isActive('/destinations')}`}><Link to="/destinations" className="dropdown-toggle">{t('header.topDestinations', { defaultValue: 'Top Destinations' })}</Link></li>
         <li className={`dropdown submenu ${isActive('/plan-my-day')}`}><Link to="/plan-my-day" className="dropdown-toggle">{t('header.planMyDay', { defaultValue: 'Plan My Day' })}</Link></li>
         <li className={`dropdown submenu ${isActive('/where-can-i-go')}`}><Link to="/where-can-i-go" className="dropdown-toggle">{t('header.whereCanIGo', { defaultValue: 'Where Can I Go?' })}</Link></li>
