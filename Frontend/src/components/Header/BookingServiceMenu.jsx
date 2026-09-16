@@ -5,7 +5,8 @@ import { TRAVEL_SERVICE_GROUPS } from '../../config/travelServices';
 import { getTravelServiceLabels } from '../../config/travelServiceLabels';
 import './BookingServiceMenu.css';
 
-const viRoute = service => `/travel-buddy?service=${encodeURIComponent(service.id)}`;
+const viRoute = service => `/travel-buddy?service=${encodeURIComponent(service.id)}&intent=find-service`;
+const groupRoute = group => `/services#${group.id}`;
 
 const BookingServiceMenu = ({ mobile = false, onNavigate }) => {
   const { i18n } = useTranslation();
@@ -16,7 +17,10 @@ const BookingServiceMenu = ({ mobile = false, onNavigate }) => {
       <div className="booking-service-menu__grid">
         {TRAVEL_SERVICE_GROUPS.map(group => (
           <section className="booking-service-menu__group" key={group.id} aria-labelledby={`booking-${mobile ? 'mobile-' : ''}${group.id}`}>
-            <h3 id={`booking-${mobile ? 'mobile-' : ''}${group.id}`} className="booking-service-menu__title">{labels[group.id] || group.label}</h3>
+            <Link to={groupRoute(group)} onClick={onNavigate} className="booking-service-menu__group-link">
+              <h3 id={`booking-${mobile ? 'mobile-' : ''}${group.id}`} className="booking-service-menu__title">{labels[group.id] || group.label}</h3>
+              <i className="fa fa-chevron-right" aria-hidden="true" />
+            </Link>
             <ul className="booking-service-menu__items">
               {group.services.map(service => {
                 const route = service.live && service.route ? service.route : viRoute(service);
@@ -26,7 +30,7 @@ const BookingServiceMenu = ({ mobile = false, onNavigate }) => {
                     <Link to={route} onClick={onNavigate} className="booking-service-menu__link" title={serviceLabel}>
                       <span className="booking-service-menu__icon" aria-hidden="true"><i className={`fa ${service.icon}`} /></span>
                       <span className="booking-service-menu__label">{serviceLabel}</span>
-                      {!service.live && <span className="booking-service-menu__vi" aria-label={`${serviceLabel}: ${labels.ask}`}>{labels.ask}</span>}
+                      {!service.live && <span className="booking-service-menu__vi">{labels.choose || labels.ask}</span>}
                     </Link>
                   </li>
                 );
