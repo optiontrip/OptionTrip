@@ -1,49 +1,62 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { TRAVEL_SERVICE_GROUPS } from '../../config/travelServices';
+import { getTravelServiceLabels } from '../../config/travelServiceLabels';
 import './TravelServicesPage.css';
 
-const services = [
-  { icon: 'fa-plane', title: 'Flights', text: 'Compare flight options and continue with live booking partners.', to: '/flights', status: 'Search now' },
-  { icon: 'fa-building', title: 'Stays', text: 'Find hotels and places to stay for your trip.', to: '/hotels', status: 'Search now' },
-  { icon: 'fa-car', title: 'Car Rental', text: 'Compare rental cars for your destination.', to: '/car-rental', status: 'Search now' },
-  { icon: 'fa-ticket', title: 'Tours & Activities', text: 'Attractions, tickets, city experiences and guided tours.', to: '/tours', status: 'Explore' },
-  { icon: 'fa-train', title: 'Trains & Buses', text: 'Ground transportation for city-to-city travel.', to: '/travel-buddy?service=ground-transport', status: 'Ask Vi' },
-  { icon: 'fa-taxi', title: 'Transfers', text: 'Airport and city transfers matched to your itinerary.', to: '/travel-buddy?service=transfers', status: 'Ask Vi' },
-  { icon: 'fa-wifi', title: 'eSIM', text: 'Stay connected abroad with travel eSIM options.', to: '/esim', status: 'Compare' },
-  { icon: 'fa-shield', title: 'Travel Insurance', text: 'Explore insurance options based on destination and trip type.', to: '/travel-buddy?service=insurance', status: 'Ask Vi' },
-  { icon: 'fa-ship', title: 'Ferries & Sea Travel', text: 'Include ferries and other sea connections in your journey.', to: '/travel-buddy?service=ferries', status: 'Ask Vi' },
-  { icon: 'fa-suitcase', title: 'Luggage Storage', text: 'Find convenient storage between checkout, arrival and departure.', to: '/travel-buddy?service=luggage-storage', status: 'Ask Vi' },
-  { icon: 'fa-map', title: 'City Passes', text: 'Bundle attractions and local experiences where available.', to: '/travel-buddy?service=city-passes', status: 'Ask Vi' },
-  { icon: 'fa-bicycle', title: 'Bikes & Scooters', text: 'Add flexible local mobility to the trip.', to: '/travel-buddy?service=local-mobility', status: 'Ask Vi' },
-  { icon: 'fa-clock', title: 'Flight Compensation', text: 'Check options after eligible delays, cancellations or disruptions.', to: '/travel-buddy?service=flight-compensation', status: 'Check with Vi' },
-];
+const viRoute = service => `/travel-buddy?service=${encodeURIComponent(service.id)}&intent=find-service`;
+
+const COPY = {
+  en: { eyebrow:'OPTIONTRIP TRAVEL SERVICES', title:'What do you need for your trip?', intro:'Choose what you want to book or arrange. If a service is not bookable directly yet, Vi will help you find the right option.', plan:'Plan my trip with Vi', trips:'My trips', trustTitle:'Clear booking, no guessing.', trust:'OptionTrip shows direct search where available. For assisted services, Vi helps you choose first instead of sending you to an unclear page.' },
+  ru: { eyebrow:'СЕРВИСЫ OPTIONTRIP', title:'Что вам нужно для поездки?', intro:'Выберите, что хотите купить, забронировать или оформить. Если прямого бронирования пока нет, Vi поможет подобрать подходящий вариант.', plan:'Спланировать поездку с Vi', trips:'Мои поездки', trustTitle:'Всё понятно до перехода к бронированию.', trust:'Где доступен прямой поиск, OptionTrip сразу открывает его. Для остальных услуг Vi сначала поможет выбрать подходящий вариант.' },
+  uk: { eyebrow:'СЕРВІСИ OPTIONTRIP', title:'Що вам потрібно для подорожі?', intro:'Оберіть, що хочете купити, забронювати або оформити. Якщо прямого бронювання ще немає, Vi допоможе підібрати варіант.', plan:'Спланувати подорож з Vi', trips:'Мої подорожі', trustTitle:'Зрозуміле бронювання без здогадок.', trust:'Де доступний прямий пошук, OptionTrip одразу відкриває його. Для інших послуг Vi спочатку допоможе обрати варіант.' }
+};
 
 export default function TravelServicesPage() {
+  const { i18n } = useTranslation();
+  const language = (i18n.language || 'en').split('-')[0];
+  const labels = getTravelServiceLabels(language);
+  const copy = COPY[language] || COPY.en;
+
   return (
     <main className="travel-services-page">
       <section className="travel-services-hero">
         <div className="container">
-          <span className="travel-services-eyebrow">OPTIONTRIP TRAVEL MARKETPLACE</span>
-          <h1>Everything your trip needs, connected in one place.</h1>
-          <p>Search core bookings directly and use Vi to connect transportation, protection, connectivity and experiences to the same journey.</p>
+          <span className="travel-services-eyebrow">{copy.eyebrow}</span>
+          <h1>{copy.title}</h1>
+          <p>{copy.intro}</p>
           <div className="travel-services-actions">
-            <Link className="nir-btn" to="/travel-buddy?intent=plan-trip">Plan with Vi</Link>
-            <Link className="travel-services-secondary" to="/my-trips">My Trips</Link>
+            <Link className="nir-btn" to="/travel-buddy?intent=plan-trip">{copy.plan}</Link>
+            <Link className="travel-services-secondary" to="/my-trips">{copy.trips}</Link>
           </div>
         </div>
       </section>
-      <section className="container travel-services-grid" aria-label="Travel services">
-        {services.map(service => (
-          <Link className="travel-service-card" to={service.to} key={service.title}>
-            <div className="travel-service-icon"><i className={`fa ${service.icon}`} aria-hidden="true"></i></div>
-            <div className="travel-service-copy"><h2>{service.title}</h2><p>{service.text}</p></div>
-            <span className="travel-service-status">{service.status} <i className="fa fa-arrow-right" aria-hidden="true"></i></span>
-          </Link>
+
+      <div className="container travel-services-groups">
+        {TRAVEL_SERVICE_GROUPS.map(group => (
+          <section className="travel-services-group" key={group.id} aria-labelledby={`services-${group.id}`}>
+            <h2 id={`services-${group.id}`}>{labels[group.id] || group.label}</h2>
+            <div className="travel-services-grid">
+              {group.services.map(service => {
+                const direct = Boolean(service.live && service.route);
+                const route = direct ? service.route : viRoute(service);
+                const serviceLabel = labels[service.id] || service.label;
+                return (
+                  <Link className="travel-service-card" to={route} key={service.id}>
+                    <span className="travel-service-icon" aria-hidden="true"><i className={`fa ${service.icon}`} /></span>
+                    <span className="travel-service-copy"><strong>{serviceLabel}</strong></span>
+                    <span className="travel-service-status">{direct ? labels.open : labels.choose} <i className="fa fa-arrow-right" aria-hidden="true" /></span>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
         ))}
-      </section>
+      </div>
+
       <section className="container travel-services-trust">
-        <strong>Price integrity first.</strong>
-        <span>OptionTrip does not present invented prices as live offers. Availability and prices are confirmed by the relevant booking provider.</span>
+        <strong>{copy.trustTitle}</strong><span>{copy.trust}</span>
       </section>
     </main>
   );
