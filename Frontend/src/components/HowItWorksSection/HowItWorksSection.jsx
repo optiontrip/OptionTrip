@@ -6,22 +6,30 @@ const steps = [
   {
     icon: 'fas fa-comment-dots',
     title: 'Describe the Trip You Want',
-    desc: 'Tell Vi what kind of trip you\'re after — a warm beach in May, a food tour in Spain, a quiet mountain escape. No destination required yet.',
+    desc: 'Tell Vi what kind of trip you are after - a warm beach in May, a food tour in Spain, or simply a budget and a mood.',
+    to: '/travel-buddy?intent=discover',
+    action: 'Start with Vi',
   },
   {
     icon: 'fas fa-map-marker-alt',
     title: 'Discover Matching Destinations',
-    desc: 'Vi suggests destinations, routes, and ideas that fit what you described, so you can pick what actually excites you.',
+    desc: 'Explore places that fit your dates, budget, passport situation and travel style instead of browsing random lists.',
+    to: '/where-can-i-go',
+    action: 'Find where to go',
   },
   {
     icon: 'fas fa-route',
     title: 'Build Your Trip',
-    desc: 'Set your dates, group size, and budget, then let Vi turn your pick into a day-by-day itinerary with flights and stays.',
+    desc: 'Turn the idea into dates, route, travelers, budget and a connected plan that Vi can keep refining with you.',
+    to: '/travel-buddy?intent=plan-trip',
+    action: 'Build the trip',
   },
   {
     icon: 'fas fa-compass',
-    title: 'Travel With Guidance',
-    desc: 'Vi stays with you before, during, and after the trip — answering questions, adjusting plans, and offering real-time help.',
+    title: 'Book, Prepare & Travel',
+    desc: 'Use connected travel services for booking and preparation, then keep Vi with you for practical help during the journey.',
+    to: '/services',
+    action: 'Explore services',
   },
 ];
 
@@ -33,19 +41,22 @@ const HowItWorksSection = () => (
         <h2 className="hiw-title">
           From Idea <span className="theme">to Itinerary</span>
         </h2>
-        <p className="hiw-sub">Four simple steps take you from "I want to travel" to a fully planned trip.</p>
+        <p className="hiw-sub">Every step below is live - start with Vi, discover destinations, build the trip, or open the service marketplace.</p>
       </div>
 
       <div className="hiw-grid">
         {steps.map((step, i) => (
-          <div className="hiw-card" key={step.title}>
+          <Link className="hiw-card" key={step.title} to={step.to}>
             <span className="hiw-card__num">{String(i + 1).padStart(2, '0')}</span>
             <div className="hiw-card__icon">
               <i className={step.icon}></i>
             </div>
             <h3 className="hiw-card__title">{step.title}</h3>
             <p className="hiw-card__desc">{step.desc}</p>
-          </div>
+            <span className="hiw-card__action">
+              {step.action} <i className="fa fa-arrow-right" aria-hidden="true" />
+            </span>
+          </Link>
         ))}
       </div>
 
