@@ -7,6 +7,7 @@ import WhyChooseUs from '../components/WhyChooseUs/WhyChooseUs';
 import HowItWorksSection from '../components/HowItWorksSection/HowItWorksSection';
 import Loader from '../components/Loader/Loader';
 import HomeBookingSection from '../components/HomeBookingSection/HomeBookingSection';
+import TravelEcosystemSection from '../components/TravelEcosystemSection/TravelEcosystemSection';
 import WelcomeModal from '../components/WelcomeModal/WelcomeModal';
 import { setAccessToken } from '../services/authService';
 import { useAuth } from '../contexts/AuthContext';
@@ -46,10 +47,15 @@ const Home = () => {
 
   return (
     <>
-      <PageMeta title="Your Personal Travel Partner Vi" description="Plan your perfect trip with Travel Partner Vi. Describe where you want to go and get a personalized itinerary, flights, and stays in minutes." path="/" />
+      <PageMeta
+        title="Your Personal Travel Partner Vi"
+        description="Plan, compare and organize your trip with Travel Partner Vi, including flights, stays, cars, activities, transport, eSIM and other connected travel services."
+        path="/"
+      />
       <WelcomeModal />
       <Banner />
       <HomeBookingSection />
+      <TravelEcosystemSection />
       <HowItWorksSection />
       <WhyChooseUs ctaOnly />
       <FeaturedBlogSection />
