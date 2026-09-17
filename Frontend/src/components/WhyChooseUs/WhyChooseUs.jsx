@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import './WhyChooseUs.css';
 
 const features = [
@@ -10,8 +11,8 @@ const features = [
       </svg>
     ),
     label: 'Personalized Planning',
-    title: 'Trips Tailored to You',
-    desc: 'Travel Partner Vi learns your travel style — budget, pace, interests — and builds a day-by-day itinerary that feels handcrafted, not generic.',
+    title: 'Trips Shaped Around You',
+    desc: 'Vi can use your destination, budget, pace, interests and saved trip context to make planning more relevant instead of starting from zero each time.',
     accent: '#029e9d',
   },
   {
@@ -22,9 +23,9 @@ const features = [
         <path d="M8 14h4M8 18h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
       </svg>
     ),
-    label: 'Integrated Management',
-    title: 'Everything in One Place',
-    desc: 'Flights, stays, activities, and budgets — all tracked in a single dashboard. No more juggling between tabs or losing booking confirmations.',
+    label: 'Connected Journey',
+    title: 'One Trip Context',
+    desc: 'Flights, stays, activities, transport tools and saved trip choices can share the same journey context so you do not have to rebuild your plan on every page.',
     accent: '#2563eb',
   },
   {
@@ -35,8 +36,8 @@ const features = [
       </svg>
     ),
     label: 'Your Travel Partner',
-    title: 'Vi — Your Smart Assistant',
-    desc: 'Ask Vi anything about your trip — visa requirements, local customs, weather, or hidden gems. Get instant, context-aware answers 24/7.',
+    title: 'Vi Stays in the Loop',
+    desc: 'Ask Vi about routes, neighborhoods, entry preparation, local transport, weather, food, activities or how to adjust a trip when plans change.',
     accent: '#7c3aed',
   },
   {
@@ -45,9 +46,9 @@ const features = [
         <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
-    label: 'Real-Time Prices',
-    title: 'Live Flights & Stays',
-    desc: 'Search across Duffel, Google Flights, Hotelbeds, and more simultaneously. Always see the best available price — not cached or outdated data.',
+    label: 'Price Truth',
+    title: 'Live Where It Is Connected',
+    desc: 'When a live provider search is available, OptionTrip uses those returned results. Estimates and planning ranges should stay clearly separate from live booking prices.',
     accent: '#ea580c',
   },
   {
@@ -57,9 +58,9 @@ const features = [
         <path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
       </svg>
     ),
-    label: 'Multi-Language',
-    title: 'Travel Without Barriers',
-    desc: 'OptionTrip speaks your language. Available in 20+ languages with real-time translation so every traveler feels at home on our platform.',
+    label: 'Multilingual Travel',
+    title: 'Built for Global Trips',
+    desc: 'OptionTrip is designed for travelers crossing countries, languages, currencies and transportation systems, with multilingual assistance throughout the trip flow.',
     accent: '#16a34a',
   },
   {
@@ -68,49 +69,47 @@ const features = [
         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
-    label: 'Smart Budgeting',
-    title: 'Spend Wisely, Travel More',
-    desc: 'Set your budget and let OptionTrip optimize every choice — from flights to stays to activities — so you get the most out of every trip.',
+    label: 'Traveler-First Value',
+    title: 'Cheapest Is Not Always Best',
+    desc: 'Vi is being built to compare the tradeoffs that matter: total cost, baggage, timing, connections, cancellation flexibility and traveler time.',
     accent: '#e11d48',
   },
 ];
 
+const CTA = () => (
+  <div className="wcu-cta">
+    <div className="wcu-cta__text">
+      <strong>Start with the trip, not the menu.</strong>
+      <span>Tell Vi what you want to do and move from idea to the right OptionTrip service.</span>
+    </div>
+    <Link to="/travel-buddy?intent=plan-trip" className="wcu-cta__btn">
+      Plan With Vi
+      <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+        <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </Link>
+  </div>
+);
+
 const WhyChooseUs = ({ ctaOnly = false }) => {
   if (ctaOnly) return (
     <section className="wcu-section" style={{ background: 'none', padding: '40px 0' }}>
-      <div className="container">
-        <div className="wcu-cta">
-          <div className="wcu-cta__text">
-            <strong>Ready to plan your next adventure?</strong>
-            <span>Join thousands of travellers who trust OptionTrip.</span>
-          </div>
-          <a href="/plan-my-day" className="wcu-cta__btn">
-            Start Planning Free
-            <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
-              <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </a>
-        </div>
-      </div>
+      <div className="container"><CTA /></div>
     </section>
   );
 
   return (
     <section className="wcu-section" style={{ backgroundImage: 'url(/images/shape4.png)', backgroundPosition: 'center' }}>
       <div className="container">
-
-
         <div className="wcu-header">
           <span className="wcu-eyebrow">Why OptionTrip</span>
           <h2 className="wcu-title">
-            The Smarter Way <span className="theme">to Travel</span>
+            A Smarter Way <span className="theme">to Travel</span>
           </h2>
           <p className="wcu-sub">
-            We combine artificial intelligence with real travel expertise to give you
-            a planning experience that's faster, smarter, and more personal.
+            One connected travel experience built around useful guidance, real provider integrations where available, and Vi keeping the journey context together.
           </p>
         </div>
-
 
         <div className="wcu-grid">
           {features.map((f, i) => (
@@ -126,20 +125,7 @@ const WhyChooseUs = ({ ctaOnly = false }) => {
           ))}
         </div>
 
-
-        <div className="wcu-cta">
-          <div className="wcu-cta__text">
-            <strong>Ready to plan your next adventure?</strong>
-            <span>Join thousands of travellers who trust OptionTrip.</span>
-          </div>
-          <a href="/plan-my-day" className="wcu-cta__btn">
-            Start Planning Free
-            <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
-              <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </a>
-        </div>
-
+        <CTA />
       </div>
       <div className="white-overlay"></div>
     </section>
