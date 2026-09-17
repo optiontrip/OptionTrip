@@ -39,6 +39,7 @@ import tripStoryRouter from "./routes/tripStory.js";
 import yearlyReportRouter from "./routes/yearlyReport.js";
 import internalCronRouter from "./routes/internalCron.js";
 import opportunitiesRouter from "./routes/opportunities.js";
+import travelInventoryRouter from "./routes/travelInventory.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { corsOptions } from "./middleware/security.js";
 import "./config/passport.js";
@@ -88,7 +89,8 @@ app.get("/", (req, res) => {
       products: "/api/products",
       auth: "/api/auth",
       chat: "/api/chat",
-      opportunities: "/api/opportunities"
+      opportunities: "/api/opportunities",
+      travelInventory: "/api/travel-inventory"
     }
   });
 });
@@ -132,6 +134,7 @@ app.use("/api/tripstory", tripStoryRouter);
 app.use("/api/yearly-report", yearlyReportRouter);
 app.use("/api/internal/cron", internalCronRouter);
 app.use("/api/opportunities", opportunitiesRouter);
+app.use("/api/travel-inventory", travelInventoryRouter);
 
 app.use(notFoundHandler);
 
