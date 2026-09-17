@@ -43,6 +43,8 @@ import travelInventoryRouter from "./routes/travelInventory.js";
 import providerHealthRouter from "./routes/providerHealth.js";
 import providerExecutionRouter from "./routes/providerExecution.js";
 import unifiedTravelRouter from "./routes/unifiedTravel.js";
+import marketplaceCatalogRouter from "./routes/marketplaceCatalog.js";
+import viMarketplaceRouter from "./routes/viMarketplace.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { corsOptions } from "./middleware/security.js";
 import "./config/passport.js";
@@ -74,7 +76,8 @@ app.get("/", (req, res) => {
     trips: "/api/trips", products: "/api/products", auth: "/api/auth", chat: "/api/chat",
     opportunities: "/api/opportunities", travelInventory: "/api/travel-inventory",
     providerHealth: "/api/provider-health", providerExecution: "/api/provider-execution/:vertical",
-    unifiedTravel: "/api/travel/:vertical/search"
+    unifiedTravel: "/api/travel/:vertical/search", marketplace: "/api/marketplace",
+    viMarketplace: "/api/vi-marketplace/route"
   }});
 });
 
@@ -115,6 +118,8 @@ app.use("/api/travel-inventory", travelInventoryRouter);
 app.use("/api/provider-health", providerHealthRouter);
 app.use("/api/provider-execution", providerExecutionRouter);
 app.use("/api/travel", unifiedTravelRouter);
+app.use("/api/marketplace", marketplaceCatalogRouter);
+app.use("/api/vi-marketplace", viMarketplaceRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
