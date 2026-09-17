@@ -5,6 +5,7 @@ import { logActivity } from '../services/activityService';
 import HotelCard from '../components/HotelCard/HotelCard';
 import TripDatePicker from '../components/TripDatePicker/TripDatePicker';
 import PassengerSelector from '../components/PassengerSelector/PassengerSelector';
+import ActionableEmptyState from '../components/ActionableEmptyState/ActionableEmptyState';
 import './HotelSearch.css';
 
 function useDebounce(value, delay) {
@@ -45,10 +46,10 @@ const HotelSearch = () => {
   const [adults,    setAdults]    = useState(1);
   const [errors,    setErrors]    = useState({});
 
-  const [isLoading,   setIsLoading]   = useState(false);
-  const [hotels,      setHotels]      = useState([]);
-  const [searchError, setSearchError] = useState(null);
-  const [searched,    setSearched]    = useState(false);
+  const [isLoading,    setIsLoading]    = useState(false);
+  const [hotels,       setHotels]       = useState([]);
+  const [searchError,  setSearchError]  = useState(null);
+  const [searched,     setSearched]     = useState(false);
   const [lastCityName, setLastCityName] = useState('');
 
   useEffect(() => {
@@ -59,6 +60,10 @@ const HotelSearch = () => {
     searchHotelLocations(debouncedQuery).then((locs) => {
       setSuggestions(locs.slice(0, 7));
       setShowDropdown(locs.length > 0);
+      setCityLoading(false);
+    }).catch(() => {
+      setSuggestions([]);
+      setShowDropdown(false);
       setCityLoading(false);
     });
   }, [debouncedQuery]);
@@ -71,20 +76,29 @@ const HotelSearch = () => {
 
   const validate = () => {
     const errs = {};
-    if (!cityQuery.trim()) errs.city    = 'Enter a destination';
-    if (!destId)           errs.city    = 'Select a destination from the list';
+    if (!cityQuery.trim()) errs.city     = 'Enter a destination';
+    if (!destId)           errs.city     = 'Select a destination from the list';
     if (!checkIn)          errs.checkIn  = 'Select check-in date';
     if (!checkOut)         errs.checkOut = 'Select check-out date';
     if (checkIn && checkOut && checkOut <= checkIn) errs.checkOut = 'Check-out must be after check-in';
     return errs;
   };
 
-  const buildBookingUrl = () => {
+  const focusSearch = () => {
+    cityRef.current?.querySelector('input')?.focus();
+    cityRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const viAlternativeRoute = () => {
     const params = new URLSearchParams({
-      ss: cityQuery.trim(), checkin: checkIn, checkout: checkOut,
-      group_adults: String(adults), aid: '370056',
+      service: 'stays',
+      intent: searchError ? 'recover-search' : 'find-alternative',
     });
-    return `https://www.booking.com/searchresults.html?${params.toString()}`;
+    if (lastCityName || cityQuery) params.set('destination', lastCityName || cityQuery);
+    if (checkIn) params.set('checkIn', checkIn);
+    if (checkOut) params.set('checkOut', checkOut);
+    if (adults) params.set('adults', String(adults));
+    return `/travel-buddy?${params.toString()}`;
   };
 
   const handleSearch = async (e) => {
@@ -128,7 +142,7 @@ const HotelSearch = () => {
 
   return (
     <>
-      <PageMeta title="Search Stays" description="Find and compare stays worldwide — hotels, apartments, resorts, and more. Search by destination, dates, and budget with real-time availability." path="/hotels" />
+      <PageMeta title="Search Stays" description="Search connected stay providers for hotels, apartments, resorts and more, then use Vi to compare alternatives when a direct result is unavailable." path="/hotels" />
 
       <section className="hotel-search-hero">
         <div className="container">
@@ -136,18 +150,15 @@ const HotelSearch = () => {
             <h4 className="mb-2 theme1">Search & Compare</h4>
             <h1 className="mb-3">Find Your <span className="theme">Perfect Stay</span></h1>
             <p className="hotel-search-hero__sub">
-              Real-time availability from Hotelbeds. Compare and book via our trusted partners.
+              Search connected stay providers. If one search comes up empty, Vi can help compare dates, nearby areas and alternatives instead of leaving you at a dead end.
             </p>
           </div>
         </div>
       </section>
 
-
       <section className="hotel-search-form-section">
         <div className="container">
           <form className="hs-form" onSubmit={handleSearch} noValidate>
-
-
             <div className={`hs-field hs-field--city${errors.city ? ' hs-field--error' : ''}`} ref={cityRef}>
               <label className="hs-field__label">Destination</label>
               <div className="hs-ac-wrap">
@@ -192,7 +203,6 @@ const HotelSearch = () => {
             </div>
 
             <div className="hs-form__row">
-
               <div className="hs-field hs-field--datepicker">
                 <TripDatePicker
                   mode="range"
@@ -213,7 +223,6 @@ const HotelSearch = () => {
                 />
               </div>
 
-
               <div className="hs-field hs-field--adults">
                 <PassengerSelector
                   passengers={[
@@ -229,7 +238,7 @@ const HotelSearch = () => {
             <div className="hs-form__actions">
               <button type="submit" className="hs-search-btn" disabled={isLoading}>
                 {isLoading ? (
-                  <><span className="hs-search-btn__spinner" /> Searching…</>
+                  <><span className="hs-search-btn__spinner" /> Searching...</>
                 ) : (
                   <><svg viewBox="0 0 24 24" fill="none" width="17" height="17">
                     <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2"/>
@@ -242,7 +251,6 @@ const HotelSearch = () => {
         </div>
       </section>
 
-
       {isLoading && (
         <section className="hotel-search-results">
           <div className="container">
@@ -253,22 +261,27 @@ const HotelSearch = () => {
         </section>
       )}
 
-
       {searched && !isLoading && (
         <section className="hotel-search-results">
           <div className="container">
             {searchError ? (
-              <div className="hs-empty">
-                <div className="hs-empty__icon">🏨</div>
-                <h3>Search failed</h3>
-                <p>{searchError}</p>
-              </div>
+              <ActionableEmptyState
+                icon="🏨"
+                eyebrow="Search recovery"
+                title="This stay search did not complete"
+                description="You can adjust the search, or pass the same destination and dates to Vi so the trip keeps moving without starting over."
+                primaryAction={{ label: 'Ask Vi for alternatives', to: viAlternativeRoute() }}
+                secondaryAction={{ label: 'Adjust search', onClick: focusSearch }}
+              />
             ) : hotels.length === 0 ? (
-              <div className="hs-empty">
-                <div className="hs-empty__icon">🏨</div>
-                <h3>No stays found</h3>
-                <p>No results for <strong>{lastCityName}</strong>. Try different dates or a nearby city.</p>
-              </div>
+              <ActionableEmptyState
+                icon="🗺️"
+                eyebrow="No dead ends"
+                title={`No stays found for ${lastCityName || 'this search'}`}
+                description="Try nearby neighborhoods, different dates or another property type. Vi can keep these trip details and help broaden the search."
+                primaryAction={{ label: 'Let Vi broaden the search', to: viAlternativeRoute() }}
+                secondaryAction={{ label: 'Change destination or dates', onClick: focusSearch }}
+              />
             ) : (
               <>
                 <div className="hs-results-header">
