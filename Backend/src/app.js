@@ -40,6 +40,7 @@ import yearlyReportRouter from "./routes/yearlyReport.js";
 import internalCronRouter from "./routes/internalCron.js";
 import opportunitiesRouter from "./routes/opportunities.js";
 import travelInventoryRouter from "./routes/travelInventory.js";
+import providerHealthRouter from "./routes/providerHealth.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { corsOptions } from "./middleware/security.js";
 import "./config/passport.js";
@@ -90,7 +91,8 @@ app.get("/", (req, res) => {
       auth: "/api/auth",
       chat: "/api/chat",
       opportunities: "/api/opportunities",
-      travelInventory: "/api/travel-inventory"
+      travelInventory: "/api/travel-inventory",
+      providerHealth: "/api/provider-health"
     }
   });
 });
@@ -135,6 +137,7 @@ app.use("/api/yearly-report", yearlyReportRouter);
 app.use("/api/internal/cron", internalCronRouter);
 app.use("/api/opportunities", opportunitiesRouter);
 app.use("/api/travel-inventory", travelInventoryRouter);
+app.use("/api/provider-health", providerHealthRouter);
 
 app.use(notFoundHandler);
 
