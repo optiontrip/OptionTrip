@@ -41,6 +41,7 @@ import internalCronRouter from "./routes/internalCron.js";
 import opportunitiesRouter from "./routes/opportunities.js";
 import travelInventoryRouter from "./routes/travelInventory.js";
 import providerHealthRouter from "./routes/providerHealth.js";
+import providerExecutionRouter from "./routes/providerExecution.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { corsOptions } from "./middleware/security.js";
 import "./config/passport.js";
@@ -50,14 +51,10 @@ connectDB();
 const app = express();
 
 app.use(cors(corsOptions));
-
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
 app.use(cookieParser());
-
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-
 app.use(helmet());
 app.use(session({
   secret: process.env.JWT_ACCESS_SECRET || 'your-session-secret',
@@ -92,7 +89,8 @@ app.get("/", (req, res) => {
       chat: "/api/chat",
       opportunities: "/api/opportunities",
       travelInventory: "/api/travel-inventory",
-      providerHealth: "/api/provider-health"
+      providerHealth: "/api/provider-health",
+      providerExecution: "/api/provider-execution/:vertical"
     }
   });
 });
@@ -138,9 +136,9 @@ app.use("/api/internal/cron", internalCronRouter);
 app.use("/api/opportunities", opportunitiesRouter);
 app.use("/api/travel-inventory", travelInventoryRouter);
 app.use("/api/provider-health", providerHealthRouter);
+app.use("/api/provider-execution", providerExecutionRouter);
 
 app.use(notFoundHandler);
-
 app.use(errorHandler);
 
 export default app;
