@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ActivityCard from '../ActivityCard/ActivityCard';
+import ActionableEmptyState from '../ActionableEmptyState/ActionableEmptyState';
 import useCurrency from '../../hooks/useCurrency';
 import './ItineraryDisplay.css';
 
@@ -10,12 +11,14 @@ const ItineraryDisplay = ({ itinerary, searchCenter }) => {
   if (!itinerary || itinerary.length === 0) {
     return (
       <div className="itinerary-display">
-        <div className="itinerary-display__empty">
-          <div className="itinerary-display__empty-icon">📅</div>
-          <p className="itinerary-display__empty-text">
-            No itinerary available
-          </p>
-        </div>
+        <ActionableEmptyState
+          icon="📅"
+          eyebrow="Build the next step"
+          title="Your itinerary is ready to be built"
+          description="Tell Vi the destination, dates, budget or vibe you have in mind, or start with Plan My Day if you are already there."
+          primaryAction={{ label: 'Build itinerary with Vi', to: '/travel-buddy?intent=build-itinerary' }}
+          secondaryAction={{ label: 'Plan my day', to: '/plan-my-day' }}
+        />
       </div>
     );
   }
@@ -37,7 +40,7 @@ const ItineraryDisplay = ({ itinerary, searchCenter }) => {
       <div className="itinerary-display__header">
         <h2 className="itinerary-display__title">Daily Itinerary</h2>
         <p className="itinerary-display__subtitle">
-          {itinerary.length} days of unforgettable experiences
+          {itinerary.length} day{itinerary.length !== 1 ? 's' : ''} of trip planning in one place
         </p>
       </div>
 
@@ -76,11 +79,15 @@ const ItineraryDisplay = ({ itinerary, searchCenter }) => {
                 </div>
               ))
             ) : (
-              <div className="itinerary-display__empty">
-                <p className="itinerary-display__empty-text">
-                  No activities planned for this day
-                </p>
-              </div>
+              <ActionableEmptyState
+                compact
+                icon="✨"
+                eyebrow="This day is open"
+                title="No activities are planned yet"
+                description="Use Vi to fill the day around your interests, or browse nearby ideas without rebuilding the rest of the trip."
+                primaryAction={{ label: 'Fill this day with Vi', to: '/travel-buddy?intent=plan-day' }}
+                secondaryAction={{ label: 'Explore destinations', to: '/destinations' }}
+              />
             )}
           </div>
 
