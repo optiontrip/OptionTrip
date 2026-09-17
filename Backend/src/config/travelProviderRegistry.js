@@ -14,8 +14,8 @@ export const TRAVEL_PROVIDER_REGISTRY = Object.freeze({
   duffel: provider({ verticals: ['flights'], credentialEnv: ['DUFFEL_API_KEY'], access: 'credentials' }),
   hotelbeds: provider({ verticals: ['hotels'], credentialEnv: ['HOTELBEDS_API_KEY', 'HOTELBEDS_SECRET'], access: 'approval_and_credentials' }),
 
-  // Travelpayouts programs available to the OptionTrip account. Affiliate programs
-  // remain candidates until a concrete link/widget/feed adapter is wired.
+  // Travelpayouts programs confirmed from the OptionTrip account screenshots.
+  // Affiliate entries are catalog candidates until their concrete link/widget/feed adapter is wired.
   aviasales: provider({ verticals: ['flights'], access: 'affiliate_link', integration: 'affiliate' }),
   trip_com: provider({ verticals: ['hotels', 'flights', 'rail', 'activities'], access: 'affiliate_link', integration: 'affiliate' }),
   twelve_go: provider({ verticals: ['rail', 'bus', 'ferries', 'transfers'], access: 'affiliate_link', integration: 'affiliate' }),
@@ -25,7 +25,7 @@ export const TRAVEL_PROVIDER_REGISTRY = Object.freeze({
   bikesbooking: provider({ verticals: ['cars', 'bikes', 'scooters'], access: 'affiliate_link', integration: 'affiliate' }),
   supertravel: provider({ verticals: ['hotels'], access: 'affiliate_link', integration: 'affiliate' }),
   yourtravel: provider({ verticals: ['activities', 'tours'], access: 'affiliate_link', integration: 'affiliate' }),
-  instastay: provider({ verticals: ['hotels'], access: 'affiliate_link', integration: 'affiliate' }),
+  insubuy: provider({ verticals: ['insurance'], access: 'affiliate_link', integration: 'affiliate' }),
   gettransfer_affiliate: provider({ verticals: ['transfers'], access: 'affiliate_link', integration: 'affiliate' }),
   kiwitaxi: provider({ verticals: ['transfers'], access: 'affiliate_link', integration: 'affiliate' }),
   klook: provider({ verticals: ['activities', 'tours', 'rail', 'cars', 'transfers'], access: 'affiliate_link', integration: 'affiliate' }),
@@ -40,15 +40,15 @@ export const TRAVEL_PROVIDER_REGISTRY = Object.freeze({
   airhelp: provider({ verticals: ['flight_compensation'], access: 'affiliate_link', integration: 'affiliate' }),
   go_city: provider({ verticals: ['activities', 'city_passes'], access: 'affiliate_link', integration: 'affiliate' }),
   ekta: provider({ verticals: ['insurance'], access: 'affiliate_link', integration: 'affiliate' }),
-
-  // Additional approved Travelpayouts programs already known from the account/catalog.
-  saily: provider({ verticals: ['esim'], access: 'affiliate_link', integration: 'affiliate' }),
-  radical_storage: provider({ verticals: ['luggage_storage'], access: 'affiliate_link', integration: 'affiliate' }),
-  compensair: provider({ verticals: ['flight_compensation'], access: 'affiliate_link', integration: 'affiliate' }),
+  wegotrip_affiliate: provider({ verticals: ['activities', 'tours'], access: 'affiliate_link', integration: 'affiliate' }),
   autoeurope: provider({ verticals: ['cars'], access: 'affiliate_link', integration: 'affiliate' }),
+  radical_storage: provider({ verticals: ['luggage_storage'], access: 'affiliate_link', integration: 'affiliate' }),
   intui_travel: provider({ verticals: ['transfers'], access: 'affiliate_link', integration: 'affiliate' }),
+  compensair: provider({ verticals: ['flight_compensation'], access: 'affiliate_link', integration: 'affiliate' }),
+  saily: provider({ verticals: ['esim'], access: 'affiliate_link', integration: 'affiliate' }),
   kkday: provider({ verticals: ['activities', 'tours', 'food', 'esim', 'hotels'], access: 'affiliate_link', integration: 'affiliate' }),
 
+  // Optional richer integrations. These do not make an affiliate program live by themselves.
   omio: provider({ verticals: ['rail', 'bus'], credentialEnv: ['TRAVELPAYOUTS_OMIO_FEED_URL'], access: 'feed', notes: 'Travelpayouts feed URL must be issued to OptionTrip before this adapter becomes live.' }),
   airalo: provider({ verticals: ['esim'], credentialEnv: ['TRAVELPAYOUTS_AIRALO_FEED_URL'], access: 'feed', notes: 'Optional richer feed integration. OptionTrip already has a live eSIM affiliate widget.' }),
   tiqets: provider({ verticals: ['activities'], credentialEnv: ['TRAVELPAYOUTS_TIQETS_FEED_URL'], access: 'feed', notes: 'Travelpayouts data access must be issued to OptionTrip before this adapter becomes live.' }),
