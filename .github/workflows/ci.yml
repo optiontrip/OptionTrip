@@ -72,12 +72,12 @@ jobs:
             exit 1
           fi
 
-          if grep -RIn --exclude-dir=node_modules --exclude-dir=dist --include='*.jsx' -E 'href=["'\'' ]*#["'\'']|to=["'\'' ]*#["'\'']' Frontend/src; then
+          if grep -RIn --exclude-dir=node_modules --exclude-dir=dist --include='*.jsx' -E "href=['\"]#['\"]|to=['\"]#['\"]" Frontend/src; then
             echo 'Dead # navigation found in production UI. Use a real route or an action button.'
             exit 1
           fi
 
-          if grep -RIn --exclude-dir=node_modules --exclude-dir=dist --include='*.jsx' -E '>Coming [Ss]oon<|>Coming soon<' Frontend/src; then
+          if grep -RIn --exclude-dir=node_modules --exclude-dir=dist --include='*.jsx' -E '>Coming [Ss]oon<' Frontend/src; then
             echo 'User-facing Coming soon placeholder found. Route to Vi or a working service instead.'
             exit 1
           fi
