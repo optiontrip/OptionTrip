@@ -42,6 +42,7 @@ import opportunitiesRouter from "./routes/opportunities.js";
 import travelInventoryRouter from "./routes/travelInventory.js";
 import providerHealthRouter from "./routes/providerHealth.js";
 import providerExecutionRouter from "./routes/providerExecution.js";
+import unifiedTravelRouter from "./routes/unifiedTravel.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { corsOptions } from "./middleware/security.js";
 import "./config/passport.js";
@@ -49,7 +50,6 @@ import "./config/passport.js";
 connectDB();
 
 const app = express();
-
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -60,52 +60,29 @@ app.use(session({
   secret: process.env.JWT_ACCESS_SECRET || 'your-session-secret',
   resave: true,
   saveUninitialized: true,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 300000
-  }
+  cookie: { secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 300000 }
 }));
-
 app.use(passport.initialize());
 app.use(passport.session());
 
 if (process.env.NODE_ENV !== 'production') {
-  app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-    next();
-  });
+  app.use((req, res, next) => { console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`); next(); });
 }
 
 app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: "OptionTrip Backend API is running",
-    version: "1.0.0",
-    endpoints: {
-      trips: "/api/trips",
-      products: "/api/products",
-      auth: "/api/auth",
-      chat: "/api/chat",
-      opportunities: "/api/opportunities",
-      travelInventory: "/api/travel-inventory",
-      providerHealth: "/api/provider-health",
-      providerExecution: "/api/provider-execution/:vertical"
-    }
-  });
+  res.json({ success: true, message: "OptionTrip Backend API is running", version: "1.0.0", endpoints: {
+    trips: "/api/trips", products: "/api/products", auth: "/api/auth", chat: "/api/chat",
+    opportunities: "/api/opportunities", travelInventory: "/api/travel-inventory",
+    providerHealth: "/api/provider-health", providerExecution: "/api/provider-execution/:vertical",
+    unifiedTravel: "/api/travel/:vertical/search"
+  }});
 });
 
 app.get("/api/health", (req, res) => {
-  res.json({
-    success: true,
-    status: "healthy",
-    timestamp: new Date().toISOString(),
-    services: {
-      database: "connected",
-      openai: process.env.OPENAI_API_KEY ? "configured" : "missing",
-      googlePlaces: process.env.GOOGLE_PLACES_API_KEY ? "configured" : "missing"
-    }
-  });
+  res.json({ success: true, status: "healthy", timestamp: new Date().toISOString(), services: {
+    database: "connected", openai: process.env.OPENAI_API_KEY ? "configured" : "missing",
+    googlePlaces: process.env.GOOGLE_PLACES_API_KEY ? "configured" : "missing"
+  }});
 });
 
 app.use("/api/auth", authRoutes);
@@ -137,6 +114,7 @@ app.use("/api/opportunities", opportunitiesRouter);
 app.use("/api/travel-inventory", travelInventoryRouter);
 app.use("/api/provider-health", providerHealthRouter);
 app.use("/api/provider-execution", providerExecutionRouter);
+app.use("/api/travel", unifiedTravelRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
