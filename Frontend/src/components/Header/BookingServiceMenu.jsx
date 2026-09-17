@@ -5,7 +5,13 @@ import { TRAVEL_SERVICE_GROUPS } from '../../config/travelServices';
 import { getTravelServiceLabels } from '../../config/travelServiceLabels';
 import './BookingServiceMenu.css';
 
-const viRoute = service => `/travel-buddy?service=${encodeURIComponent(service.id)}&intent=find-service`;
+// Booking navigation must have one predictable destination per service.
+// Direct search products open their search page. Every other product opens its
+// dedicated section on the services hub instead of silently throwing the user
+// into Vi and making them start over.
+const serviceRoute = service => service.live && service.route
+  ? service.route
+  : `/services?service=${encodeURIComponent(service.id)}#${service.group || ''}`;
 const groupRoute = group => `/services#${group.id}`;
 
 const BookingServiceMenu = ({ mobile = false, onNavigate }) => {
@@ -23,14 +29,13 @@ const BookingServiceMenu = ({ mobile = false, onNavigate }) => {
             </Link>
             <ul className="booking-service-menu__items">
               {group.services.map(service => {
-                const route = service.live && service.route ? service.route : viRoute(service);
+                const route = service.live && service.route ? service.route : `/services?service=${encodeURIComponent(service.id)}#${group.id}`;
                 const serviceLabel = labels[service.id] || service.label;
                 return (
                   <li key={service.id}>
                     <Link to={route} onClick={onNavigate} className="booking-service-menu__link" title={serviceLabel}>
                       <span className="booking-service-menu__icon" aria-hidden="true"><i className={`fa ${service.icon}`} /></span>
                       <span className="booking-service-menu__label">{serviceLabel}</span>
-                      {!service.live && <span className="booking-service-menu__vi">{labels.choose || labels.ask}</span>}
                     </Link>
                   </li>
                 );
