@@ -19,6 +19,8 @@ const DashboardTab = ({ trips, wishlist, onViewMap }) => {
     let cancelled = false;
     getNotifications({ status: 'unread', limit: 3 }).then((list) => {
       if (!cancelled) setTips(list);
+    }).catch(() => {
+      if (!cancelled) setTips([]);
     });
     return () => { cancelled = true; };
   }, []);
@@ -37,7 +39,6 @@ const DashboardTab = ({ trips, wishlist, onViewMap }) => {
 
   return (
     <div className="dashboard-tab">
-
       <div className="dash-quick-actions">
         {continueTarget ? (
           <Link to={`/trips/${continueTarget.trip_id}`} className="dash-quick-action dash-quick-action--primary">
@@ -45,7 +46,7 @@ const DashboardTab = ({ trips, wishlist, onViewMap }) => {
             Continue planning
           </Link>
         ) : (
-          <Link to="/" className="dash-quick-action dash-quick-action--primary">
+          <Link to="/travel-buddy?intent=plan-trip" className="dash-quick-action dash-quick-action--primary">
             <span className="dash-quick-action__icon">✈️</span>
             Start a new trip
           </Link>
@@ -67,21 +68,26 @@ const DashboardTab = ({ trips, wishlist, onViewMap }) => {
       {showYearlyReport && <YearlyReportModal onClose={() => setShowYearlyReport(false)} />}
 
       <div className="dash-grid">
-
         <section className="dash-panel dash-panel--wide">
           <div className="dash-panel__head">
             <h3>Upcoming trips</h3>
-            <Link to="#" className="dash-panel__link" onClick={(e) => { e.preventDefault(); onViewMap(); }}>See all</Link>
+            <button type="button" className="dash-panel__link" onClick={onViewMap}>See all on map</button>
           </div>
           {upcoming.length === 0 ? (
-            <p className="dash-empty">Nothing upcoming yet — plan a trip and it'll show up here.</p>
+            <div className="dash-empty">
+              <p>No upcoming trip yet. Start with an idea and Vi can turn it into a plan.</p>
+              <div className="dash-empty__actions">
+                <Link to="/travel-buddy?intent=plan-trip">Plan with Vi</Link>
+                <Link to="/where-can-i-go">Find a destination</Link>
+              </div>
+            </div>
           ) : (
             <ul className="dash-trip-list">
               {upcoming.map((t) => (
                 <li key={t.trip_id}>
                   <Link to={`/planned-trip/${t.trip_id}`} className="dash-trip-row">
                     <span className="dash-trip-row__dest">{t.customTitle || t.destination?.name || 'Trip'}</span>
-                    <span className="dash-trip-row__dates">{fmtDate(t.dates?.start_date)} – {fmtDate(t.dates?.end_date)}</span>
+                    <span className="dash-trip-row__dates">{fmtDate(t.dates?.start_date)} - {fmtDate(t.dates?.end_date)}</span>
                   </Link>
                 </li>
               ))}
@@ -113,7 +119,10 @@ const DashboardTab = ({ trips, wishlist, onViewMap }) => {
               <h3>From Vi</h3>
             </div>
             {tips.length === 0 ? (
-              <p className="dash-empty">No new suggestions right now.</p>
+              <div className="dash-empty">
+                <p>No new automatic suggestion right now. Vi is still available whenever you need a decision or a second opinion.</p>
+                <button type="button" className="dash-panel__link" onClick={() => askVi('What should I focus on next for my travel plans?')}>Ask Vi what is next</button>
+              </div>
             ) : (
               <ul className="dash-tip-list">
                 {tips.map((n) => (
@@ -133,20 +142,25 @@ const DashboardTab = ({ trips, wishlist, onViewMap }) => {
               <h3>Saved ideas</h3>
             </div>
             {wishlist.length === 0 ? (
-              <p className="dash-empty">Save destinations you're curious about to see them here.</p>
+              <div className="dash-empty">
+                <p>Your saved ideas will live here, so inspiration does not disappear between visits.</p>
+                <div className="dash-empty__actions">
+                  <Link to="/trip-ideas">Browse trip ideas</Link>
+                  <Link to="/destinations">Explore destinations</Link>
+                </div>
+              </div>
             ) : (
               <ul className="dash-tip-list">
                 {wishlist.slice(0, 3).map((w) => (
                   <li key={w._id} className="dash-tip">
                     <span className="dash-tip__title">{w.destinationName}</span>
-                    <Link to={`/?destination=${encodeURIComponent(w.destinationName)}`} className="dash-tip__cta">Plan</Link>
+                    <Link to={`/travel-buddy?intent=plan-trip&destination=${encodeURIComponent(w.destinationName)}`} className="dash-tip__cta">Plan</Link>
                   </li>
                 ))}
               </ul>
             )}
           </section>
         </div>
-
       </div>
     </div>
   );
