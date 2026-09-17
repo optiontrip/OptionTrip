@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { TRAVEL_SERVICES } from '../../config/travelServices';
+import { fetchTravelInventoryStatus, getInventoryStateForService } from '../../services/travelInventoryService';
 import './TravelServiceRail.css';
 
 const viRoute = service => `/travel-buddy?service=${encodeURIComponent(service.id)}&intent=find-service`;
@@ -12,9 +13,18 @@ const PRIORITY_IDS = [
 
 const TravelServiceRail = () => {
   const location = useLocation();
+  const [inventory, setInventory] = useState({});
   const services = PRIORITY_IDS
     .map(id => TRAVEL_SERVICES.find(service => service.id === id))
     .filter(Boolean);
+
+  useEffect(() => {
+    let active = true;
+    fetchTravelInventoryStatus().then(data => {
+      if (active) setInventory(data);
+    });
+    return () => { active = false; };
+  }, []);
 
   return (
     <nav className="tsr" aria-label="Travel services">
@@ -29,19 +39,21 @@ const TravelServiceRail = () => {
 
         <div className="tsr__scroll" role="list">
           {services.map(service => {
-            const to = service.live && service.route ? service.route : viRoute(service);
+            const state = getInventoryStateForService(service, inventory);
+            const to = state.direct ? service.route : viRoute(service);
             const isActive = service.route && location.pathname === service.route;
+            const badge = state.direct ? null : state.status === 'partner-ready' ? 'Live' : 'Vi';
             return (
               <Link
                 role="listitem"
                 key={service.id}
                 to={to}
                 className={`tsr__item${isActive ? ' tsr__item--active' : ''}`}
-                title={service.live ? `Open ${service.label}` : `Ask Vi about ${service.label}`}
+                title={state.direct ? `Open ${service.label}` : state.status === 'partner-ready' ? `Use a live partner for ${service.label} with Vi` : `Ask Vi about ${service.label}`}
               >
                 <i className={`fa ${service.icon}`} aria-hidden="true" />
                 <span>{service.label}</span>
-                {!service.live && <em>Vi</em>}
+                {badge && <em>{badge}</em>}
               </Link>
             );
           })}

@@ -1,26 +1,37 @@
 const hasEnv = (...names) => names.every(name => Boolean(process.env[name]));
 
-const provider = ({ verticals, credentialEnv = [], access = 'credentials', notes = null, integration = 'api' }) => ({
+const provider = ({
+  verticals,
+  credentialEnv = [],
+  access = 'credentials',
+  notes = null,
+  integration = 'api',
+  liveByDefault = false,
+}) => ({
   verticals,
   credentialEnv,
   access,
   notes,
   integration,
-  enabled: () => credentialEnv.length === 0 || hasEnv(...credentialEnv),
+  liveByDefault,
+  // A program being available to OptionTrip is not the same thing as a live,
+  // user-facing integration. Only integrated widgets or credentialed adapters
+  // are considered operational here.
+  enabled: () => liveByDefault || (credentialEnv.length > 0 && hasEnv(...credentialEnv)),
 });
 
 export const TRAVEL_PROVIDER_REGISTRY = Object.freeze({
   travelpayouts: provider({ verticals: ['flights', 'hotels'], credentialEnv: ['TRAVELPAYOUTS_TOKEN', 'TRAVELPAYOUTS_MARKER'], access: 'token' }),
-  travelpayouts_car_rental_widget: provider({ verticals: ['cars'], access: 'widget', integration: 'widget', notes: 'Live affiliate widget already integrated in OptionTrip.' }),
-  travelpayouts_esim_widget: provider({ verticals: ['esim'], access: 'widget', integration: 'widget', notes: 'Live affiliate widget already integrated in OptionTrip.' }),
-  travelpayouts_tours_widget: provider({ verticals: ['activities'], access: 'widget', integration: 'widget', notes: 'Live affiliate widget already integrated in OptionTrip.' }),
+  travelpayouts_car_rental_widget: provider({ verticals: ['cars'], access: 'widget', integration: 'widget', liveByDefault: true, notes: 'Live affiliate widget already integrated in OptionTrip.' }),
+  travelpayouts_esim_widget: provider({ verticals: ['esim'], access: 'widget', integration: 'widget', liveByDefault: true, notes: 'Live affiliate widget already integrated in OptionTrip.' }),
+  travelpayouts_tours_widget: provider({ verticals: ['activities'], access: 'widget', integration: 'widget', liveByDefault: true, notes: 'Live affiliate widget already integrated in OptionTrip.' }),
   amadeus: provider({ verticals: ['flights'], credentialEnv: ['AMADEUS_API_KEY', 'AMADEUS_API_SECRET'], access: 'approval_and_credentials' }),
   duffel: provider({ verticals: ['flights'], credentialEnv: ['DUFFEL_API_KEY'], access: 'credentials' }),
   hotelbeds: provider({ verticals: ['hotels'], credentialEnv: ['HOTELBEDS_API_KEY', 'HOTELBEDS_SECRET'], access: 'approval_and_credentials' }),
 
-  // Travelpayouts programs available to OptionTrip. These entries make the whole
-  // application aware of the travel lifecycle even before richer API/feed access
-  // is enabled. Affiliate/deep-link adapters can therefore share one registry.
+  // Travelpayouts programs known/available to OptionTrip. These are candidates,
+  // not automatically live. A concrete deeplink/widget/feed adapter must exist
+  // before the UI may claim live booking/search availability.
   aviasales: provider({ verticals: ['flights'], access: 'affiliate_link', integration: 'affiliate' }),
   trip_com: provider({ verticals: ['hotels', 'flights', 'rail', 'activities'], access: 'affiliate_link', integration: 'affiliate' }),
   twelve_go: provider({ verticals: ['rail', 'bus', 'ferries', 'transfers'], access: 'affiliate_link', integration: 'affiliate' }),
@@ -59,6 +70,7 @@ export const getProviderCapabilities = () => Object.entries(TRAVEL_PROVIDER_REGI
   provider: providerName,
   verticals: [...config.verticals],
   configured: config.enabled(),
+  available: true,
   access: config.access,
   integration: config.integration,
   missingCredentials: config.credentialEnv.filter(name => !process.env[name]),
@@ -75,7 +87,8 @@ export const getProviderReadiness = providerName => {
   return {
     provider: providerName,
     verticals: [...config.verticals],
-    configured: missingCredentials.length === 0,
+    configured: config.enabled(),
+    available: true,
     access: config.access,
     integration: config.integration,
     missingCredentials,
