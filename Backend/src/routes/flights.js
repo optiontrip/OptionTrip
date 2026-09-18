@@ -1,10 +1,11 @@
 import express from 'express';
-import { searchFlights, getAirports, searchFlightsTravelpayouts, searchFlightsGoogleHandler, getCheapPriceHandler, exploreDestinationsHandler, searchFlightsDuffelHandler, getDestinationImageHandler, getPlaceImageHandler, getPlaceImagesBatchHandler, getCacheStatsHandler, clearPlaceImageCacheHandler, getNearbyAirportsHandler, getMonthlyPricesHandler } from '../controllers/flightController.js';
+import { searchFlights, searchFlightsTravelpayouts, searchFlightsGoogleHandler, getCheapPriceHandler, exploreDestinationsHandler, searchFlightsDuffelHandler, getDestinationImageHandler, getPlaceImageHandler, getPlaceImagesBatchHandler, getCacheStatsHandler, clearPlaceImageCacheHandler, getNearbyAirportsHandler, getMonthlyPricesHandler } from '../controllers/flightController.js';
+import { getLocations } from '../controllers/locationController.js';
 import { validateFlightSearch, validateTPFlightSearch } from '../middleware/validation.js';
 
 const router = express.Router();
 
-router.get('/airports', getAirports);
+router.get('/airports', getLocations);
 
 router.get('/nearby-airports', getNearbyAirportsHandler);
 
