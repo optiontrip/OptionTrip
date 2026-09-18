@@ -1,141 +1,15 @@
 .tdp-wrap{position:relative}
 .tdp-trigger{display:flex;align-items:stretch;gap:6px}
 .tdp-sep{display:flex;align-items:center;color:#94a3b8;font-size:16px;padding:0 2px;flex-shrink:0}
-.tdp-field{flex:1;min-width:0;cursor:pointer;user-select:none;height:50px;padding:0 14px;display:flex;flex-direction:column;justify-content:center;border:1.5px solid #e2e8f0;border-radius:10px;background:#fff;transition:border-color .15s,box-shadow .15s;box-sizing:border-box}
-.tdp-field:hover,.tdp-field--active{border-color:#029e9d}
-.tdp-field--active{box-shadow:0 0 0 3px rgba(2,158,157,.13)}
-.tdp-field--error,.tdp-field--error:hover{border-color:#ef4444}
-.tdp-field__label{display:block;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;line-height:1}
-.tdp-field__value{display:flex;align-items:center;gap:7px;line-height:1;min-width:0}
-.tdp-field__icon{color:#94a3b8;flex-shrink:0}
-.tdp-field__date{font-size:13px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tdp-field__ph{font-size:13px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tdp-field__err{font-size:11px;color:#ef4444;margin:4px 0 0}
-
-.tdp-popup{position:fixed;z-index:4000;background:#fff;border-radius:18px;box-shadow:0 12px 48px rgba(0,0,0,.16),0 2px 8px rgba(0,0,0,.06);border:1px solid #e8ecef;overflow:hidden;width:660px;max-width:calc(100vw - 32px)}
-.tdp-tabs{display:flex;gap:4px;padding:16px 20px 0;border-bottom:1px solid #f1f5f9;margin-bottom:4px}
-.tdp-tab{flex:1 1 0;min-width:0;padding:9px 8px;border:0;border-radius:8px 8px 0 0;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:#64748b;transition:all .15s;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
-.tdp-tab:hover{color:#029e9d}
-.tdp-tab--active{color:#029e9d;border-bottom-color:#029e9d;background:#f0fdfa}
-
-.tdp-month-mode-intro{display:flex;flex-direction:column;gap:5px;padding:16px 20px 0;color:#475569}
-.tdp-month-mode-intro strong{font-size:16px;color:#0f172a}
-.tdp-month-mode-intro span{font-size:12px;line-height:1.45}
-.tdp-flex-wrap{padding:16px 20px 10px}
-.tdp-flex-hint{font-size:13px;font-weight:600;color:#029e9d;margin:0 0 14px;line-height:1.45}
-.tdp-month-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
-.tdp-month-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:18px 8px;border:1.5px solid #e8ecef;border-radius:12px;background:#f8fafc;cursor:pointer;transition:all .15s;min-height:68px}
-.tdp-month-card:hover{border-color:#029e9d;background:#f0fdfa;transform:translateY(-1px);box-shadow:0 4px 12px rgba(2,158,157,.12)}
-.tdp-month-card--selected{background:#029e9d;border-color:#029e9d;color:#fff;box-shadow:0 4px 14px rgba(2,158,157,.3)}
-.tdp-month-card__year{font-size:11px;font-weight:500;color:#94a3b8;line-height:1}
-.tdp-month-card__name{font-size:14px;font-weight:700;color:#1e293b;line-height:1}
-.tdp-month-card--selected .tdp-month-card__year{color:rgba(255,255,255,.75)}
-.tdp-month-card--selected .tdp-month-card__name{color:#fff}
-
-.pc-wrap{padding:14px 20px 8px;min-width:620px}
-.pc-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
-.pc-nav-btn{font-size:13px;font-weight:700;color:#029e9d;background:none;border:0;cursor:pointer;padding:6px 8px;border-radius:6px;flex-shrink:0}
-.pc-nav-btn:hover{background:#f0fdfa}
-.pc-nav-month{display:flex;align-items:center;gap:10px;flex:1;justify-content:center}
-.pc-nav-arrow{width:32px;height:32px;border:1.5px solid #e2e8f0;border-radius:8px;background:#f8fafc;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#475569;transition:all .15s;flex-shrink:0}
-.pc-nav-arrow:hover:not(:disabled){border-color:#029e9d;color:#029e9d;background:#f0fdfa}
-.pc-nav-arrow:disabled{opacity:.35;cursor:not-allowed}
-.pc-month-label{font-size:16px;font-weight:700;color:#1e293b;min-width:160px;text-align:center}
-.pc-phase-hint{font-size:12px;font-weight:600;color:#029e9d;background:#f0fdfa;padding:4px 10px;border-radius:20px;border:1px solid #99f6e4;flex-shrink:0}
-.pc-whole-month-btn{width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:3px;margin:0 0 14px;padding:11px 13px;border:1.5px solid #5eead4;border-radius:12px;background:#f0fdfa;color:#0f766e;text-align:left;cursor:pointer}
-.pc-whole-month-btn strong{font-size:14px}
-.pc-whole-month-btn span{font-size:11px;line-height:1.35;color:#477a77}
-.pc-whole-month-btn:hover{border-color:#029e9d;background:#ccfbf1}
-.pc-loading{display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px 0;color:#64748b;font-size:13px}
-.pc-loading__spinner{width:28px;height:28px;border:3px solid #e2e8f0;border-top-color:#029e9d;border-radius:50%;animation:pc-spin .7s linear infinite}
-@keyframes pc-spin{to{transform:rotate(360deg)}}
-.pc-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px}
-.pc-weekday{text-align:center;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.3px;padding:4px 0}
-.pc-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
-.pc-day{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 2px;border:0;border-radius:8px;background:transparent;cursor:pointer;transition:all .12s;min-height:54px}
-.pc-day--empty{background:transparent;cursor:default}
-.pc-day:not(.pc-day--empty):not(.pc-day--past):hover{background:#f0fdfa;transform:translateY(-1px);box-shadow:0 2px 8px rgba(2,158,157,.15)}
-.pc-day--cheap{background:#ecfdf5}
-.pc-day--cheap .pc-day__price{color:#029e9d;font-weight:700}
-.pc-day--mid{background:#f0fdfa}
-.pc-day--mid .pc-day__price{color:#0891b2}
-.pc-day--pricey .pc-day__price{color:#94a3b8}
-.pc-day--past{opacity:.35;cursor:not-allowed}
-.pc-day--selected{background:#029e9d!important;box-shadow:0 3px 10px rgba(2,158,157,.35)}
-.pc-day--selected .pc-day__num{color:#fff}
-.pc-day--selected .pc-day__price{color:rgba(255,255,255,.8)}
-.pc-day__num{font-size:15px;font-weight:600;color:#1e293b;line-height:1}
-.pc-day__price{font-size:10px;font-weight:500;line-height:1;white-space:nowrap}
-
-.tdp-legend{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:middle;margin-right:3px}
-.tdp-legend--cheap{background:#029e9d}
-.tdp-legend--pricey{background:#cbd5e1}
-.tdp-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 20px 16px;border-top:1px solid #f1f5f9;background:#fafafa;position:sticky;bottom:0;z-index:2}
-.tdp-footer__nights{flex:1;font-size:13px;color:#029e9d;font-weight:600;line-height:1.35}
-.tdp-btn{padding:9px 24px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;border:0;transition:all .15s}
-.tdp-btn--cancel{background:#f1f5f9;color:#64748b}
-.tdp-btn--cancel:hover{background:#e2e8f0}
-.tdp-btn--apply{background:#029e9d;color:#fff}
-.tdp-btn--apply:hover{background:#027b7a}
-
-.tdp-popup .rdrCalendarWrapper{font-family:inherit;font-size:13px;background:transparent}
-.tdp-popup .rdrMonthAndYearWrapper{padding-top:16px}
-.tdp-popup .rdrMonthAndYearPickers select{font-weight:700;font-size:15px;color:#1e293b;background:transparent}
-.tdp-popup .rdrPprevButton,.tdp-popup .rdrNextButton{background:#f1f5f9;border-radius:8px}
-.tdp-popup .rdrPprevButton:hover,.tdp-popup .rdrNextButton:hover{background:#e2e8f0}
-.tdp-popup .rdrPprevButton i{border-right-color:#475569}
-.tdp-popup .rdrNextButton i{border-left-color:#475569}
-.tdp-popup .rdrMonthName{text-align:center;font-weight:700;font-size:15px;color:#1e293b;padding-bottom:8px}
-.tdp-popup .rdrWeekDay{font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.3px}
-.tdp-popup .rdrDay:not(.rdrDayPassive) .rdrDayNumber span{color:#1e293b;font-weight:500}
-.tdp-popup .rdrDayPassive .rdrDayNumber span{color:#cbd5e1}
-.tdp-popup .rdrDayToday .rdrDayNumber span::after{background:#029e9d}
-.tdp-popup .rdrStartEdge,.tdp-popup .rdrEndEdge{background:#029e9d;border-radius:50%}
-.tdp-popup .rdrInRange{background:rgba(2,158,157,.13)}
-.tdp-popup .rdrSelected{background:#029e9d;border-radius:50%}
-.tdp-popup .rdrDayHovered .rdrDayNumber span{color:#029e9d}
-.tdp-popup .rdrDayStartPreview,.tdp-popup .rdrDayEndPreview,.tdp-popup .rdrDayInPreview{border-color:rgba(2,158,157,.4)}
-.tdp-popup .rdrDateDisplayWrapper{display:none}
-.tdp-popup .rdrMonths.rdrMonthsHorizontal{padding:0 12px 4px}
-.tdp-popup .rdrMonth{width:300px;padding-bottom:12px}
-
-@media(max-width:720px){
-  .tdp-popup{top:4dvh!important;left:12px!important;width:calc(100vw - 24px)!important;max-width:none;max-height:92dvh;overflow-x:hidden;overflow-y:auto;border-radius:16px;overscroll-behavior:contain}
-  .tdp-tabs{position:sticky;top:0;z-index:3;background:#fff;padding:10px 8px 0;gap:2px}
-  .tdp-tab{padding:10px 3px;font-size:11px;white-space:normal;line-height:1.1;min-height:44px}
-  .tdp-month-mode-intro{padding:13px 12px 0}
-  .tdp-flex-wrap{padding:13px 12px 8px}
-  .tdp-flex-hint{margin-bottom:10px;font-size:12px}
-  .tdp-month-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
-  .tdp-month-card{padding:12px 4px;min-height:58px}
-  .tdp-month-card__name{font-size:13px}
-  .pc-wrap{min-width:0;padding:12px}
-  .pc-header{gap:6px;margin-bottom:10px}
-  .pc-nav-btn{padding:6px 4px;font-size:12px}
-  .pc-nav-month{gap:5px}
-  .pc-nav-arrow{width:30px;height:30px}
-  .pc-month-label{min-width:0;font-size:14px}
-  .pc-phase-hint{width:100%;text-align:center;box-sizing:border-box}
-  .pc-whole-month-btn{min-height:54px;margin-bottom:10px}
-  .pc-weekdays{gap:1px}
-  .pc-weekday{font-size:9px}
-  .pc-grid{gap:1px}
-  .pc-day{min-height:45px;padding:5px 0}
-  .pc-day__num{font-size:13px}
-  .pc-day__price{font-size:8px;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-  .tdp-footer{padding:10px 12px calc(10px + env(safe-area-inset-bottom));gap:8px}
-  .tdp-footer__nights{font-size:11px}
-  .tdp-btn{min-height:44px;padding:9px 16px}
-  .tdp-popup .rdrMonths.rdrMonthsHorizontal{display:block;padding:0 8px 4px}
-  .tdp-popup .rdrMonth{width:100%;box-sizing:border-box;padding:0 2px 10px}
-  .tdp-popup .rdrMonth+.rdrMonth{display:none}
-  .tdp-popup .rdrCalendarWrapper{width:100%}
-}
-
-@media(max-width:390px){
-  .tdp-trigger{gap:4px}
-  .tdp-field{padding:0 9px}
-  .tdp-field__date,.tdp-field__ph{font-size:12px}
-  .tdp-tab{font-size:10px;padding-left:1px;padding-right:1px}
-  .tdp-month-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
+.tdp-field{flex:1;min-width:0;cursor:pointer;user-select:none;height:50px;padding:0 14px;display:flex;flex-direction:column;justify-content:center;border:1.5px solid #e2e8f0;border-radius:10px;background:#fff;box-sizing:border-box}
+.tdp-field:hover,.tdp-field--active{border-color:#029e9d}.tdp-field--active{box-shadow:0 0 0 3px rgba(2,158,157,.13)}.tdp-field--error,.tdp-field--error:hover{border-color:#ef4444}
+.tdp-field__label{display:block;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;line-height:1}.tdp-field__value{display:flex;align-items:center;gap:7px;line-height:1;min-width:0}.tdp-field__icon{color:#94a3b8;flex-shrink:0}.tdp-field__date{font-size:13px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tdp-field__ph{font-size:13px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tdp-field__err{font-size:11px;color:#ef4444;margin:4px 0 0}
+.tdp-popup{position:fixed;z-index:4000;background:#fff;border-radius:18px;box-shadow:0 12px 48px rgba(0,0,0,.16),0 2px 8px rgba(0,0,0,.06);border:1px solid #e8ecef;overflow-x:hidden;overflow-y:auto;width:660px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overscroll-behavior:contain}
+.tdp-tabs{display:flex;gap:4px;padding:16px 20px 0;border-bottom:1px solid #f1f5f9;margin-bottom:4px;position:sticky;top:0;z-index:5;background:#fff}.tdp-tab{flex:1 1 0;min-width:0;padding:9px 8px;border:0;border-radius:8px 8px 0 0;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:#64748b;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}.tdp-tab:hover,.tdp-tab--active{color:#029e9d}.tdp-tab--active{border-bottom-color:#029e9d;background:#f0fdfa}
+.tdp-month-mode-intro{display:flex;flex-direction:column;gap:5px;padding:16px 20px 0;color:#475569}.tdp-month-mode-intro strong{font-size:16px;color:#0f172a}.tdp-month-mode-intro span{font-size:12px;line-height:1.45}.tdp-flex-wrap{padding:16px 20px 10px}.tdp-flex-hint{font-size:13px;font-weight:600;color:#029e9d;margin:0 0 14px;line-height:1.45}.tdp-month-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}.tdp-month-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:18px 8px;border:1.5px solid #e8ecef;border-radius:12px;background:#f8fafc;cursor:pointer;min-height:68px}.tdp-month-card:hover{border-color:#029e9d;background:#f0fdfa}.tdp-month-card--selected{background:#029e9d;border-color:#029e9d;color:#fff}.tdp-month-card__year{font-size:11px;font-weight:500;color:#94a3b8;line-height:1}.tdp-month-card__name{font-size:14px;font-weight:700;color:#1e293b;line-height:1}.tdp-month-card--selected .tdp-month-card__year{color:rgba(255,255,255,.75)}.tdp-month-card--selected .tdp-month-card__name{color:#fff}
+.pc-wrap{padding:14px 20px 8px;min-width:620px}.pc-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}.pc-nav-btn{font-size:13px;font-weight:700;color:#029e9d;background:none;border:0;cursor:pointer;padding:6px 8px}.pc-nav-month{display:flex;align-items:center;gap:10px;flex:1;justify-content:center}.pc-nav-arrow{width:32px;height:32px;border:1.5px solid #e2e8f0;border-radius:8px;background:#f8fafc;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#475569}.pc-nav-arrow:disabled{opacity:.35}.pc-month-label{font-size:16px;font-weight:700;color:#1e293b;min-width:160px;text-align:center}.pc-phase-hint{font-size:12px;font-weight:600;color:#029e9d;background:#f0fdfa;padding:4px 10px;border-radius:20px}.pc-whole-month-btn{width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:3px;margin:0 0 14px;padding:11px 13px;border:1.5px solid #5eead4;border-radius:12px;background:#f0fdfa;color:#0f766e;text-align:left;cursor:pointer}.pc-whole-month-btn strong{font-size:14px}.pc-whole-month-btn span{font-size:11px;line-height:1.35}.pc-loading{text-align:center;padding:35px}.pc-weekdays,.pc-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}.pc-weekday{text-align:center;font-size:11px;font-weight:700;color:#94a3b8;padding:4px}.pc-day{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 2px;border:0;border-radius:8px;background:transparent;cursor:pointer;min-height:54px}.pc-day--cheap{background:#ecfdf5}.pc-day--cheap .pc-day__price{color:#029e9d;font-weight:700}.pc-day--mid{background:#f0fdfa}.pc-day--pricey .pc-day__price{color:#94a3b8}.pc-day--past{opacity:.35}.pc-day--selected{background:#029e9d!important}.pc-day__num{font-size:15px;font-weight:600}.pc-day__price{font-size:10px;white-space:nowrap}
+.tdp-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 20px 16px;border-top:1px solid #f1f5f9;background:#fafafa;position:sticky;bottom:0;z-index:5}.tdp-footer__nights{flex:1;font-size:13px;color:#029e9d;font-weight:600}.tdp-btn{padding:9px 24px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;border:0}.tdp-btn--cancel{background:#f1f5f9;color:#64748b}.tdp-btn--apply{background:#029e9d;color:#fff}
+.tdp-popup .rdrDateDisplayWrapper{display:none}.tdp-popup .rdrMonths.rdrMonthsHorizontal{padding:0 12px 4px}.tdp-popup .rdrMonth{width:300px;padding-bottom:12px}
+@media(max-height:760px) and (min-width:721px){.tdp-popup{top:16px!important;max-height:calc(100dvh - 32px)!important}.tdp-month-card{min-height:54px;padding:10px 6px}.tdp-flex-wrap{padding-top:10px}.tdp-month-mode-intro{padding-top:10px}}
+@media(max-width:720px){.tdp-popup{top:max(8px,env(safe-area-inset-top))!important;left:12px!important;width:calc(100vw - 24px)!important;max-width:none;max-height:calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));border-radius:16px}.tdp-tabs{padding:10px 8px 0;gap:2px}.tdp-tab{padding:10px 3px;font-size:11px;white-space:normal;line-height:1.1;min-height:44px}.tdp-month-mode-intro{padding:13px 12px 0}.tdp-flex-wrap{padding:13px 12px 8px}.tdp-month-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.tdp-month-card{padding:12px 4px;min-height:58px}.pc-wrap{min-width:0;padding:12px}.pc-header{gap:6px}.pc-month-label{min-width:0;font-size:14px}.pc-phase-hint{width:100%;text-align:center}.pc-day{min-height:45px;padding:5px 0}.pc-day__num{font-size:13px}.pc-day__price{font-size:8px;max-width:100%;overflow:hidden;text-overflow:ellipsis}.tdp-footer{padding:10px 12px calc(10px + env(safe-area-inset-bottom))}.tdp-popup .rdrMonths.rdrMonthsHorizontal{display:block;padding:0 8px 4px}.tdp-popup .rdrMonth{width:100%;box-sizing:border-box}.tdp-popup .rdrMonth+.rdrMonth{display:none}.tdp-popup .rdrCalendarWrapper{width:100%}}
+@media(max-width:390px){.tdp-trigger{gap:4px}.tdp-field{padding:0 9px}.tdp-field__date,.tdp-field__ph{font-size:12px}.tdp-month-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
