@@ -322,6 +322,19 @@ const HomeBookingSection = () => {
     setFlightErrors((previous) => ({ ...previous, returnDate: '' }));
   };
 
+  const setFlightDateMode = (mode) => {
+    if (mode === 'month') {
+      setFSearchMode('month');
+      setFDate('');
+      setFReturn('');
+    } else {
+      setFSearchMode('exact');
+      setFMonth('');
+      setFReturnMonth('');
+    }
+    setFlightErrors((previous) => ({ ...previous, departureDate: '', returnDate: '' }));
+  };
+
   const handleFlightDateApply = ({ searchMode, month, returnMonth, startDate, endDate }) => {
     if (searchMode === 'month') {
       setFSearchMode('month');
@@ -374,6 +387,15 @@ const HomeBookingSection = () => {
                   {type === 'one-way' ? 'One way' : 'Round trip'}
                 </button>
               ))}
+            </div>
+            <div className="hbs__trip-type" aria-label="Flight date search mode">
+              <span className="hbs__label">When</span>
+              <button type="button" className={`hbs__pill${fSearchMode === 'exact' ? ' hbs__pill--on' : ''}`} onClick={() => setFlightDateMode('exact')}>
+                Specific dates
+              </button>
+              <button type="button" className={`hbs__pill${fSearchMode === 'month' ? ' hbs__pill--on' : ''}`} onClick={() => setFlightDateMode('month')}>
+                Whole month
+              </button>
             </div>
             <div className="hbs__row">
               <div className="hbs__field hbs__field--grow2 hbs__field--location">
@@ -443,8 +465,8 @@ const HomeBookingSection = () => {
                   onApply={handleFlightDateApply}
                   startLabel="Departure"
                   endLabel="Return"
-                  startPlaceholder="Date or whole month"
-                  endPlaceholder="Date or return month"
+                  startPlaceholder={fSearchMode === 'month' ? 'Choose a whole month' : 'Choose a date or open flexible prices'}
+                  endPlaceholder={fSearchMode === 'month' ? 'Choose a return month' : 'Choose a return date'}
                   startError={flightErrors.departureDate}
                   endError={flightErrors.returnDate}
                   origin={/^[A-Z]{3}$/.test(fFromCode) ? fFromCode : undefined}
@@ -457,7 +479,9 @@ const HomeBookingSection = () => {
               </div>
               <button type="submit" className="hbs__search-btn"><SearchIcon /> {fSearchMode === 'month' ? 'Find cheapest month fares' : 'Search prices'}</button>
             </div>
-            <p className="hbs__date-help">Choose <strong>Specific dates</strong>, <strong>Flexible dates</strong>, or <strong>Whole month</strong>. You can also choose <strong>Explore Anywhere</strong> to rank destinations by available fare.</p>
+            <p className="hbs__date-help">
+              <strong>Whole month</strong> is now a direct search mode - choose the month itself, not a day. Open the date picker and use <strong>Flexible dates</strong> when you want to compare available daily prices for a specific route.
+            </p>
           </form>
         )}
 
