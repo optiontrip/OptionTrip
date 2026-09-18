@@ -191,18 +191,14 @@ const FlightSearchForm = ({ onSearch, isLoading, prefillDest, prefillOrigin, ori
 
   useEffect(() => {
     if (prefillOrigin?.code && prefillOrigin?.display) {
-      setOriginCode(prefillOrigin.code);
-      setOriginDisplay(prefillOrigin.display);
-      setIsExploreAnywhere(false);
+      setOriginCode(prefillOrigin.code); setOriginDisplay(prefillOrigin.display); setIsExploreAnywhere(false);
       setErrors(p => ({ ...p, origin: '' }));
     }
   }, [prefillOrigin]);
 
   useEffect(() => {
     if (prefillDest?.code && prefillDest?.display) {
-      setDestCode(prefillDest.code);
-      setDestDisplay(prefillDest.display);
-      setIsExploreAnywhere(false);
+      setDestCode(prefillDest.code); setDestDisplay(prefillDest.display); setIsExploreAnywhere(false);
       setErrors(p => ({ ...p, destination: '' }));
     }
   }, [prefillDest]);
@@ -217,11 +213,7 @@ const FlightSearchForm = ({ onSearch, isLoading, prefillDest, prefillOrigin, ori
 
   const changeTripType = (type) => {
     setTripType(type);
-    if (type === 'one-way') {
-      setReturnDate('');
-      setReturnMonth('');
-      clearError('returnDate');
-    }
+    if (type === 'one-way') { setReturnDate(''); setReturnMonth(''); clearError('returnDate'); }
   };
 
   const validate = () => {
@@ -229,7 +221,6 @@ const FlightSearchForm = ({ onSearch, isLoading, prefillDest, prefillOrigin, ori
     if (!originCode) errs.origin = 'Select a departure airport, city or country';
     if (!isExploreAnywhere && !destCode) errs.destination = 'Select a destination airport, city or country';
     if (!isExploreAnywhere && originCode && destCode && originCode === destCode) errs.destination = 'Origin and destination must differ';
-
     if (dateSearchMode === 'month') {
       if (!travelMonth) errs.departureDate = 'Select a travel month';
       if (tripType === 'round-trip' && !returnMonth) errs.returnDate = 'Select a return month';
@@ -241,34 +232,51 @@ const FlightSearchForm = ({ onSearch, isLoading, prefillDest, prefillOrigin, ori
   };
 
   const buildParams = () => ({
-    originCode,
-    originDisplay,
-    originCountryData,
-    destinationCode: destCode,
-    destinationDisplay: destDisplay,
-    destCountryData,
+    originCode, originDisplay, originCountryData,
+    destinationCode: destCode, destinationDisplay: destDisplay, destCountryData,
     departureDate: dateSearchMode === 'exact' ? departureDate : undefined,
     returnDate: dateSearchMode === 'exact' && tripType === 'round-trip' ? returnDate : undefined,
     dateSearchMode,
     travelMonth: dateSearchMode === 'month' ? travelMonth : undefined,
     returnMonth: dateSearchMode === 'month' && tripType === 'round-trip' ? returnMonth : undefined,
-    adults: Number(adults),
-    children: Number(children),
-    includeNearby,
-    includeHotels,
-    tripType,
+    adults: Number(adults), children: Number(children), includeNearby, includeHotels, tripType,
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    const params = buildParams();
-    if (isExploreAnywhere) {
-      onExploreAnywhere?.({ ...params, exploreAnywhere: true });
+    const searchParams = buildParams();
+
+    if (dateSearchMode === 'month') {
+      const originAirports = originCountryData?.countryAirports?.length
+        ? originCountryData.countryAirports.map(item => item.iataCode).filter(Boolean)
+        : (/^[A-Z]{3}$/i.test(originCode) ? [originCode] : []);
+      const destinationAirports = isExploreAnywhere
+        ? []
+        : (destCountryData?.countryAirports?.length
+          ? destCountryData.countryAirports.map(item => item.iataCode).filter(Boolean)
+          : (/^[A-Z]{3}$/i.test(destCode) ? [destCode] : []));
+
+      if (!originAirports.length || (!isExploreAnywhere && !destinationAirports.length)) {
+        setErrors(p => ({ ...p, origin: !originAirports.length ? 'Select a departure place with supported airports' : p.origin, destination: !isExploreAnywhere && !destinationAirports.length ? 'Select a destination with supported airports' : p.destination }));
+        return;
+      }
+
+      const query = new URLSearchParams({
+        origins: originAirports.join(','),
+        destinations: isExploreAnywhere ? 'ANYWHERE' : destinationAirports.join(','),
+        month: travelMonth,
+        originLabel: originDisplay || originCode,
+        destinationLabel: isExploreAnywhere ? 'Anywhere' : (destDisplay || destCode),
+      });
+      if (returnMonth) query.set('returnMonth', returnMonth);
+      window.location.assign(`/flights/cheap?${query.toString()}`);
       return;
     }
-    onSearch(params);
+
+    if (isExploreAnywhere) { onExploreAnywhere?.({ ...searchParams, exploreAnywhere: true }); return; }
+    onSearch(searchParams);
   };
 
   return (
@@ -307,45 +315,24 @@ const FlightSearchForm = ({ onSearch, isLoading, prefillDest, prefillOrigin, ori
               </div>
 
               <div className={`fsf-col ${tripType === 'round-trip' ? 'fsf-col--datepicker-range' : 'fsf-col--datepicker'}`}>
-                <TripDatePicker
-                  mode={tripType === 'round-trip' ? 'range' : 'single'}
-                  startDate={departureDate}
-                  endDate={returnDate}
-                  selectedMonth={travelMonth}
-                  selectedReturnMonth={returnMonth}
-                  searchMode={dateSearchMode}
-                  minDate={today}
+                <TripDatePicker mode={tripType === 'round-trip' ? 'range' : 'single'} startDate={departureDate} endDate={returnDate}
+                  selectedMonth={travelMonth} selectedReturnMonth={returnMonth} searchMode={dateSearchMode} minDate={today}
                   onApply={({ searchMode, startDate, endDate, month, returnMonth: nextReturnMonth }) => {
                     if (searchMode === 'month') {
-                      setDateSearchMode('month');
-                      setTravelMonth(month || '');
-                      setReturnMonth(nextReturnMonth || '');
-                      setDepartureDate('');
-                      setReturnDate('');
+                      setDateSearchMode('month'); setTravelMonth(month || ''); setReturnMonth(nextReturnMonth || ''); setDepartureDate(''); setReturnDate('');
                     } else {
-                      setDateSearchMode('exact');
-                      setDepartureDate(startDate || '');
-                      if (tripType === 'round-trip') setReturnDate(endDate || '');
-                      setTravelMonth('');
-                      setReturnMonth('');
+                      setDateSearchMode('exact'); setDepartureDate(startDate || ''); if (tripType === 'round-trip') setReturnDate(endDate || ''); setTravelMonth(''); setReturnMonth('');
                     }
-                    clearError('departureDate');
-                    clearError('returnDate');
+                    clearError('departureDate'); clearError('returnDate');
                   }}
-                  startLabel="Departure"
-                  endLabel="Return"
-                  startPlaceholder="Date or whole month"
-                  endPlaceholder="Date or month"
-                  startError={errors.departureDate}
-                  endError={errors.returnDate}
+                  startLabel="Departure" endLabel="Return" startPlaceholder="Date or whole month" endPlaceholder="Date or month"
+                  startError={errors.departureDate} endError={errors.returnDate}
                   origin={/^[A-Za-z]{3}$/.test(originCode) ? originCode.toUpperCase() : undefined}
-                  destination={/^[A-Za-z]{3}$/.test(destCode) ? destCode.toUpperCase() : undefined}
-                />
+                  destination={/^[A-Za-z]{3}$/.test(destCode) ? destCode.toUpperCase() : undefined} />
               </div>
 
               <div className="fsf-col fsf-col--pax">
-                <PassengerSelector
-                  passengers={[
+                <PassengerSelector passengers={[
                     { key: 'adults', label: 'Adults', subtitle: 'Aged 18+', value: adults, min: 1, max: 9 },
                     { key: 'children', label: 'Children', subtitle: 'Aged 0 to 17', value: children, min: 0, max: 8 },
                   ]}
