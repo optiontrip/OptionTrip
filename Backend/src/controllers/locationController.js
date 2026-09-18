@@ -118,10 +118,13 @@ const resolveNearestAirportsForUnknownPlace = async (keyword) => {
       nearby = findAirportsNearCoordinates(place.latitude, place.longitude, 800, 5);
     }
 
+    const requestedPlace = place.displayName || keyword;
     return nearby.map(item => ({
       ...item,
-      requestedPlace: place.displayName || keyword,
+      name: `${item.name} · Nearest to ${requestedPlace} · ${item.distanceKm} km`,
+      requestedPlace,
       requestedAddress: place.formattedAddress || '',
+      nearestLabel: `Nearest to ${requestedPlace} · ${item.distanceKm} km`,
       entityType: 'nearest-airport',
       source: 'nearest-airport-resolver',
     }));
