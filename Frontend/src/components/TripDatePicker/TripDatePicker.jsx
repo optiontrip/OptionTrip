@@ -4,7 +4,7 @@ import { DateRange, Calendar } from 'react-date-range';
 import {
   format, addDays, addMonths,
   startOfMonth,
-  isSameMonth, isAfter, isBefore, isSameDay,
+  isAfter, isBefore, isSameDay,
   getDay, getDaysInMonth,
 } from 'date-fns';
 import 'react-date-range/dist/styles.css';
@@ -13,13 +13,17 @@ import { fetchMonthlyPrices } from '../../services/flightService';
 import useCurrency from '../../hooks/useCurrency';
 import './TripDatePicker.css';
 
-const toDate = (str) => (str ? new Date(str + 'T00:00:00') : null);
-const toStr  = (d)   => (d   ? format(d, 'yyyy-MM-dd')    : '');
-const todayD = ()    => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+const toDate = (str) => (str ? new Date(`${str}T00:00:00`) : null);
+const toStr = (d) => (d ? format(d, 'yyyy-MM-dd') : '');
+const todayD = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
 
 const displayDate = (str) => {
   if (!str) return null;
-  return new Date(str + 'T00:00:00').toLocaleDateString('en-GB', {
+  return new Date(`${str}T00:00:00`).toLocaleDateString('en-GB', {
     day: 'numeric', month: 'short', year: 'numeric',
   });
 };
@@ -36,43 +40,60 @@ const buildMonths = (count = 12) => {
   const base = startOfMonth(new Date());
   return Array.from({ length: count }, (_, i) => addMonths(base, i));
 };
-const MONTHS = buildMonths(12);
 
+const MONTHS = buildMonths(12);
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-const PriceCalendar = ({ month, prices, loading, minDate, maxDate, mode, onSelect, onBack, formatPrice }) => {
-  const [displayMonth, setDisplayMonth] = useState(month);
-  const [phase,        setPhase]        = useState(0);
-  const [rangeStart,   setRangeStart]   = useState(null);
+const PriceCalendar = ({
+  month,
+  prices,
+  loading,
+  minDate,
+  maxDate,
+  mode,
+  onSelect,
+  onBack,
+  onMonthChange,
+  onWholeMonth,
+  formatPrice,
+}) => {
+  const [displayedMonth, setDisplayedMonth] = useState(month);
+  const [phase, setPhase] = useState(0);
+  const [rangeStart, setRangeStart] = useState(null);
+
+  useEffect(() => {
+    setDisplayedMonth(month);
+    setPhase(0);
+    setRangeStart(null);
+  }, [month]);
 
   const priceVals = Object.values(prices).filter(Boolean);
-  const minPrice  = priceVals.length ? Math.min(...priceVals) : 0;
-  const maxPrice  = priceVals.length ? Math.max(...priceVals) : 0;
-  const band      = (maxPrice - minPrice) / 3 || 1;
+  const minPrice = priceVals.length ? Math.min(...priceVals) : 0;
+  const maxPrice = priceVals.length ? Math.max(...priceVals) : 0;
+  const band = (maxPrice - minPrice) / 3 || 1;
   const priceClass = (p) => {
     if (!p) return '';
-    if (p <= minPrice + band)     return 'pc-day--cheap';
+    if (p <= minPrice + band) return 'pc-day--cheap';
     if (p <= minPrice + band * 2) return 'pc-day--mid';
     return 'pc-day--pricey';
   };
 
-  const firstOfMonth = startOfMonth(displayMonth);
-  const startDow     = (getDay(firstOfMonth) + 6) % 7;
-  const daysInMonth  = getDaysInMonth(displayMonth);
-  const cells        = [
+  const firstOfMonth = startOfMonth(displayedMonth);
+  const startDow = (getDay(firstOfMonth) + 6) % 7;
+  const daysInMonth = getDaysInMonth(displayedMonth);
+  const cells = [
     ...Array(startDow).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) =>
-      new Date(displayMonth.getFullYear(), displayMonth.getMonth(), i + 1)
+      new Date(displayedMonth.getFullYear(), displayedMonth.getMonth(), i + 1)
     ),
   ];
 
   const beforeMin = (day) => isBefore(day, minDate || todayD()) && !isSameDay(day, minDate || todayD());
-  const afterMax  = (day) => maxDate && isAfter(day, maxDate) && !isSameDay(day, maxDate);
+  const afterMax = (day) => maxDate && isAfter(day, maxDate) && !isSameDay(day, maxDate);
   const disabledDay = (day) => beforeMin(day) || afterMax(day);
 
   const handleDayClick = (day) => {
     if (!day || disabledDay(day)) return;
-
     if (mode === 'single') {
       onSelect(day, day);
       return;
@@ -80,20 +101,27 @@ const PriceCalendar = ({ month, prices, loading, minDate, maxDate, mode, onSelec
     if (phase === 0 || rangeStart === null) {
       setRangeStart(day);
       setPhase(1);
-    } else {
-      const start = isBefore(day, rangeStart) ? day : rangeStart;
-      const end   = isBefore(day, rangeStart) ? rangeStart : day;
-      onSelect(start, end);
-      setRangeStart(null);
-      setPhase(0);
+      return;
     }
+    const start = isBefore(day, rangeStart) ? day : rangeStart;
+    const end = isBefore(day, rangeStart) ? rangeStart : day;
+    onSelect(start, end);
+    setRangeStart(null);
+    setPhase(0);
   };
 
-  const isSelected = (day) => rangeStart && isSameDay(day, rangeStart);
   const minMonth = startOfMonth(minDate || todayD());
   const maxMonth = startOfMonth(maxDate || addMonths(todayD(), 12));
-  const canGoPrev = isAfter(startOfMonth(displayMonth), minMonth);
-  const canGoNext = isBefore(startOfMonth(displayMonth), maxMonth);
+  const canGoPrev = isAfter(startOfMonth(displayedMonth), minMonth);
+  const canGoNext = isBefore(startOfMonth(displayedMonth), maxMonth);
+
+  const changeMonth = (delta) => {
+    const next = addMonths(displayedMonth, delta);
+    setDisplayedMonth(next);
+    setPhase(0);
+    setRangeStart(null);
+    onMonthChange?.(next);
+  };
 
   return (
     <div className="pc-wrap">
@@ -101,15 +129,20 @@ const PriceCalendar = ({ month, prices, loading, minDate, maxDate, mode, onSelec
         <button className="pc-nav-btn" type="button" onClick={onBack}>← Months</button>
         <div className="pc-nav-month">
           <button className="pc-nav-arrow" type="button" disabled={!canGoPrev} aria-disabled={!canGoPrev}
-            onClick={() => canGoPrev && setDisplayMonth(m => addMonths(m, -1))}>‹</button>
-          <span className="pc-month-label">{format(displayMonth, 'MMMM yyyy')}</span>
+            onClick={() => canGoPrev && changeMonth(-1)}>‹</button>
+          <span className="pc-month-label">{format(displayedMonth, 'MMMM yyyy')}</span>
           <button className="pc-nav-arrow" type="button" disabled={!canGoNext} aria-disabled={!canGoNext}
-            onClick={() => canGoNext && setDisplayMonth(m => addMonths(m, 1))}>›</button>
+            onClick={() => canGoNext && changeMonth(1)}>›</button>
         </div>
         {mode === 'range' && (
           <span className="pc-phase-hint">{phase === 0 ? 'Select departure' : 'Select return'}</span>
         )}
       </div>
+
+      <button className="pc-whole-month-btn" type="button" onClick={() => onWholeMonth?.(displayedMonth)}>
+        <strong>Search the whole {format(displayedMonth, 'MMMM')}</strong>
+        <span>{mode === 'range' ? 'Use this as the departure month, then choose a return month' : 'No exact day required - find the cheapest available days'}</span>
+      </button>
 
       {loading ? (
         <div className="pc-loading"><div className="pc-loading__spinner" /><span>Loading prices…</span></div>
@@ -120,12 +153,12 @@ const PriceCalendar = ({ month, prices, loading, minDate, maxDate, mode, onSelec
             {cells.map((day, i) => {
               if (!day) return <div key={i} className="pc-day pc-day--empty" />;
               const dateStr = toStr(day);
-              const price   = prices[dateStr];
+              const price = prices[dateStr];
               const disabled = disabledDay(day);
-              const sel      = isSelected(day);
+              const selected = rangeStart && isSameDay(day, rangeStart);
               return (
                 <button key={dateStr} type="button"
-                  className={['pc-day', disabled ? 'pc-day--past' : '', sel ? 'pc-day--selected' : '', !disabled && price ? priceClass(price) : ''].filter(Boolean).join(' ')}
+                  className={['pc-day', disabled ? 'pc-day--past' : '', selected ? 'pc-day--selected' : '', !disabled && price ? priceClass(price) : ''].filter(Boolean).join(' ')}
                   onClick={() => handleDayClick(day)} disabled={disabled}>
                   <span className="pc-day__num">{day.getDate()}</span>
                   {price && !disabled && <span className="pc-day__price">{formatPrice ? formatPrice(price) : `$${price.toLocaleString()}`}</span>}
@@ -139,56 +172,41 @@ const PriceCalendar = ({ month, prices, loading, minDate, maxDate, mode, onSelec
   );
 };
 
-const MonthGrid = ({ mode, onMonthClick }) => {
-  const [flexStart, setFlexStart] = useState(null);
-
-  const handleClick = (month) => {
-    if (mode === 'single') {
-      onMonthClick(month);
-      return;
-    }
-    if (!flexStart) {
-      setFlexStart(month);
-      onMonthClick(month);
-    } else {
-      setFlexStart(null);
-      onMonthClick(month);
-    }
-  };
-
-  const isStart = (m) => flexStart && isSameMonth(m, flexStart);
-
-  return (
-    <div className="tdp-flex-wrap">
-      {mode === 'range' && (
-        <p className="tdp-flex-hint">{flexStart ? 'Now select a return month' : 'Select a departure month'}</p>
-      )}
-      <div className="tdp-month-grid">
-        {MONTHS.map((month) => (
-          <button key={month.toISOString()} className={`tdp-month-card${isStart(month) ? ' tdp-month-card--selected' : ''}`}
-            onClick={() => handleClick(month)} type="button">
+const MonthGrid = ({ mode, onMonthClick, selectedStart = null, hintText = '' }) => (
+  <div className="tdp-flex-wrap">
+    <p className="tdp-flex-hint">
+      {hintText || (mode === 'range'
+        ? (selectedStart ? `Departure: ${format(selectedStart, 'MMMM yyyy')} - now choose a return month` : 'Select a departure month')
+        : 'Select a travel month')}
+    </p>
+    <div className="tdp-month-grid">
+      {MONTHS.map((month) => {
+        const selected = selectedStart && format(month, 'yyyy-MM') === format(selectedStart, 'yyyy-MM');
+        return (
+          <button key={month.toISOString()} className={`tdp-month-card${selected ? ' tdp-month-card--selected' : ''}`}
+            onClick={() => onMonthClick(month)} type="button">
             <span className="tdp-month-card__year">{format(month, 'yyyy')}</span>
             <span className="tdp-month-card__name">{format(month, 'MMMM')}</span>
           </button>
-        ))}
-      </div>
+        );
+      })}
     </div>
-  );
-};
+  </div>
+);
 
 const TripDatePicker = ({
-  mode             = 'range',
+  mode = 'range',
   startDate,
   endDate,
   selectedMonth,
   selectedReturnMonth,
-  searchMode       = 'exact',
+  searchMode = 'exact',
   minDate,
   onApply,
-  startLabel       = 'Departure',
-  endLabel         = 'Return',
+  startLabel = 'Departure',
+  endLabel = 'Return',
   startPlaceholder = 'Select date',
-  endPlaceholder   = 'Select date',
+  endPlaceholder = 'Select date',
   startError,
   endError,
   origin,
@@ -199,23 +217,23 @@ const TripDatePicker = ({
 
   const buildRange = useCallback(() => {
     const s = toDate(startDate) || todayD();
-    const e = toDate(endDate)   || (mode === 'range' ? addDays(s, 1) : s);
+    const e = toDate(endDate) || (mode === 'range' ? addDays(s, 1) : s);
     return [{ startDate: s, endDate: e, key: 'selection' }];
   }, [startDate, endDate, mode]);
 
   const { formatPrice } = useCurrency();
-  const [open,          setOpen]          = useState(false);
-  const [dateMode,      setDateMode]      = useState(searchMode === 'month' ? 'whole-month' : 'specific');
-  const [range,         setRange]         = useState(buildRange);
-  const [flexView,      setFlexView]      = useState('months');
-  const [flexMonth,     setFlexMonth]     = useState(null);
-  const [wholeStart,    setWholeStart]    = useState(null);
-  const [monthPrices,   setMonthPrices]   = useState({});
+  const [open, setOpen] = useState(false);
+  const [dateMode, setDateMode] = useState(searchMode === 'month' ? 'whole-month' : 'specific');
+  const [range, setRange] = useState(buildRange);
+  const [flexView, setFlexView] = useState('months');
+  const [flexMonth, setFlexMonth] = useState(null);
+  const [wholeStart, setWholeStart] = useState(null);
+  const [monthPrices, setMonthPrices] = useState({});
   const [pricesLoading, setPricesLoading] = useState(false);
-  const [popupPos,      setPopupPos]      = useState({ top: 0, left: 0 });
-  const wrapRef    = useRef(null);
+  const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
+  const wrapRef = useRef(null);
   const triggerRef = useRef(null);
-  const popupRef   = useRef(null);
+  const popupRef = useRef(null);
 
   useEffect(() => { setRange(buildRange()); }, [startDate, endDate, buildRange]);
 
@@ -230,7 +248,13 @@ const TripDatePicker = ({
   }, []);
 
   const apply = (s, e) => {
-    onApply({ searchMode: 'exact', month: '', returnMonth: '', startDate: toStr(s), endDate: mode === 'range' ? toStr(e) : toStr(s) });
+    onApply({
+      searchMode: 'exact',
+      month: '',
+      returnMonth: '',
+      startDate: toStr(s),
+      endDate: mode === 'range' ? toStr(e) : toStr(s),
+    });
     setOpen(false);
   };
 
@@ -263,7 +287,9 @@ const TripDatePicker = ({
   const handleRangeChange = (item) => {
     const sel = item.selection;
     setRange([sel]);
-    if (sel.startDate && sel.endDate && toStr(sel.startDate) !== toStr(sel.endDate)) apply(sel.startDate, sel.endDate);
+    if (sel.startDate && sel.endDate && toStr(sel.startDate) !== toStr(sel.endDate)) {
+      apply(sel.startDate, sel.endDate);
+    }
   };
 
   const handleSingleChange = (d) => {
@@ -271,21 +297,39 @@ const TripDatePicker = ({
     apply(d, d);
   };
 
-  const handleMonthClick = async (month) => {
+  const loadMonthlyPrices = async (month) => {
     setFlexMonth(month);
-    setFlexView('calendar');
     setMonthPrices({});
-
     const hasRoute = origin && destination && /^[A-Z]{3}$/i.test(origin) && /^[A-Z]{3}$/i.test(destination);
-    if (hasRoute) {
-      setPricesLoading(true);
-      try {
-        const prices = await fetchMonthlyPrices({ origin: origin.toUpperCase(), destination: destination.toUpperCase(), month: format(month, 'yyyy-MM') });
-        setMonthPrices(prices || {});
-      } finally {
-        setPricesLoading(false);
-      }
+    if (!hasRoute) return;
+    setPricesLoading(true);
+    try {
+      const prices = await fetchMonthlyPrices({
+        origin: origin.toUpperCase(),
+        destination: destination.toUpperCase(),
+        month: format(month, 'yyyy-MM'),
+      });
+      setMonthPrices(prices || {});
+    } finally {
+      setPricesLoading(false);
     }
+  };
+
+  const handleMonthClick = async (month) => {
+    setFlexView('calendar');
+    await loadMonthlyPrices(month);
+  };
+
+  const handleFlexibleWholeMonth = (month) => {
+    if (mode === 'single') {
+      applyWholeMonth(month);
+      return;
+    }
+    setWholeStart(month);
+    setDateMode('whole-month');
+    setFlexView('months');
+    setFlexMonth(null);
+    setMonthPrices({});
   };
 
   const nights = mode === 'range' && range[0].startDate && range[0].endDate
@@ -306,8 +350,12 @@ const TripDatePicker = ({
     setMonthPrices({});
   };
 
-  const startText = searchMode === 'month' && selectedMonth ? displayMonth(selectedMonth) : (startDate ? displayDate(startDate) : null);
-  const endText = searchMode === 'month' && selectedReturnMonth ? displayMonth(selectedReturnMonth) : (endDate ? displayDate(endDate) : null);
+  const startText = searchMode === 'month' && selectedMonth
+    ? displayMonth(selectedMonth)
+    : (startDate ? displayDate(startDate) : null);
+  const endText = searchMode === 'month' && selectedReturnMonth
+    ? displayMonth(selectedReturnMonth)
+    : (endDate ? displayDate(endDate) : null);
 
   return (
     <div className="tdp-wrap" ref={wrapRef}>
@@ -344,7 +392,7 @@ const TripDatePicker = ({
 
       {open && createPortal(
         <div className="tdp-popup" ref={popupRef} style={{ top: popupPos.top, left: popupPos.left }}>
-          <div className="tdp-tabs">
+          <div className="tdp-tabs" role="tablist" aria-label="Flight date search mode">
             <button type="button" className={`tdp-tab${dateMode === 'specific' ? ' tdp-tab--active' : ''}`} onClick={() => setDateMode('specific')}>Specific dates</button>
             <button type="button" className={`tdp-tab${dateMode === 'whole-month' ? ' tdp-tab--active' : ''}`} onClick={() => { setDateMode('whole-month'); setWholeStart(null); }}>Whole month</button>
             <button type="button" className={`tdp-tab${dateMode === 'flexible' ? ' tdp-tab--active' : ''}`} onClick={() => { setDateMode('flexible'); setFlexView('months'); }}>Flexible dates</button>
@@ -361,7 +409,8 @@ const TripDatePicker = ({
                   color="#029e9d" showMonthAndYearPickers={false} weekdayDisplayFormat="EEEEEE" monthDisplayFormat="MMMM yyyy" />
               )}
               <div className="tdp-footer">
-                {nights > 0 ? <span className="tdp-footer__nights">{nights} night{nights !== 1 ? 's' : ''} - pick return date</span>
+                {nights > 0
+                  ? <span className="tdp-footer__nights">{nights} night{nights !== 1 ? 's' : ''} - pick return date</span>
                   : mode === 'range' ? <span className="tdp-footer__nights">Select departure date</span> : null}
                 <button className="tdp-btn tdp-btn--cancel" onClick={() => setOpen(false)}>Cancel</button>
               </div>
@@ -372,11 +421,13 @@ const TripDatePicker = ({
             <>
               <div className="tdp-month-mode-intro">
                 <strong>Search the whole month</strong>
-                <span>Choose a month and OptionTrip will rank the cheapest available routes and days.</span>
+                <span>No exact date required. OptionTrip will compare the available days and routes across the selected month.</span>
               </div>
-              <MonthGrid mode={mode} onMonthClick={handleWholeMonthClick} />
+              <MonthGrid mode={mode} selectedStart={wholeStart} onMonthClick={handleWholeMonthClick} />
               <div className="tdp-footer">
-                {mode === 'range' && wholeStart && <span className="tdp-footer__nights">Departure: {format(wholeStart, 'MMMM yyyy')} - now choose return month</span>}
+                {mode === 'range' && wholeStart && (
+                  <span className="tdp-footer__nights">Departure: {format(wholeStart, 'MMMM yyyy')} - choose a return month</span>
+                )}
                 <button className="tdp-btn tdp-btn--cancel" onClick={() => setOpen(false)}>Cancel</button>
               </div>
             </>
@@ -384,10 +435,22 @@ const TripDatePicker = ({
 
           {dateMode === 'flexible' && (
             <>
-              {flexView === 'months' ? <MonthGrid mode={mode} onMonthClick={handleMonthClick} /> : (
-                <PriceCalendar month={flexMonth} prices={monthPrices} loading={pricesLoading} minDate={minD} maxDate={maxD} mode={mode}
-                  formatPrice={formatPrice} onSelect={(s, e) => apply(s, e)}
-                  onBack={() => { setFlexView('months'); setFlexMonth(null); setMonthPrices({}); }} />
+              {flexView === 'months' ? (
+                <MonthGrid mode="single" hintText="Choose a month to see daily prices. You can still search that entire month without choosing a day." onMonthClick={handleMonthClick} />
+              ) : (
+                <PriceCalendar
+                  month={flexMonth}
+                  prices={monthPrices}
+                  loading={pricesLoading}
+                  minDate={minD}
+                  maxDate={maxD}
+                  mode={mode}
+                  formatPrice={formatPrice}
+                  onSelect={(s, e) => apply(s, e)}
+                  onWholeMonth={handleFlexibleWholeMonth}
+                  onMonthChange={loadMonthlyPrices}
+                  onBack={() => { setFlexView('months'); setFlexMonth(null); setMonthPrices({}); }}
+                />
               )}
               <div className="tdp-footer">
                 {flexView === 'calendar' && !pricesLoading && Object.keys(monthPrices).length > 0 && (
