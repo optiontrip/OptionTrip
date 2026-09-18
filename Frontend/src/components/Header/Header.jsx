@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { PRIMARY_HEADER_NAV } from '../../config/headerNav';
+import { SUPPORTED_LANGUAGES, normalizeLanguageCode } from '../../config/supportedLanguages';
 import { getHeaderUiLabels } from '../../config/headerUiLabels';
 import { getTravelServiceLabels } from '../../config/travelServiceLabels';
 import ThemeSwitcher from '../ThemeSwitcher/ThemeSwitcher';
@@ -10,16 +11,6 @@ import NotificationBell from '../NotificationBell/NotificationBell';
 import BookingServiceMenu from './BookingServiceMenu';
 import HeaderTravelPreferences from './HeaderTravelPreferences';
 import './Header.css';
-
-const LANGUAGES = [
-  { code: 'en', name: 'English', flag: '🇬🇧' }, { code: 'fr', name: 'Français', flag: '🇫🇷' }, { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-  { code: 'es', name: 'Español', flag: '🇪🇸' }, { code: 'it', name: 'Italiano', flag: '🇮🇹' }, { code: 'pt', name: 'Português', flag: '🇵🇹' },
-  { code: 'ru', name: 'Русский', flag: '🇷🇺' }, { code: 'uk', name: 'Українська', flag: '🇺🇦' }, { code: 'pl', name: 'Polski', flag: '🇵🇱' },
-  { code: 'tr', name: 'Türkçe', flag: '🇹🇷' }, { code: 'ar', name: 'العربية', flag: '🇸🇦' }, { code: 'hi', name: 'हिन्दी', flag: '🇮🇳' },
-  { code: 'bn', name: 'বাংলা', flag: '🇧🇩' }, { code: 'zh', name: '中文', flag: '🇨🇳' }, { code: 'ja', name: '日本語', flag: '🇯🇵' },
-  { code: 'ko', name: '한국어', flag: '🇰🇷' }, { code: 'id', name: 'Bahasa Indonesia', flag: '🇮🇩' }, { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' },
-  { code: 'th', name: 'ภาษาไทย', flag: '🇹🇭' }, { code: 'hu', name: 'Magyar', flag: '🇭🇺' }, { code: 'sv', name: 'Svenska', flag: '🇸🇪' }, { code: 'sr', name: 'Srpski', flag: '🇷🇸' },
-];
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -32,7 +23,7 @@ const Header = () => {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
   const { user, isAuthenticated, logout } = useAuth();
-  const languageCode = (i18n.language || 'en').split('-')[0];
+  const languageCode = normalizeLanguageCode(i18n.language);
   const uiLabels = getHeaderUiLabels(languageCode);
   const serviceLabels = getTravelServiceLabels(languageCode);
 
@@ -166,7 +157,7 @@ const Header = () => {
           <NotificationBell />
           <ThemeSwitcher />
           <HeaderTravelPreferences
-            languages={LANGUAGES}
+            languages={SUPPORTED_LANGUAGES}
             languageCode={languageCode}
             onLanguageChange={handleLangChange}
             labels={uiLabels}
@@ -204,14 +195,14 @@ const Header = () => {
       <div className="mobile-drawer__header"><Link to="/" onClick={closeMenu}><img src="/images/newLogo.png" alt="OptionTrip" /></Link><button className="mobile-drawer__close" onClick={closeMenu} aria-label={uiLabels.close}><i className="fa fa-times" /></button></div>
       <nav className="mobile-drawer__nav"><ul>
         {renderNavItem(navItems[0], true)}
-        <li className="mobile-drawer__search"><a href="#search1" onClick={closeMenu}><i className="fa fa-search" aria-hidden="true" /> <span>{uiLabels.search}</span></a></li>
+        <li className="mobile-drawer__search"><a href="#search1" onClick={closeMenu}><i className="fa fa-search" aria-hidden="true" /><span>{uiLabels.search}</span></a></li>
         <li className="mobile-drawer__booking"><div className="mobile-drawer__section-title">{serviceLabels.booking}</div><BookingServiceMenu mobile onNavigate={closeMenu} /></li>
         {navItems.slice(1).map(item => renderNavItem(item, true))}
         <li className={isActive('/contact')}><Link to="/contact" onClick={closeMenu}>{uiLabels.contact}</Link></li>
       </ul></nav>
       <HeaderTravelPreferences
         mobile
-        languages={LANGUAGES}
+        languages={SUPPORTED_LANGUAGES}
         languageCode={languageCode}
         onLanguageChange={handleLangChange}
         labels={uiLabels}
