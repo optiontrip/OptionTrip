@@ -1,25 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SUPPORTED_LANGUAGES, normalizeLanguageCode } from '../../config/supportedLanguages';
 import { getHeaderUiLabels } from '../../config/headerUiLabels';
 import './LanguageSwitcher.css';
-
-const LANGUAGES = [
-  { code: 'en', name: 'English', flag: '🇬🇧' }, { code: 'fr', name: 'Français', flag: '🇫🇷' }, { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-  { code: 'es', name: 'Español', flag: '🇪🇸' }, { code: 'it', name: 'Italiano', flag: '🇮🇹' }, { code: 'pt', name: 'Português', flag: '🇵🇹' },
-  { code: 'ru', name: 'Русский', flag: '🇷🇺' }, { code: 'uk', name: 'Українська', flag: '🇺🇦' }, { code: 'pl', name: 'Polski', flag: '🇵🇱' },
-  { code: 'tr', name: 'Türkçe', flag: '🇹🇷' }, { code: 'ar', name: 'العربية', flag: '🇸🇦' }, { code: 'hi', name: 'हिन्दी', flag: '🇮🇳' },
-  { code: 'bn', name: 'বাংলা', flag: '🇧🇩' }, { code: 'zh', name: '中文', flag: '🇨🇳' }, { code: 'ja', name: '日本語', flag: '🇯🇵' },
-  { code: 'ko', name: '한국어', flag: '🇰🇷' }, { code: 'id', name: 'Bahasa Indonesia', flag: '🇮🇩' }, { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' },
-  { code: 'th', name: 'ภาษาไทย', flag: '🇹🇭' }, { code: 'hu', name: 'Magyar', flag: '🇭🇺' }, { code: 'sv', name: 'Svenska', flag: '🇸🇪' }, { code: 'sr', name: 'Srpski', flag: '🇷🇸' },
-];
 
 const LanguageSwitcher = () => {
   const { i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const languageCode = (i18n.language || 'en').split('-')[0];
+  const languageCode = normalizeLanguageCode(i18n.language);
   const uiLabels = getHeaderUiLabels(languageCode);
-  const currentLanguage = LANGUAGES.find(lang => lang.code === languageCode) || LANGUAGES[0];
+  const currentLanguage = SUPPORTED_LANGUAGES.find(lang => lang.code === languageCode) || SUPPORTED_LANGUAGES[0];
 
   const handleLanguageChange = langCode => {
     i18n.changeLanguage(langCode);
@@ -76,7 +67,7 @@ const LanguageSwitcher = () => {
       </button>
       {isOpen && (
         <div className="language-dropdown-menu" role="menu">
-          {LANGUAGES.map(lang => (
+          {SUPPORTED_LANGUAGES.map(lang => (
             <button key={lang.code} type="button" className={`language-option ${lang.code === languageCode ? 'active' : ''}`} onClick={() => handleLanguageChange(lang.code)} role="menuitem">
               <span>{lang.flag}</span><span>{lang.name}</span>
             </button>
