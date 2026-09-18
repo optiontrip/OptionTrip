@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import PageMeta from '../hooks/usePageMeta';
 import { searchHotelLocations, searchHotels } from '../services/hotelService';
 import { logActivity } from '../services/activityService';
 import HotelCard from '../components/HotelCard/HotelCard';
+import HotelFilters, { DEFAULT_HOTEL_FILTERS, applyHotelFilters } from '../components/HotelFilters/HotelFilters';
 import TripDatePicker from '../components/TripDatePicker/TripDatePicker';
 import PassengerSelector from '../components/PassengerSelector/PassengerSelector';
 import './HotelSearch.css';
@@ -28,32 +29,35 @@ const SkeletonCard = () => (
 );
 
 const HotelSearch = () => {
-  const today    = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
-  const [cityQuery,    setCityQuery]    = useState('');
-  const [destId,       setDestId]       = useState('');
-  const [searchType,   setSearchType]   = useState('CITY');
-  const [suggestions,  setSuggestions]  = useState([]);
-  const [cityLoading,  setCityLoading]  = useState(false);
+  const [cityQuery, setCityQuery] = useState('');
+  const [destId, setDestId] = useState('');
+  const [searchType, setSearchType] = useState('CITY');
+  const [suggestions, setSuggestions] = useState([]);
+  const [cityLoading, setCityLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const cityRef        = useRef(null);
+  const cityRef = useRef(null);
   const debouncedQuery = useDebounce(cityQuery, 350);
 
-  const [checkIn,   setCheckIn]   = useState(today);
-  const [checkOut,  setCheckOut]  = useState(tomorrow);
-  const [adults,    setAdults]    = useState(1);
-  const [errors,    setErrors]    = useState({});
+  const [checkIn, setCheckIn] = useState(today);
+  const [checkOut, setCheckOut] = useState(tomorrow);
+  const [adults, setAdults] = useState(1);
+  const [errors, setErrors] = useState({});
 
-  const [isLoading,   setIsLoading]   = useState(false);
-  const [hotels,      setHotels]      = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hotels, setHotels] = useState([]);
+  const [filters, setFilters] = useState({ ...DEFAULT_HOTEL_FILTERS });
   const [searchError, setSearchError] = useState(null);
-  const [searched,    setSearched]    = useState(false);
+  const [searched, setSearched] = useState(false);
   const [lastCityName, setLastCityName] = useState('');
 
   useEffect(() => {
     if (!debouncedQuery || debouncedQuery.length < 2) {
-      setSuggestions([]); setShowDropdown(false); return;
+      setSuggestions([]);
+      setShowDropdown(false);
+      return;
     }
     setCityLoading(true);
     searchHotelLocations(debouncedQuery).then((locs) => {
@@ -64,37 +68,35 @@ const HotelSearch = () => {
   }, [debouncedQuery]);
 
   useEffect(() => {
-    const handler = (e) => { if (cityRef.current && !cityRef.current.contains(e.target)) setShowDropdown(false); };
+    const handler = (e) => {
+      if (cityRef.current && !cityRef.current.contains(e.target)) setShowDropdown(false);
+    };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   const validate = () => {
     const errs = {};
-    if (!cityQuery.trim()) errs.city    = 'Enter a destination';
-    if (!destId)           errs.city    = 'Select a destination from the list';
-    if (!checkIn)          errs.checkIn  = 'Select check-in date';
-    if (!checkOut)         errs.checkOut = 'Select check-out date';
+    if (!cityQuery.trim()) errs.city = 'Enter a destination';
+    if (!destId) errs.city = 'Select a destination from the list';
+    if (!checkIn) errs.checkIn = 'Select check-in date';
+    if (!checkOut) errs.checkOut = 'Select check-out date';
     if (checkIn && checkOut && checkOut <= checkIn) errs.checkOut = 'Check-out must be after check-in';
     return errs;
-  };
-
-  const buildBookingUrl = () => {
-    const params = new URLSearchParams({
-      ss: cityQuery.trim(), checkin: checkIn, checkout: checkOut,
-      group_adults: String(adults), aid: '370056',
-    });
-    return `https://www.booking.com/searchresults.html?${params.toString()}`;
   };
 
   const handleSearch = async (e) => {
     e.preventDefault();
     const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
 
     setIsLoading(true);
     setSearchError(null);
     setHotels([]);
+    setFilters({ ...DEFAULT_HOTEL_FILTERS });
     setSearched(false);
     setLastCityName(cityQuery);
 
@@ -110,8 +112,8 @@ const HotelSearch = () => {
           destination: cityQuery,
           dates: { start_date: checkIn, end_date: checkOut },
           partySize: adults,
-          resultsCount: result?.hotels?.length || 0
-        }
+          resultsCount: result?.hotels?.length || 0,
+        },
       });
     } catch (err) {
       console.error(err);
@@ -126,9 +128,11 @@ const HotelSearch = () => {
     ? Math.max(0, Math.round((new Date(checkOut) - new Date(checkIn)) / 86400000))
     : 0;
 
+  const filteredHotels = useMemo(() => applyHotelFilters(hotels, filters), [hotels, filters]);
+
   return (
     <>
-      <PageMeta title="Search Stays" description="Find and compare stays worldwide — hotels, apartments, resorts, and more. Search by destination, dates, and budget with real-time availability." path="/hotels" />
+      <PageMeta title="Search Stays" description="Find and compare stays worldwide - hotels, apartments, resorts, and more. Search by destination, dates, and budget with real-time availability." path="/hotels" />
 
       <section className="hotel-search-hero">
         <div className="container">
@@ -142,12 +146,9 @@ const HotelSearch = () => {
         </div>
       </section>
 
-
       <section className="hotel-search-form-section">
         <div className="container">
           <form className="hs-form" onSubmit={handleSearch} noValidate>
-
-
             <div className={`hs-field hs-field--city${errors.city ? ' hs-field--error' : ''}`} ref={cityRef}>
               <label className="hs-field__label">Destination</label>
               <div className="hs-ac-wrap">
@@ -158,7 +159,11 @@ const HotelSearch = () => {
                   className="hs-field__input"
                   placeholder="City, region, or property name"
                   value={cityQuery}
-                  onChange={(e) => { setCityQuery(e.target.value); setDestId(''); setErrors(p => ({ ...p, city: '' })); }}
+                  onChange={(e) => {
+                    setCityQuery(e.target.value);
+                    setDestId('');
+                    setErrors(p => ({ ...p, city: '' }));
+                  }}
                   onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
                   autoComplete="off"
                 />
@@ -168,7 +173,8 @@ const HotelSearch = () => {
               {showDropdown && suggestions.length > 0 && (
                 <ul className="hs-ac-dropdown">
                   {suggestions.map((s) => (
-                    <li key={s.destId}
+                    <li
+                      key={s.destId}
                       onMouseDown={() => {
                         setCityQuery(s.label || s.name);
                         setDestId(s.destId);
@@ -192,7 +198,6 @@ const HotelSearch = () => {
             </div>
 
             <div className="hs-form__row">
-
               <div className="hs-field hs-field--datepicker">
                 <TripDatePicker
                   mode="range"
@@ -213,7 +218,6 @@ const HotelSearch = () => {
                 />
               </div>
 
-
               <div className="hs-field hs-field--adults">
                 <PassengerSelector
                   passengers={[
@@ -221,7 +225,10 @@ const HotelSearch = () => {
                   ]}
                   onChange={(key, val) => setAdults(val)}
                   onApply={() => {}}
-                  label={p => { const a = p[0]?.value || 1; return `${a} Adult${a>1?'s':''}`; }}
+                  label={p => {
+                    const a = p[0]?.value || 1;
+                    return `${a} Adult${a > 1 ? 's' : ''}`;
+                  }}
                 />
               </div>
             </div>
@@ -229,7 +236,7 @@ const HotelSearch = () => {
             <div className="hs-form__actions">
               <button type="submit" className="hs-search-btn" disabled={isLoading}>
                 {isLoading ? (
-                  <><span className="hs-search-btn__spinner" /> Searching…</>
+                  <><span className="hs-search-btn__spinner" /> Searching...</>
                 ) : (
                   <><svg viewBox="0 0 24 24" fill="none" width="17" height="17">
                     <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2"/>
@@ -242,17 +249,15 @@ const HotelSearch = () => {
         </div>
       </section>
 
-
       {isLoading && (
         <section className="hotel-search-results">
           <div className="container">
             <div className="hs-results-grid">
-              {[1,2,3].map(i => <SkeletonCard key={i} />)}
+              {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
             </div>
           </div>
         </section>
       )}
-
 
       {searched && !isLoading && (
         <section className="hotel-search-results">
@@ -276,14 +281,36 @@ const HotelSearch = () => {
                     Stays in <span className="theme">{lastCityName}</span>
                   </h2>
                   <p className="hs-results-note">
-                    {hotels.length} result{hotels.length !== 1 ? 's' : ''}
+                    {filteredHotels.length === hotels.length
+                      ? `${hotels.length} result${hotels.length !== 1 ? 's' : ''}`
+                      : `${filteredHotels.length} of ${hotels.length} results`}
                     {nights > 0 ? ` · ${nights} night${nights !== 1 ? 's' : ''}` : ''}
                     {' · '}{adults} adult{adults !== 1 ? 's' : ''}
-                    {' · '}Prices in USD
+                    {' · '}Prices in provider currency
                   </p>
                 </div>
-                <div className="hs-results-grid">
-                  {hotels.map(hotel => <HotelCard key={hotel.hotelId} hotel={hotel} />)}
+
+                <div className="hs-results-layout">
+                  <HotelFilters
+                    hotels={hotels}
+                    filters={filters}
+                    onChange={setFilters}
+                    resultCount={filteredHotels.length}
+                  />
+
+                  <div className="hs-results-main">
+                    {filteredHotels.length === 0 ? (
+                      <div className="hs-empty hs-empty--filtered">
+                        <div className="hs-empty__icon">🔎</div>
+                        <h3>No stays match these filters</h3>
+                        <p>Reset one or more filters to bring results back.</p>
+                      </div>
+                    ) : (
+                      <div className="hs-results-grid">
+                        {filteredHotels.map(hotel => <HotelCard key={hotel.hotelId} hotel={hotel} />)}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </>
             )}
