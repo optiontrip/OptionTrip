@@ -4,8 +4,6 @@ import { TRAVEL_SERVICE_GROUPS } from '../../config/travelServices';
 import { fetchTravelInventoryStatus, getInventoryStateForService } from '../../services/travelInventoryService';
 import './TravelEcosystemSection.css';
 
-const viRoute = service => `/travel-buddy?service=${encodeURIComponent(service.id)}&intent=find-service`;
-
 const GROUP_COPY = {
   book: 'Search and book the core parts of your trip.',
   move: 'Connect airports, cities, stations and the last mile.',
@@ -14,11 +12,14 @@ const GROUP_COPY = {
 };
 
 const statusCopy = state => {
-  if (state.direct) return 'Open service';
-  if (state.status === 'partner-ready') return 'Live partner via Vi';
-  if (state.status === 'provider-pending') return 'Vi can guide you';
-  return 'Ask Vi';
+  if (state.direct) return 'Search & book';
+  if (state.status === 'partner-ready') return 'Continue to booking';
+  return 'See next step';
 };
+
+const serviceRoute = (service, state) => state.direct
+  ? service.route
+  : `/services?service=${encodeURIComponent(service.id)}#${service.group || ''}`;
 
 const TravelEcosystemSection = () => {
   const [inventory, setInventory] = useState({});
@@ -37,9 +38,9 @@ const TravelEcosystemSection = () => {
         <div className="tes__hero">
           <div>
             <span className="tes__eyebrow">One trip. One connected place.</span>
-            <h2 id="tes-title">More than flights and hotels</h2>
+            <h2 id="tes-title">Book your trip without starting over</h2>
             <p>
-              OptionTrip connects booking, transport, trip preparation and live travel help around Vi, so every service can work with the same trip context.
+              Choose a service once. OptionTrip keeps that choice as you move from search to booking, partner checkout or Vi assistance.
             </p>
           </div>
           <Link to="/services" className="tes__all-link">
@@ -63,7 +64,7 @@ const TravelEcosystemSection = () => {
               <div className="tes__service-grid">
                 {group.services.map(service => {
                   const state = getInventoryStateForService(service, inventory);
-                  const route = state.direct ? service.route : viRoute(service);
+                  const route = state.direct ? service.route : `/services?service=${encodeURIComponent(service.id)}#${group.id}`;
                   return (
                     <Link to={route} className="tes__service" key={service.id}>
                       <span className="tes__service-icon" aria-hidden="true">
@@ -85,10 +86,10 @@ const TravelEcosystemSection = () => {
         <div className="tes__vi-card">
           <div className="tes__vi-icon" aria-hidden="true"><i className="fa fa-comments" /></div>
           <div className="tes__vi-copy">
-            <span>Not sure which service you need?</span>
-            <strong>Tell Vi what you are trying to do. Vi can route the trip from there.</strong>
+            <span>Need help planning the whole trip?</span>
+            <strong>Use Vi for planning. For a specific booking, choose the service above and OptionTrip will keep you in that flow.</strong>
           </div>
-          <Link to="/travel-buddy" className="tes__vi-button">Ask Vi</Link>
+          <Link to="/travel-buddy?intent=plan-trip" className="tes__vi-button">Plan with Vi</Link>
         </div>
       </div>
     </section>
