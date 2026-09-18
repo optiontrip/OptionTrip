@@ -1,4 +1,5 @@
 import {
+  getConfiguredFilterCapabilities,
   getConfiguredProviders,
   getProviderCapabilities,
   getProviderReadiness,
@@ -22,6 +23,7 @@ export const getTravelInventoryStatus = () => ({
     return {
       vertical,
       providers: liveProviders,
+      filters: getConfiguredFilterCapabilities(vertical),
       live: liveProviders.length > 0,
       candidates,
       missingProvider: candidates.length === 0,
@@ -31,8 +33,8 @@ export const getTravelInventoryStatus = () => ({
 });
 
 // Public status intentionally omits credential names and provider notes. The UI
-// only needs to know whether a vertical is operational and which provider labels
-// are live; secret values and deployment details stay server-side.
+// receives only operational provider labels and filter capabilities that are live
+// right now, so it can avoid rendering dead controls.
 export const getPublicTravelInventoryStatus = () => {
   const status = getTravelInventoryStatus();
   return {
@@ -41,6 +43,7 @@ export const getPublicTravelInventoryStatus = () => {
       vertical: item.vertical,
       live: item.live,
       providers: item.providers,
+      filters: item.filters,
       hasCandidates: item.candidates.length > 0,
     })),
   };
