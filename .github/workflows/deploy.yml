@@ -39,6 +39,9 @@ jobs:
         working-directory: Backend
         run: npm run test:locations
 
+      - name: Flight whole-month regression guard
+        run: bash scripts/check-flight-search-integrity.sh
+
       - name: Install frontend dependencies
         working-directory: Frontend
         run: npm ci
@@ -112,6 +115,7 @@ jobs:
               echo '❌ ABORT: vite.config.js contains injected code. Not building.'
               exit 1
             fi
+            bash scripts/check-flight-search-integrity.sh
 
             echo '🧱 Preparing Backend dependencies...'
             cd ~/OptionTrip/Backend
