@@ -1,0 +1,1 @@
+Homepage Flights now uses OptionTrip's shared TripDatePicker so whole-month search is available from the first search surface rather than only deeper in the flight flow.
