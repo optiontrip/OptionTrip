@@ -1,4 +1,4 @@
-import { searchCheapestRoutesForMonth } from '../services/cheapFlightExplorerService.js';
+import { searchCheapestRoutePairsForMonth, searchCheapestRoutesForMonth } from '../services/cheapFlightExplorerService.js';
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -6,6 +6,56 @@ const parseCodes = (value) => String(value || '')
   .split(',')
   .map(item => item.trim().toUpperCase())
   .filter(Boolean);
+
+const validateMonthRange = (month, returnMonth) => {
+  if (!MONTH_RE.test(String(month || ''))) return 'month must be YYYY-MM';
+  if (returnMonth && !MONTH_RE.test(String(returnMonth))) return 'returnMonth must be YYYY-MM when provided';
+  if (returnMonth && returnMonth < month) return 'returnMonth cannot be before departure month';
+  return '';
+};
+
+export const getCheapRoutePairsByMonth = async (req, res) => {
+  try {
+    const { pairs, month, returnMonth } = req.query;
+    const pairList = String(pairs || '')
+      .split(',')
+      .map(item => item.trim().toUpperCase())
+      .filter(Boolean);
+
+    if (!pairList.length) {
+      return res.status(400).json({ success: false, message: 'pairs are required as ORG-DST values' });
+    }
+
+    const invalidPair = pairList.find(pair => !/^[A-Z]{3}-[A-Z]{3}$/.test(pair));
+    if (invalidPair) {
+      return res.status(400).json({ success: false, message: `Invalid route pair: ${invalidPair}` });
+    }
+
+    const monthError = validateMonthRange(month, returnMonth);
+    if (monthError) return res.status(400).json({ success: false, message: monthError });
+
+    const result = await searchCheapestRoutePairsForMonth({
+      pairs: pairList,
+      month,
+      returnMonth: returnMonth || null,
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        ...result,
+        month,
+        returnMonth: returnMonth || null,
+        count: result.routes.length,
+        fareType: 'discovery',
+        requiresLiveRecheck: true,
+      },
+    });
+  } catch (error) {
+    console.error('❌ Cheap route pair explorer error:', error?.message || error);
+    return res.status(502).json({ success: false, message: 'Unable to load monthly route prices right now' });
+  }
+};
 
 export const getCheapRoutesByMonth = async (req, res) => {
   try {
@@ -24,17 +74,8 @@ export const getCheapRoutesByMonth = async (req, res) => {
       return res.status(400).json({ success: false, message: 'All origin/destination codes must be 3-letter IATA codes' });
     }
 
-    if (!MONTH_RE.test(String(month || ''))) {
-      return res.status(400).json({ success: false, message: 'month must be YYYY-MM' });
-    }
-
-    if (returnMonth && !MONTH_RE.test(String(returnMonth))) {
-      return res.status(400).json({ success: false, message: 'returnMonth must be YYYY-MM when provided' });
-    }
-
-    if (returnMonth && returnMonth < month) {
-      return res.status(400).json({ success: false, message: 'returnMonth cannot be before departure month' });
-    }
+    const monthError = validateMonthRange(month, returnMonth);
+    if (monthError) return res.status(400).json({ success: false, message: monthError });
 
     const result = await searchCheapestRoutesForMonth({
       originAirports,
