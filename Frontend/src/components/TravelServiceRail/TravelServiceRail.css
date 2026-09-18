@@ -104,6 +104,69 @@
   color: #17233e;
 }
 
+.tsr__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.tsr__currency {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 5px 10px;
+  border: 1px solid rgba(2,158,157,.2);
+  border-radius: 999px;
+  background: #f5fbfb;
+  color: #17324a;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tsr__currency:focus-within {
+  border-color: #029e9d;
+  box-shadow: 0 0 0 3px rgba(2,158,157,.12);
+}
+
+.tsr__currency-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.tsr__currency-copy {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.tsr__currency-copy small {
+  color: #7b8493;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.tsr__currency-copy strong {
+  margin-top: 3px;
+  color: #17324a;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.tsr__currency select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px;
+}
+
 .tsr__vi {
   display: inline-flex;
   align-items: center;
@@ -122,15 +185,27 @@
 @media (max-width: 767px) {
   .tsr__inner {
     grid-template-columns: minmax(0,1fr) auto;
+    gap: 7px;
     min-height: 52px;
   }
   .tsr__brand { display: none; }
   .tsr__item { padding: 7px 9px; }
-  .tsr__vi { padding: 8px 11px; }
+  .tsr__actions { gap: 5px; }
+  .tsr__currency {
+    min-width: 58px;
+    min-height: 40px;
+    justify-content: center;
+    padding: 5px 8px;
+  }
+  .tsr__currency-copy small { display: none; }
+  .tsr__currency-copy strong { margin-top: 0; font-size: 10.5px; }
+  .tsr__currency-icon { font-size: 13px; }
+  .tsr__vi { min-height: 40px; padding: 8px 10px; }
 }
 
 @media (max-width: 420px) {
   .tsr__item span { font-size: 10.5px; }
   .tsr__vi span { display: none; }
-  .tsr__vi { width: 36px; height: 36px; justify-content: center; padding: 0; }
+  .tsr__vi { width: 40px; height: 40px; justify-content: center; padding: 0; }
+  .tsr__currency { min-width: 56px; }
 }
