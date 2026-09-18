@@ -57,7 +57,7 @@ const localLocationFallback = (keyword) => {
       return {
         iataCode: country.code,
         cityName: country.name,
-        name: `${country.name} — All airports`,
+        name: `${country.name} - All airports`,
         countryName: country.name,
         isCountry: true,
         countryAirports,
@@ -78,13 +78,21 @@ const localLocationFallback = (keyword) => {
   }).slice(0, 10);
 };
 
+const getBrowserLocale = () => {
+  if (typeof navigator === 'undefined') return 'en';
+  const value = String(navigator.language || navigator.languages?.[0] || 'en').split(/[-_]/)[0].toLowerCase();
+  return /^[a-z]{2}$/.test(value) ? value : 'en';
+};
+
 export const searchAirports = async (keyword) => {
   if (!keyword || keyword.trim().length < 2) return [];
   const fallback = localLocationFallback(keyword);
   try {
-    const res = await fetch(
-      `${API_URL}/api/flights/airports?keyword=${encodeURIComponent(keyword.trim())}`
-    );
+    const params = new URLSearchParams({
+      keyword: keyword.trim(),
+      locale: getBrowserLocale(),
+    });
+    const res = await fetch(`${API_URL}/api/flights/airports?${params.toString()}`);
     if (!res.ok) return fallback;
     const data = await res.json();
     const live = data.data?.locations || [];
