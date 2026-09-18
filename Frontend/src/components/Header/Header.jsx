@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { PRIMARY_HEADER_NAV } from '../../config/headerNav';
+import { getHeaderUiLabels } from '../../config/headerUiLabels';
 import { getTravelServiceLabels } from '../../config/travelServiceLabels';
 import ThemeSwitcher from '../ThemeSwitcher/ThemeSwitcher';
 import NotificationBell from '../NotificationBell/NotificationBell';
@@ -31,8 +32,9 @@ const Header = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const { user, isAuthenticated, logout } = useAuth();
+  const uiLabels = getHeaderUiLabels(i18n.language);
   const serviceLabels = getTravelServiceLabels(i18n.language);
 
   const closeTimeout = useRef(null);
@@ -44,7 +46,7 @@ const Header = () => {
     ...item,
     label: item.serviceLabel
       ? (serviceLabels[item.serviceLabel] || item.fallback)
-      : t(item.labelKey, { defaultValue: item.fallback }),
+      : (uiLabels[item.id] || item.fallback),
   }));
 
   useEffect(() => {
@@ -57,7 +59,7 @@ const Header = () => {
         return;
       }
       if (!('geolocation' in navigator)) {
-        setUserLocation(t('header.location'));
+        setUserLocation(uiLabels.location);
         setIsLoadingLocation(false);
         return;
       }
@@ -70,22 +72,22 @@ const Header = () => {
             const data = await response.json();
             const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || '';
             const country = data.address?.country || '';
-            const value = city && country ? `${city}, ${country}` : city || country || t('header.location');
+            const value = city && country ? `${city}, ${country}` : city || country || uiLabels.location;
             setUserLocation(value);
             localStorage.setItem('userLocation', value);
             localStorage.setItem('userLocationTime', Date.now().toString());
           }
         } catch {
-          setUserLocation(t('header.location'));
+          setUserLocation(uiLabels.location);
         }
         setIsLoadingLocation(false);
       }, () => {
-        setUserLocation(t('header.location'));
+        setUserLocation(uiLabels.location);
         setIsLoadingLocation(false);
       }, { timeout: 10000, maximumAge: 300000 });
     };
     fetchLocation();
-  }, [t, i18n.language]);
+  }, [i18n.language, uiLabels.location]);
 
   useEffect(() => {
     const handler = e => {
@@ -155,7 +157,7 @@ const Header = () => {
       <div className="container d-flex align-items-center justify-content-between">
         <div className="links"><ul>
           <li><span className="white header-status-item"><i className="icon-calendar white" /> {formatDate()}</span></li>
-          <li><span className="white location-display header-status-item"><i className="icon-location-pin white" /> {isLoadingLocation ? <span className="location-loading">{t('header.detectingLocation', { defaultValue: 'Detecting...' })}</span> : <span>{userLocation || t('header.location')}</span>}</span></li>
+          <li><span className="white location-display header-status-item"><i className="icon-location-pin white" /> {isLoadingLocation ? <span className="location-loading">{uiLabels.detectingLocation}</span> : <span>{userLocation || uiLabels.location}</span>}</span></li>
         </ul></div>
         <div className="header-right d-flex align-items-center gap-2">
           <ul className="header-social-list">
@@ -166,7 +168,7 @@ const Header = () => {
           <NotificationBell />
           <ThemeSwitcher />
           <div className="header-lang">
-            <button ref={langBtnRef} className="header-lang__toggle" onClick={openLangDropdown} aria-label={t('common.language', { defaultValue: 'Language' })} aria-expanded={isLangOpen}>
+            <button ref={langBtnRef} className="header-lang__toggle" onClick={openLangDropdown} aria-label={uiLabels.language} aria-expanded={isLangOpen}>
               <i className="fa fa-globe" /><span className="header-lang__flag">{currentLang.flag}</span><span className="header-lang__code">{currentLang.code.toUpperCase()}</span><i className={`icon-arrow-down header-lang__arrow ${isLangOpen ? 'open' : ''}`} />
             </button>
             {isLangOpen && createPortal(<div className="header-lang__dropdown" style={{ top: langDropdownPos.top, right: langDropdownPos.right }} ref={langRef} role="menu">{LANGUAGES.map(lang => <button key={lang.code} className={`header-lang__option ${lang.code === currentLang.code ? 'active' : ''}`} onClick={() => handleLangChange(lang.code)} role="menuitem"><span className="header-lang__option-flag">{lang.flag}</span><span className="header-lang__option-name">{lang.name}</span></button>)}</div>, document.body)}
@@ -184,32 +186,32 @@ const Header = () => {
           {isBookingOpen && <div className="nav-bookings__mega"><BookingServiceMenu onNavigate={() => setIsBookingOpen(false)} /></div>}
         </li>
         {navItems.slice(1).map(item => renderNavItem(item))}
-        <li className="search-main"><a href="#search1" className="mt_search" aria-label={t('common.search', { defaultValue: 'Search' })}><i className="fa fa-search" /></a></li>
+        <li className="search-main"><a href="#search1" className="mt_search" aria-label={uiLabels.search}><i className="fa fa-search" /></a></li>
       </ul></div>
       <div className="register-login d-flex align-items-center gap-3">
         <div className="auth-dropdown-wrapper" onMouseEnter={openAuthDropdown} onMouseLeave={closeAuthDropdown}>
           <button className="auth-dropdown-toggle" onClick={() => setIsAuthDropdownOpen(v => !v)} aria-expanded={isAuthDropdownOpen}>
-            {isAuthenticated ? <><div className="profile-icon">{user?.profileImage ? <img src={user.profileImage} alt={user.name || 'Profile'} /> : <i className="icon-user" />}</div><span>{user?.name || t('common.profile', { defaultValue: 'Profile' })}</span></> : <><i className="icon-user" /><span>{t('common.account', { defaultValue: 'Account' })}</span></>}
+            {isAuthenticated ? <><div className="profile-icon">{user?.profileImage ? <img src={user.profileImage} alt={user.name || uiLabels.profile} /> : <i className="icon-user" />}</div><span>{user?.name || uiLabels.profile}</span></> : <><i className="icon-user" /><span>{uiLabels.account}</span></>}
             <i className={`icon-arrow-down dropdown-arrow ${isAuthDropdownOpen ? 'open' : ''}`} />
           </button>
-          {isAuthDropdownOpen && <div className="auth-dropdown-menu">{isAuthenticated ? <><Link to="/profile" className="auth-dropdown-item" onClick={closeAuthDropdownImmediately}>{t('common.myProfile', { defaultValue: 'My Profile' })}</Link><Link to="/my-trips" className="auth-dropdown-item" onClick={closeAuthDropdownImmediately}>{t('common.myTrips', { defaultValue: 'My Trips' })}</Link><button className="auth-dropdown-item logout-item" onClick={handleLogout}>{t('common.logout', { defaultValue: 'Logout' })}</button></> : <><Link to="/login" className="auth-dropdown-item" onClick={closeAuthDropdownImmediately}>{t('common.login', { defaultValue: 'Login' })}</Link><Link to="/signup" className="auth-dropdown-item" onClick={closeAuthDropdownImmediately}>{t('common.signUp', { defaultValue: 'Sign Up' })}</Link></>}</div>}
+          {isAuthDropdownOpen && <div className="auth-dropdown-menu">{isAuthenticated ? <><Link to="/profile" className="auth-dropdown-item" onClick={closeAuthDropdownImmediately}>{uiLabels.myProfile}</Link><Link to="/my-trips" className="auth-dropdown-item" onClick={closeAuthDropdownImmediately}>{uiLabels.myTrips}</Link><button className="auth-dropdown-item logout-item" onClick={handleLogout}>{uiLabels.logout}</button></> : <><Link to="/login" className="auth-dropdown-item" onClick={closeAuthDropdownImmediately}>{uiLabels.login}</Link><Link to="/signup" className="auth-dropdown-item" onClick={closeAuthDropdownImmediately}>{uiLabels.signUp}</Link></>}</div>}
         </div>
-        <Link to="/contact" className="nir-btn white">{t('common.contact', { defaultValue: 'Contact' })}</Link>
+        <Link to="/contact" className="nir-btn white">{uiLabels.contact}</Link>
       </div>
-      <button className={`hamburger ${isMenuOpen ? 'hamburger--open' : ''}`} onClick={() => setIsMenuOpen(v => !v)} aria-label={t('common.menu', { defaultValue: 'Menu' })} aria-expanded={isMenuOpen}><span /><span /><span /></button>
+      <button className={`hamburger ${isMenuOpen ? 'hamburger--open' : ''}`} onClick={() => setIsMenuOpen(v => !v)} aria-label={uiLabels.menu} aria-expanded={isMenuOpen}><span /><span /><span /></button>
     </div></div></nav></div>
 
     {isMenuOpen && <div className="mobile-overlay" onClick={closeMenu} />}
     <aside className={`mobile-drawer ${isMenuOpen ? 'mobile-drawer--open' : ''}`} aria-hidden={!isMenuOpen}>
-      <div className="mobile-drawer__header"><Link to="/" onClick={closeMenu}><img src="/images/newLogo.png" alt="OptionTrip" /></Link><button className="mobile-drawer__close" onClick={closeMenu} aria-label={t('common.close', { defaultValue: 'Close' })}><i className="fa fa-times" /></button></div>
+      <div className="mobile-drawer__header"><Link to="/" onClick={closeMenu}><img src="/images/newLogo.png" alt="OptionTrip" /></Link><button className="mobile-drawer__close" onClick={closeMenu} aria-label={uiLabels.close}><i className="fa fa-times" /></button></div>
       <nav className="mobile-drawer__nav"><ul>
         {renderNavItem(navItems[0], true)}
         <li className="mobile-drawer__booking"><div className="mobile-drawer__section-title">{serviceLabels.booking}</div><BookingServiceMenu mobile onNavigate={closeMenu} /></li>
         {navItems.slice(1).map(item => renderNavItem(item, true))}
-        <li className={isActive('/contact')}><Link to="/contact" onClick={closeMenu}>{t('common.contact', { defaultValue: 'Contact' })}</Link></li>
+        <li className={isActive('/contact')}><Link to="/contact" onClick={closeMenu}>{uiLabels.contact}</Link></li>
       </ul></nav>
-      <div className="mobile-drawer__lang"><p className="mobile-drawer__lang-label"><i className="fa fa-globe" /> {t('common.language', { defaultValue: 'Language' })}</p><div className="mobile-drawer__lang-grid">{LANGUAGES.map(lang => <button key={lang.code} title={lang.name} aria-label={lang.name} className={`mobile-drawer__lang-btn ${lang.code === currentLang.code ? 'active' : ''}`} onClick={() => { handleLangChange(lang.code); closeMenu(); }}><span>{lang.flag}</span><span>{lang.code.toUpperCase()}</span></button>)}</div></div>
-      <div className="mobile-drawer__auth">{isAuthenticated ? <><Link to="/profile" className="mobile-drawer__auth-item" onClick={closeMenu}>{t('common.myProfile', { defaultValue: 'My Profile' })}</Link><Link to="/my-trips" className="mobile-drawer__auth-item" onClick={closeMenu}>{t('common.myTrips', { defaultValue: 'My Trips' })}</Link><button className="mobile-drawer__auth-item mobile-drawer__logout" onClick={() => { handleLogout(); closeMenu(); }}>{t('common.logout', { defaultValue: 'Logout' })}</button></> : <><Link to="/login" className="mobile-drawer__auth-item" onClick={closeMenu}>{t('common.login', { defaultValue: 'Login' })}</Link><Link to="/signup" className="mobile-drawer__auth-item mobile-drawer__signup" onClick={closeMenu}>{t('common.signUp', { defaultValue: 'Sign Up' })}</Link></>}</div>
+      <div className="mobile-drawer__lang"><p className="mobile-drawer__lang-label"><i className="fa fa-globe" /> {uiLabels.language}</p><div className="mobile-drawer__lang-grid">{LANGUAGES.map(lang => <button key={lang.code} title={lang.name} aria-label={lang.name} className={`mobile-drawer__lang-btn ${lang.code === currentLang.code ? 'active' : ''}`} onClick={() => { handleLangChange(lang.code); closeMenu(); }}><span>{lang.flag}</span><span>{lang.code.toUpperCase()}</span></button>)}</div></div>
+      <div className="mobile-drawer__auth">{isAuthenticated ? <><Link to="/profile" className="mobile-drawer__auth-item" onClick={closeMenu}>{uiLabels.myProfile}</Link><Link to="/my-trips" className="mobile-drawer__auth-item" onClick={closeMenu}>{uiLabels.myTrips}</Link><button className="mobile-drawer__auth-item mobile-drawer__logout" onClick={() => { handleLogout(); closeMenu(); }}>{uiLabels.logout}</button></> : <><Link to="/login" className="mobile-drawer__auth-item" onClick={closeMenu}>{uiLabels.login}</Link><Link to="/signup" className="mobile-drawer__auth-item mobile-drawer__signup" onClick={closeMenu}>{uiLabels.signUp}</Link></>}</div>
     </aside>
   </header>;
 };
