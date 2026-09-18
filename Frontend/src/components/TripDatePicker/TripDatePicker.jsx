@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { DateRange, Calendar } from 'react-date-range';
 import {
   format, addDays, addMonths,
-  startOfMonth, endOfMonth,
+  startOfMonth,
   isSameMonth, isAfter, isBefore, isSameDay,
   getDay, getDaysInMonth,
 } from 'date-fns';
@@ -32,7 +32,7 @@ const MONTHS = buildMonths(12);
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-const PriceCalendar = ({ month, prices, loading, minDate, mode, onSelect, onBack, formatPrice }) => {
+const PriceCalendar = ({ month, prices, loading, minDate, maxDate, mode, onSelect, onBack, formatPrice }) => {
   const [displayMonth, setDisplayMonth] = useState(month);
   const [phase,        setPhase]        = useState(0);
   const [rangeStart,   setRangeStart]   = useState(null);
@@ -58,10 +58,12 @@ const PriceCalendar = ({ month, prices, loading, minDate, mode, onSelect, onBack
     ),
   ];
 
+  const beforeMin = (day) => isBefore(day, minDate || todayD()) && !isSameDay(day, minDate || todayD());
+  const afterMax  = (day) => maxDate && isAfter(day, maxDate) && !isSameDay(day, maxDate);
+  const disabledDay = (day) => beforeMin(day) || afterMax(day);
+
   const handleDayClick = (day) => {
-    if (!day) return;
-    const isPast = isBefore(day, minDate || todayD()) && !isSameDay(day, minDate || todayD());
-    if (isPast) return;
+    if (!day || disabledDay(day)) return;
 
     if (mode === 'single') {
       onSelect(day, day);
@@ -80,19 +82,31 @@ const PriceCalendar = ({ month, prices, loading, minDate, mode, onSelect, onBack
   };
 
   const isSelected = (day) => rangeStart && isSameDay(day, rangeStart);
-  const isPast     = (day) => isBefore(day, minDate || todayD()) && !isSameDay(day, minDate || todayD());
+  const minMonth = startOfMonth(minDate || todayD());
+  const maxMonth = startOfMonth(maxDate || addMonths(todayD(), 12));
+  const canGoPrev = isAfter(startOfMonth(displayMonth), minMonth);
+  const canGoNext = isBefore(startOfMonth(displayMonth), maxMonth);
 
   return (
     <div className="pc-wrap">
-
       <div className="pc-header">
         <button className="pc-nav-btn" type="button" onClick={onBack}>← Months</button>
         <div className="pc-nav-month">
-          <button className="pc-nav-arrow" type="button"
-            onClick={() => setDisplayMonth(m => addMonths(m, -1))}>‹</button>
+          <button
+            className="pc-nav-arrow"
+            type="button"
+            disabled={!canGoPrev}
+            aria-disabled={!canGoPrev}
+            onClick={() => canGoPrev && setDisplayMonth(m => addMonths(m, -1))}
+          >‹</button>
           <span className="pc-month-label">{format(displayMonth, 'MMMM yyyy')}</span>
-          <button className="pc-nav-arrow" type="button"
-            onClick={() => setDisplayMonth(m => addMonths(m, 1))}>›</button>
+          <button
+            className="pc-nav-arrow"
+            type="button"
+            disabled={!canGoNext}
+            aria-disabled={!canGoNext}
+            onClick={() => canGoNext && setDisplayMonth(m => addMonths(m, 1))}
+          >›</button>
         </div>
         {mode === 'range' && (
           <span className="pc-phase-hint">
@@ -101,7 +115,6 @@ const PriceCalendar = ({ month, prices, loading, minDate, mode, onSelect, onBack
         )}
       </div>
 
-
       {loading ? (
         <div className="pc-loading">
           <div className="pc-loading__spinner" />
@@ -109,34 +122,32 @@ const PriceCalendar = ({ month, prices, loading, minDate, mode, onSelect, onBack
         </div>
       ) : (
         <>
-
           <div className="pc-weekdays">
             {WEEKDAYS.map(d => <div key={d} className="pc-weekday">{d}</div>)}
           </div>
-
 
           <div className="pc-grid">
             {cells.map((day, i) => {
               if (!day) return <div key={i} className="pc-day pc-day--empty" />;
               const dateStr = toStr(day);
               const price   = prices[dateStr];
-              const past    = isPast(day);
-              const sel     = isSelected(day);
+              const disabled = disabledDay(day);
+              const sel      = isSelected(day);
               return (
                 <button
                   key={dateStr}
                   type="button"
                   className={[
                     'pc-day',
-                    past  ? 'pc-day--past'  : '',
-                    sel   ? 'pc-day--selected' : '',
-                    !past && price ? priceClass(price) : '',
+                    disabled ? 'pc-day--past' : '',
+                    sel ? 'pc-day--selected' : '',
+                    !disabled && price ? priceClass(price) : '',
                   ].filter(Boolean).join(' ')}
                   onClick={() => handleDayClick(day)}
-                  disabled={past}
+                  disabled={disabled}
                 >
                   <span className="pc-day__num">{day.getDate()}</span>
-                  {price && !past && (
+                  {price && !disabled && (
                     <span className="pc-day__price">{formatPrice ? formatPrice(price) : `$${price.toLocaleString()}`}</span>
                   )}
                 </button>
@@ -166,7 +177,7 @@ const MonthGrid = ({ mode, onMonthClick }) => {
     }
   };
 
-  const isStart   = (m) => flexStart && isSameMonth(m, flexStart);
+  const isStart = (m) => flexStart && isSameMonth(m, flexStart);
 
   return (
     <div className="tdp-flex-wrap">
@@ -210,6 +221,7 @@ const TripDatePicker = ({
   const minD = minDate instanceof Date
     ? minDate
     : (minDate ? toDate(minDate) : todayD());
+  const maxD = addMonths(todayD(), 12);
 
   const buildRange = useCallback(() => {
     const s = toDate(startDate) || todayD();
@@ -231,7 +243,7 @@ const TripDatePicker = ({
   const triggerRef = useRef(null);
   const popupRef   = useRef(null);
 
-  useEffect(() => { setRange(buildRange()); }, [startDate, endDate]);
+  useEffect(() => { setRange(buildRange()); }, [startDate, endDate, buildRange]);
 
   useEffect(() => {
     const h = (e) => {
@@ -243,17 +255,8 @@ const TripDatePicker = ({
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
-  useEffect(() => {
-    if (!open) return;
-    const closeOnScroll = () => setOpen(false);
-    const armTimer = setTimeout(() => {
-      window.addEventListener('scroll', closeOnScroll, { capture: true, passive: true });
-    }, 150);
-    return () => {
-      clearTimeout(armTimer);
-      window.removeEventListener('scroll', closeOnScroll, { capture: true });
-    };
-  }, [open]);
+  // Do not close the picker on page/popup scrolling. On mobile, users need to
+  // scroll inside the calendar and month views without losing their selection.
 
   const apply = (s, e) => {
     onApply({ startDate: toStr(s), endDate: mode === 'range' ? toStr(e) : toStr(s) });
@@ -283,13 +286,16 @@ const TripDatePicker = ({
 
     if (hasRoute) {
       setPricesLoading(true);
-      const prices = await fetchMonthlyPrices({
-        origin:      origin.toUpperCase(),
-        destination: destination.toUpperCase(),
-        month:       format(month, 'yyyy-MM'),
-      });
-      setMonthPrices(prices);
-      setPricesLoading(false);
+      try {
+        const prices = await fetchMonthlyPrices({
+          origin:      origin.toUpperCase(),
+          destination: destination.toUpperCase(),
+          month:       format(month, 'yyyy-MM'),
+        });
+        setMonthPrices(prices || {});
+      } finally {
+        setPricesLoading(false);
+      }
     }
   };
 
@@ -314,8 +320,6 @@ const TripDatePicker = ({
 
   return (
     <div className="tdp-wrap" ref={wrapRef}>
-
-
       <div className="tdp-trigger" ref={triggerRef}>
         <div
           className={`tdp-field${open ? ' tdp-field--active' : ''}${startError ? ' tdp-field--error' : ''}`}
@@ -357,11 +361,8 @@ const TripDatePicker = ({
         )}
       </div>
 
-
       {open && createPortal(
         <div className="tdp-popup" ref={popupRef} style={{ top: popupPos.top, left: popupPos.left }}>
-
-
           <div className="tdp-tabs">
             <button type="button"
               className={`tdp-tab${dateMode === 'specific' ? ' tdp-tab--active' : ''}`}
@@ -375,7 +376,6 @@ const TripDatePicker = ({
             </button>
           </div>
 
-
           {dateMode === 'specific' && (
             <>
               {mode === 'range' ? (
@@ -385,8 +385,9 @@ const TripDatePicker = ({
                   months={2}
                   direction="horizontal"
                   minDate={minD}
+                  maxDate={maxD}
                   rangeColors={['#029e9d']}
-                  showMonthAndYearPickers={true}
+                  showMonthAndYearPickers={false}
                   showDateDisplay={false}
                   moveRangeOnFirstSelection={false}
                   weekdayDisplayFormat="EEEEEE"
@@ -399,7 +400,9 @@ const TripDatePicker = ({
                   months={2}
                   direction="horizontal"
                   minDate={minD}
+                  maxDate={maxD}
                   color="#029e9d"
+                  showMonthAndYearPickers={false}
                   weekdayDisplayFormat="EEEEEE"
                   monthDisplayFormat="MMMM yyyy"
                 />
@@ -419,7 +422,6 @@ const TripDatePicker = ({
             </>
           )}
 
-
           {dateMode === 'flexible' && (
             <>
               {flexView === 'months' ? (
@@ -430,6 +432,7 @@ const TripDatePicker = ({
                   prices={monthPrices}
                   loading={pricesLoading}
                   minDate={minD}
+                  maxDate={maxD}
                   mode={mode}
                   formatPrice={formatPrice}
                   onSelect={(s, e) => apply(s, e)}
