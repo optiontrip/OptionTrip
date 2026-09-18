@@ -35,14 +35,17 @@ const EsimTab = ({ tripData, source = 'landing_page' }) => {
           <h3 className="est-card__title">Stay Connected with an eSIM</h3>
           <p className="est-card__sub">
             {tripData?.destination?.name
-              ? `Instant data plans for ${tripData.destination.name} — no roaming fees`
-              : 'Instant data plans for your destination — no roaming fees'}
+              ? `Instant data plans for ${tripData.destination.name} - no roaming fees`
+              : 'Instant data plans for your destination - no roaming fees'}
           </p>
         </div>
       </div>
 
-
-      <TravelpayoutsWidget src={ESIM_WIDGET_SRC} />
+      <TravelpayoutsWidget
+        src={ESIM_WIDGET_SRC}
+        vertical="esim"
+        title="Live eSIM plan search"
+      />
     </div>
   );
 };

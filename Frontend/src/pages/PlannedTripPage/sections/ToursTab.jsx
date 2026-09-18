@@ -40,8 +40,11 @@ const ToursTab = ({ tripData, source = 'landing_page' }) => {
         </div>
       </div>
 
-
-      <TravelpayoutsWidget src={TOURS_WIDGET_SRC} />
+      <TravelpayoutsWidget
+        src={TOURS_WIDGET_SRC}
+        vertical="activities"
+        title="Live tours & activities search"
+      />
     </div>
   );
 };
