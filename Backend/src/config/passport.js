@@ -1,7 +1,6 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
-import { Strategy as TwitterStrategy } from 'passport-twitter';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
 import User from '../models/User.js';
 
@@ -73,33 +72,7 @@ if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
   console.log('ℹ️  Facebook OAuth not configured (optional)');
 }
 
-if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
-  const twitterCallbackURL = process.env.TWITTER_CALLBACK_URL ||
-    (process.env.API_BASE_URL?.replace('localhost', '127.0.0.1') + '/api/auth/twitter/callback');
-
-  passport.use(
-    new TwitterStrategy(
-      {
-        consumerKey: process.env.TWITTER_CONSUMER_KEY,
-        consumerSecret: process.env.TWITTER_CONSUMER_SECRET,
-        callbackURL: twitterCallbackURL,
-        includeEmail: true,
-        userProfileURL: 'https://api.twitter.com/1.1/account/verify_credentials.json?include_email=true'
-      },
-      async (token, tokenSecret, profile, done) => {
-        try {
-          const user = await User.findOrCreateFromOAuth('twitter', profile);
-          return done(null, user);
-        } catch (error) {
-          return done(error, null);
-        }
-      }
-    )
-  );
-  console.log('✅ Twitter OAuth Strategy initialized');
-} else {
-  console.log('ℹ️  Twitter OAuth not configured (optional)');
-}
+console.log('ℹ️  Legacy Twitter OAuth disabled pending migration to modern X OAuth');
 
 passport.serializeUser((user, done) => {
   done(null, user._id);

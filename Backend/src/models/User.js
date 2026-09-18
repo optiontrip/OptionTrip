@@ -124,10 +124,6 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-userSchema.index({ email: 1 });
-userSchema.index({ googleId: 1 });
-userSchema.index({ facebookId: 1 });
-userSchema.index({ twitterId: 1 });
 
 userSchema.pre('save', async function() {
   if (!this.isModified('passwordHash')) {

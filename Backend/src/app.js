@@ -8,6 +8,7 @@ import connectDB from "./config/db.js";
 import passport from "passport";
 import cookieParser from "cookie-parser";
 import session from "express-session";
+import MongoStore from "connect-mongo";
 import helmet from "helmet";
 import mongoSanitize from "express-mongo-sanitize";
 
@@ -58,11 +59,32 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(helmet());
+const sessionMongoUrl = process.env.MONGO_URI || process.env.MONGODB_URI;
+
+if (!sessionMongoUrl) {
+  throw new Error('MongoDB connection URI is required for production session storage');
+}
+
+app.set('trust proxy', 1);
+
 app.use(session({
-  secret: process.env.JWT_ACCESS_SECRET || 'your-session-secret',
-  resave: true,
-  saveUninitialized: true,
-  cookie: { secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 300000 }
+  name: 'optiontrip.sid',
+  secret: process.env.JWT_ACCESS_SECRET || process.env.SESSION_SECRET,
+  store: MongoStore.create({
+    mongoUrl: sessionMongoUrl,
+    collectionName: 'sessions',
+    ttl: 60 * 60 * 24 * 7,
+    autoRemove: 'native'
+  }),
+  resave: false,
+  saveUninitialized: false,
+  rolling: true,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 1000 * 60 * 60 * 24 * 7
+  }
 }));
 app.use(passport.initialize());
 app.use(passport.session());

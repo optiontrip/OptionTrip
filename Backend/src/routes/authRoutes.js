@@ -89,23 +89,6 @@ if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
   );
 }
 
-if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
-  router.get(
-    '/twitter',
-    passport.authenticate('twitter', {
-      session: false
-    })
-  );
-
-  router.get(
-    '/twitter/callback',
-    passport.authenticate('twitter', {
-      session: false,
-      failureRedirect: `${process.env.FRONTEND_URL}/login?error=twitter_auth_failed`
-    }),
-    authController.oauthCallback
-  );
-}
 
 router.get(
   '/me',

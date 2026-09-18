@@ -1,2 +1,13 @@
 # Claude Code
 .claude/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+# Local OptionTrip safety backups
+*.backup-*
+*.pre-p2-*
+*.pre-p2.*
+*.bak-*
+*.bak
