@@ -89,6 +89,19 @@ export const searchAirportDirectory = (query, limit = 12) => {
     .map(({ airport }) => toLocation(airport));
 };
 
+export const findAirportsForCity = (cityName, countryName = '', limit = 20) => {
+  const cityNeedle = normalize(cityName);
+  const countryNeedle = normalize(countryName);
+  if (!cityNeedle) return [];
+
+  return airports
+    .filter(airport => normalize(airport.city) === cityNeedle)
+    .filter(airport => !countryNeedle || normalize(airport.country) === countryNeedle)
+    .sort((a, b) => a.iata.localeCompare(b.iata))
+    .slice(0, Math.max(1, limit))
+    .map(airport => toLocation(airport));
+};
+
 export const findCountryDirectoryMatch = (query, limit = 12) => {
   const needle = normalize(query);
   if (needle.length < 2) return null;
