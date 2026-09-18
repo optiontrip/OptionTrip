@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PRIMARY_HEADER_NAV } from '../../config/headerNav';
-import { TRAVEL_SERVICES } from '../../config/travelServices';
+import { TRAVEL_SERVICES, getTravelServiceDisplayLabel } from '../../config/travelServices';
 import { getHeaderUiLabels } from '../../config/headerUiLabels';
 import { getTravelServiceLabels } from '../../config/travelServiceLabels';
 import './SearchPopup.css';
@@ -13,6 +13,7 @@ const KEYWORDS = {
   cars: ['car', 'cars', 'rental car', 'car rental', 'rent a car', 'авто', 'машин'],
   activities: ['tour', 'tours', 'activity', 'activities', 'ticket', 'tickets', 'экскурс', 'тур'],
   esim: ['esim', 'sim', 'mobile data', 'internet', 'интернет', 'сим'],
+  food: ['food', 'dining', 'restaurant', 'restaurants', 'eat', 'where to eat', 'еда', 'ресторан', 'кафе'],
   rail: ['train', 'trains', 'rail', 'поезд'],
   bus: ['bus', 'buses', 'coach', 'автобус'],
   ferries: ['ferry', 'ferries', 'ship', 'паром'],
@@ -52,7 +53,7 @@ const SearchPopup = () => {
 
     const services = TRAVEL_SERVICES.map(service => ({
       id: service.id,
-      label: serviceLabels[service.id] || service.label,
+      label: getTravelServiceDisplayLabel(service, languageCode, serviceLabels),
       route: service.live && service.route ? service.route : `/services?service=${encodeURIComponent(service.id)}#${service.group}`,
       icon: service.icon,
       external: false,
@@ -62,7 +63,7 @@ const SearchPopup = () => {
     return [...primary, ...services].filter((item, index, all) =>
       all.findIndex(other => other.route === item.route && other.label === item.label) === index
     );
-  }, [serviceLabels, uiLabels]);
+  }, [languageCode, serviceLabels, uiLabels]);
 
   const matches = useMemo(() => {
     const q = normalize(searchQuery);
