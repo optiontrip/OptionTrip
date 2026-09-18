@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { TRAVEL_SERVICES } from '../../config/travelServices';
 import { fetchTravelInventoryStatus, getInventoryStateForService } from '../../services/travelInventoryService';
+import { useLocale } from '../../contexts/LocaleContext';
 import './TravelServiceRail.css';
 
 const viRoute = service => `/travel-buddy?service=${encodeURIComponent(service.id)}&intent=find-service`;
@@ -13,6 +14,7 @@ const PRIORITY_IDS = [
 
 const TravelServiceRail = () => {
   const location = useLocation();
+  const { currency, setCurrency, CURRENCIES } = useLocale();
   const [inventory, setInventory] = useState({});
   const services = PRIORITY_IDS
     .map(id => TRAVEL_SERVICES.find(service => service.id === id))
@@ -25,6 +27,11 @@ const TravelServiceRail = () => {
     });
     return () => { active = false; };
   }, []);
+
+  const handleCurrencyChange = (event) => {
+    const next = CURRENCIES.find(item => item.code === event.target.value);
+    if (next) setCurrency(next);
+  };
 
   return (
     <nav className="tsr" aria-label="Travel services">
@@ -59,10 +66,31 @@ const TravelServiceRail = () => {
           })}
         </div>
 
-        <Link to="/travel-buddy" className="tsr__vi">
-          <i className="fa fa-comments" aria-hidden="true" />
-          <span>Ask Vi</span>
-        </Link>
+        <div className="tsr__actions">
+          <label className="tsr__currency" title="Display currency">
+            <span className="tsr__currency-icon" aria-hidden="true">💱</span>
+            <span className="tsr__currency-copy">
+              <small>Currency</small>
+              <strong>{currency.code}</strong>
+            </span>
+            <select
+              aria-label="Display currency"
+              value={currency.code}
+              onChange={handleCurrencyChange}
+            >
+              {CURRENCIES.map(item => (
+                <option key={item.code} value={item.code}>
+                  {item.code} {item.symbol} - {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <Link to="/travel-buddy" className="tsr__vi">
+            <i className="fa fa-comments" aria-hidden="true" />
+            <span>Ask Vi</span>
+          </Link>
+        </div>
       </div>
     </nav>
   );

@@ -216,6 +216,19 @@ const FlightSearchForm = ({ onSearch, isLoading, prefillDest, prefillOrigin, ori
     if (type === 'one-way') { setReturnDate(''); setReturnMonth(''); clearError('returnDate'); }
   };
 
+  const changeDateSearchMode = (mode) => {
+    setDateSearchMode(mode);
+    if (mode === 'month') {
+      setDepartureDate('');
+      setReturnDate('');
+    } else {
+      setTravelMonth('');
+      setReturnMonth('');
+    }
+    clearError('departureDate');
+    clearError('returnDate');
+  };
+
   const validate = () => {
     const errs = {};
     if (!originCode) errs.origin = 'Select a departure airport, city or country';
@@ -291,6 +304,15 @@ const FlightSearchForm = ({ onSearch, isLoading, prefillDest, prefillOrigin, ori
             ))}
           </div>
 
+          <div className="trip-type-toggle" aria-label="Flight date search mode">
+            <button type="button" className={`trip-type-btn${dateSearchMode === 'exact' ? ' active' : ''}`} onClick={() => changeDateSearchMode('exact')}>
+              Specific dates
+            </button>
+            <button type="button" className={`trip-type-btn${dateSearchMode === 'month' ? ' active' : ''}`} onClick={() => changeDateSearchMode('month')}>
+              Whole month
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit}>
             <div className="fsf-row">
               <div className="fsf-col fsf-col--airport">
@@ -325,7 +347,7 @@ const FlightSearchForm = ({ onSearch, isLoading, prefillDest, prefillOrigin, ori
                     }
                     clearError('departureDate'); clearError('returnDate');
                   }}
-                  startLabel="Departure" endLabel="Return" startPlaceholder="Date or whole month" endPlaceholder="Date or month"
+                  startLabel="Departure" endLabel="Return" startPlaceholder={dateSearchMode === 'month' ? 'Choose a whole month' : 'Choose a date'} endPlaceholder={dateSearchMode === 'month' ? 'Choose a return month' : 'Choose a return date'}
                   startError={errors.departureDate} endError={errors.returnDate}
                   origin={/^[A-Za-z]{3}$/.test(originCode) ? originCode.toUpperCase() : undefined}
                   destination={/^[A-Za-z]{3}$/.test(destCode) ? destCode.toUpperCase() : undefined} />
@@ -343,7 +365,7 @@ const FlightSearchForm = ({ onSearch, isLoading, prefillDest, prefillOrigin, ori
 
               <div className="fsf-col fsf-col--btn">
                 <button type="submit" className="fsf-search-btn" disabled={isLoading}>
-                  {isLoading ? <><span className="btn-spinner" /> Searching…</> : <><i className="fa fa-search" /> Search Flights</>}
+                  {isLoading ? <><span className="btn-spinner" /> Searching…</> : <><i className="fa fa-search" /> {dateSearchMode === 'month' ? 'Find cheapest month fares' : 'Search Flights'}</>}
                 </button>
               </div>
             </div>
