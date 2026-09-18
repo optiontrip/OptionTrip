@@ -1,0 +1,1 @@
+// Regression contract: planned-trip flight search must use the shared FlightSearchForm and TripDatePicker so Specific dates, Whole month, Flexible dates, live filters and mobile behavior stay in parity with /flights.
