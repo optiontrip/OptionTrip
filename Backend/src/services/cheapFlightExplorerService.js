@@ -1,10 +1,12 @@
 import { searchFlights as searchTravelpayoutsFlights } from './travelpayoutsFlightService.js';
 
-const MAX_AIRPORTS_PER_SIDE = 6;
-const MAX_ROUTE_PAIRS = 24;
-const CONCURRENCY = 4;
+const MAX_ORIGINS = 16;
+const MAX_DESTINATIONS = 48;
+const MAX_ROUTE_PAIRS = 96;
+const MAX_EXPLICIT_PAIRS = 120;
+const CONCURRENCY = 6;
 
-const normalizeCodes = (values) => {
+const normalizeCodes = (values, limit) => {
   const input = Array.isArray(values) ? values : String(values || '').split(',');
   const seen = new Set();
   const result = [];
@@ -13,21 +15,51 @@ const normalizeCodes = (values) => {
     if (!/^[A-Z]{3}$/.test(code) || seen.has(code)) continue;
     seen.add(code);
     result.push(code);
-    if (result.length >= MAX_AIRPORTS_PER_SIDE) break;
+    if (limit && result.length >= limit) break;
   }
   return result;
 };
 
 const buildPairs = (origins, destinations) => {
   const pairs = [];
-  for (const origin of origins) {
-    for (const destination of destinations) {
+  // Destination-first ordering avoids exhausting the cap on one origin when
+  // the departure side represents an entire country.
+  for (const destination of destinations) {
+    for (const origin of origins) {
       if (origin === destination) continue;
       pairs.push({ origin, destination });
       if (pairs.length >= MAX_ROUTE_PAIRS) return pairs;
     }
   }
   return pairs;
+};
+
+const normalizeExplicitPairs = (values) => {
+  const input = Array.isArray(values) ? values : String(values || '').split(',');
+  const seen = new Set();
+  const result = [];
+
+  for (const value of input) {
+    let origin = '';
+    let destination = '';
+    if (typeof value === 'string') {
+      const [o, d] = value.split('-');
+      origin = String(o || '').trim().toUpperCase();
+      destination = String(d || '').trim().toUpperCase();
+    } else if (value && typeof value === 'object') {
+      origin = String(value.origin || '').trim().toUpperCase();
+      destination = String(value.destination || '').trim().toUpperCase();
+    }
+
+    if (!/^[A-Z]{3}$/.test(origin) || !/^[A-Z]{3}$/.test(destination) || origin === destination) continue;
+    const key = `${origin}-${destination}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push({ origin, destination });
+    if (result.length >= MAX_EXPLICIT_PAIRS) break;
+  }
+
+  return result;
 };
 
 const chooseCheapest = (flights = []) => flights
@@ -67,12 +99,8 @@ const searchPair = async ({ origin, destination, month, returnMonth }) => {
   };
 };
 
-export const searchCheapestRoutesForMonth = async ({ originAirports, destinationAirports, month, returnMonth = null }) => {
-  const origins = normalizeCodes(originAirports);
-  const destinations = normalizeCodes(destinationAirports);
-  const pairs = buildPairs(origins, destinations);
+const searchPairs = async ({ pairs, month, returnMonth }) => {
   const routes = [];
-
   for (let offset = 0; offset < pairs.length; offset += CONCURRENCY) {
     const batch = pairs.slice(offset, offset + CONCURRENCY);
     const settled = await Promise.allSettled(batch.map(pair => searchPair({ ...pair, month, returnMonth })));
@@ -82,6 +110,24 @@ export const searchCheapestRoutesForMonth = async ({ originAirports, destination
   }
 
   routes.sort((a, b) => a.price - b.price || a.origin.localeCompare(b.origin) || a.destination.localeCompare(b.destination));
+  return routes;
+};
+
+export const searchCheapestRoutePairsForMonth = async ({ pairs, month, returnMonth = null }) => {
+  const normalizedPairs = normalizeExplicitPairs(pairs);
+  const routes = await searchPairs({ pairs: normalizedPairs, month, returnMonth });
+  return {
+    routes,
+    searchedPairs: normalizedPairs.length,
+    capped: normalizedPairs.length >= MAX_EXPLICIT_PAIRS,
+  };
+};
+
+export const searchCheapestRoutesForMonth = async ({ originAirports, destinationAirports, month, returnMonth = null }) => {
+  const origins = normalizeCodes(originAirports, MAX_ORIGINS);
+  const destinations = normalizeCodes(destinationAirports, MAX_DESTINATIONS);
+  const pairs = buildPairs(origins, destinations);
+  const routes = await searchPairs({ pairs, month, returnMonth });
 
   return {
     routes,
