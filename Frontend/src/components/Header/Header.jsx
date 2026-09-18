@@ -204,6 +204,7 @@ const Header = () => {
       <div className="mobile-drawer__header"><Link to="/" onClick={closeMenu}><img src="/images/newLogo.png" alt="OptionTrip" /></Link><button className="mobile-drawer__close" onClick={closeMenu} aria-label={uiLabels.close}><i className="fa fa-times" /></button></div>
       <nav className="mobile-drawer__nav"><ul>
         {renderNavItem(navItems[0], true)}
+        <li className="mobile-drawer__search"><a href="#search1" onClick={closeMenu}><i className="fa fa-search" aria-hidden="true" /> <span>{uiLabels.search}</span></a></li>
         <li className="mobile-drawer__booking"><div className="mobile-drawer__section-title">{serviceLabels.booking}</div><BookingServiceMenu mobile onNavigate={closeMenu} /></li>
         {navItems.slice(1).map(item => renderNavItem(item, true))}
         <li className={isActive('/contact')}><Link to="/contact" onClick={closeMenu}>{uiLabels.contact}</Link></li>
