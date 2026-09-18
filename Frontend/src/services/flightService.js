@@ -1,17 +1,98 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 import { getDestinationImage as getCachedDestinationImage } from '../utils/destinationImages';
 
+// Client-side safety net for the booking-critical autocomplete. The backend
+// remains the source of truth, but a temporary provider/API outage must not
+// leave common city/country inputs as a blank box.
+const LOCATION_FALLBACKS = [
+  { iataCode: 'MIA', cityName: 'Miami', name: 'Miami International Airport', countryName: 'United States' },
+  { iataCode: 'LAX', cityName: 'Los Angeles', name: 'Los Angeles International Airport', countryName: 'United States' },
+  { iataCode: 'JFK', cityName: 'New York', name: 'John F. Kennedy International Airport', countryName: 'United States' },
+  { iataCode: 'SFO', cityName: 'San Francisco', name: 'San Francisco International Airport', countryName: 'United States' },
+  { iataCode: 'ORD', cityName: 'Chicago', name: "O'Hare International Airport", countryName: 'United States' },
+  { iataCode: 'LHR', cityName: 'London', name: 'Heathrow Airport', countryName: 'United Kingdom' },
+  { iataCode: 'LGW', cityName: 'London', name: 'Gatwick Airport', countryName: 'United Kingdom' },
+  { iataCode: 'CDG', cityName: 'Paris', name: 'Charles de Gaulle Airport', countryName: 'France' },
+  { iataCode: 'ORY', cityName: 'Paris', name: 'Paris Orly Airport', countryName: 'France' },
+  { iataCode: 'BEG', cityName: 'Belgrade', name: 'Belgrade Nikola Tesla Airport', countryName: 'Serbia' },
+  { iataCode: 'INI', cityName: 'Niš', name: 'Niš Constantine the Great Airport', countryName: 'Serbia' },
+  { iataCode: 'IST', cityName: 'Istanbul', name: 'Istanbul Airport', countryName: 'Turkey' },
+  { iataCode: 'SAW', cityName: 'Istanbul', name: 'Sabiha Gökçen International Airport', countryName: 'Turkey' },
+  { iataCode: 'AYT', cityName: 'Antalya', name: 'Antalya Airport', countryName: 'Turkey' },
+  { iataCode: 'FCO', cityName: 'Rome', name: 'Leonardo da Vinci–Fiumicino Airport', countryName: 'Italy' },
+  { iataCode: 'MXP', cityName: 'Milan', name: 'Milan Malpensa Airport', countryName: 'Italy' },
+  { iataCode: 'FRA', cityName: 'Frankfurt', name: 'Frankfurt Airport', countryName: 'Germany' },
+  { iataCode: 'BER', cityName: 'Berlin', name: 'Berlin Brandenburg Airport', countryName: 'Germany' },
+  { iataCode: 'MAD', cityName: 'Madrid', name: 'Adolfo Suárez Madrid–Barajas Airport', countryName: 'Spain' },
+  { iataCode: 'BCN', cityName: 'Barcelona', name: 'Barcelona–El Prat Airport', countryName: 'Spain' },
+  { iataCode: 'ATH', cityName: 'Athens', name: 'Athens International Airport', countryName: 'Greece' },
+  { iataCode: 'YYZ', cityName: 'Toronto', name: 'Toronto Pearson International Airport', countryName: 'Canada' },
+  { iataCode: 'YVR', cityName: 'Vancouver', name: 'Vancouver International Airport', countryName: 'Canada' },
+];
+
+const COUNTRY_FALLBACKS = [
+  { code: 'RS', name: 'Serbia' },
+  { code: 'TR', name: 'Turkey' },
+  { code: 'US', name: 'United States', aliases: ['USA', 'America'] },
+  { code: 'GB', name: 'United Kingdom', aliases: ['UK', 'England'] },
+  { code: 'FR', name: 'France' },
+  { code: 'IT', name: 'Italy' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'GR', name: 'Greece' },
+  { code: 'CA', name: 'Canada' },
+];
+
+const localLocationFallback = (keyword) => {
+  const q = String(keyword || '').trim().toLowerCase();
+  if (q.length < 2) return [];
+
+  const countryMatches = COUNTRY_FALLBACKS
+    .filter(country => {
+      const values = [country.name, country.code, ...(country.aliases || [])];
+      return values.some(v => String(v).toLowerCase().startsWith(q));
+    })
+    .map(country => {
+      const countryAirports = LOCATION_FALLBACKS.filter(a => a.countryName === country.name);
+      return {
+        iataCode: country.code,
+        cityName: country.name,
+        name: `${country.name} — All airports`,
+        countryName: country.name,
+        isCountry: true,
+        countryAirports,
+      };
+    });
+
+  const airportMatches = LOCATION_FALLBACKS.filter(location => {
+    return [location.iataCode, location.cityName, location.name, location.countryName]
+      .some(value => String(value || '').toLowerCase().includes(q));
+  });
+
+  const seen = new Set();
+  return [...countryMatches, ...airportMatches].filter(item => {
+    const key = `${item.isCountry ? 'country' : 'airport'}:${item.iataCode}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 10);
+};
+
 export const searchAirports = async (keyword) => {
   if (!keyword || keyword.trim().length < 2) return [];
+  const fallback = localLocationFallback(keyword);
   try {
     const res = await fetch(
       `${API_URL}/api/flights/airports?keyword=${encodeURIComponent(keyword.trim())}`
     );
-    if (!res.ok) return [];
+    if (!res.ok) return fallback;
     const data = await res.json();
-    return data.data?.locations || [];
-  } catch {
-    return [];
+    const live = data.data?.locations || [];
+    if (live.length > 0) return live;
+    return fallback;
+  } catch (error) {
+    console.warn('Airport autocomplete API unavailable, using local fallback:', error?.message || error);
+    return fallback;
   }
 };
 
