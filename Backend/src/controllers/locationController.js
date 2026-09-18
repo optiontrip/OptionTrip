@@ -1,6 +1,7 @@
 import { searchGooglePlace } from '../services/googlePlacesService.js';
 import {
   searchAirportDirectory,
+  findAirportsForCity,
   findCountryDirectoryMatch,
   findAirportsNearCoordinates,
 } from '../services/nearbyAirportsService.js';
@@ -36,6 +37,10 @@ const COUNTRY_ALIASES = {
 };
 
 const normalize = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+const normalizeLocale = (value) => {
+  const code = String(value || 'en').trim().toLowerCase().split(/[-_]/)[0];
+  return /^[a-z]{2}$/.test(code) ? code : 'en';
+};
 
 const dedupeLocations = (locations, limit = 12) => {
   const seen = new Set();
@@ -78,11 +83,11 @@ const buildCountryEntry = (keyword) => {
   };
 };
 
-const searchTravelpayoutsLocations = async (keyword) => {
+const searchTravelpayoutsLocations = async (keyword, locale = 'en') => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 1800);
   try {
-    const qs = `term=${encodeURIComponent(keyword)}&locale=en&types[]=airport&types[]=city`;
+    const qs = `term=${encodeURIComponent(keyword)}&locale=${encodeURIComponent(locale)}&types[]=airport&types[]=city`;
     const response = await fetch(`https://autocomplete.travelpayouts.com/places2?${qs}`, {
       signal: controller.signal,
     });
@@ -96,9 +101,7 @@ const searchTravelpayoutsLocations = async (keyword) => {
         const entityType = item.type === 'city' ? 'city' : 'airport';
         const cityName = item.city_name || item.name || item.code;
         const localCityAirports = entityType === 'city'
-          ? searchAirportDirectory(cityName, 20)
-            .filter(airport => normalize(airport.cityName) === normalize(cityName)
-              && (!item.country_name || normalize(airport.countryName) === normalize(item.country_name)))
+          ? findAirportsForCity(cityName, item.country_name || '', 20)
           : [];
         return {
           iataCode: item.code,
@@ -108,6 +111,7 @@ const searchTravelpayoutsLocations = async (keyword) => {
           entityType,
           isCity: entityType === 'city',
           cityAirports: localCityAirports,
+          hasDirectAirport: entityType !== 'city' || localCityAirports.length > 0,
           source: 'travelpayouts',
         };
       });
@@ -136,9 +140,9 @@ const rankLiveMatches = (matches, keyword) => {
   });
 };
 
-const resolveNearestAirportsForUnknownPlace = async (keyword) => {
+const resolveNearestAirportsForPlace = async (keyword, locale = 'en') => {
   try {
-    const place = await searchGooglePlace(keyword);
+    const place = await searchGooglePlace(keyword, locale);
     if (!place || !Number.isFinite(place.latitude) || !Number.isFinite(place.longitude)) return [];
 
     let nearby = findAirportsNearCoordinates(place.latitude, place.longitude, 300, 5);
@@ -165,51 +169,68 @@ const resolveNearestAirportsForUnknownPlace = async (keyword) => {
 export const getLocations = async (req, res) => {
   try {
     const keyword = String(req.query.keyword || '').trim();
+    const locale = normalizeLocale(req.query.locale);
     if (keyword.length < 2) {
       return res.status(400).json({ success: false, message: 'keyword must be at least 2 characters' });
     }
 
+    const needle = normalize(keyword);
     const countryEntry = buildCountryEntry(keyword);
     const localMatches = searchAirportDirectory(keyword, 14);
+    const exactLocalIata = localMatches.find(item => normalize(item.iataCode) === needle);
+    const exactLocalCityAirports = findAirportsForCity(keyword, '', 20);
 
-    // Keep the local directory as a reliable fallback, but also ask the provider
-    // for city entities such as MOW/LON/PAR/NYC. This lets a traveler choose
-    // "Moscow - all airports" rather than being forced into DME or SVO.
     const liveMatches = !countryEntry
-      ? rankLiveMatches(await searchTravelpayoutsLocations(keyword), keyword)
+      ? rankLiveMatches(await searchTravelpayoutsLocations(keyword, locale), keyword)
       : [];
 
-    const exactLocalIata = localMatches.find(item => normalize(item.iataCode) === normalize(keyword));
-    const exactCityMatches = liveMatches.filter(item => item.entityType === 'city' && normalize(item.cityName) === normalize(keyword));
+    const exactCityMatches = liveMatches.filter(item => item.entityType === 'city' && normalize(item.cityName) === needle);
+    const exactCityWithAirports = exactCityMatches.filter(item => item.cityAirports?.length > 0);
+    const exactCityWithoutAirport = exactCityMatches.find(item => !item.cityAirports?.length) || null;
+
+    const shouldResolveNearest = !countryEntry
+      && keyword.length >= 3
+      && !exactLocalIata
+      && exactLocalCityAirports.length === 0
+      && (Boolean(exactCityWithoutAirport) || exactCityMatches.length === 0);
+
+    const nearest = shouldResolveNearest
+      ? await resolveNearestAirportsForPlace(keyword, locale)
+      : [];
+
+    const remainingLiveMatches = liveMatches.filter(item => {
+      if (item.entityType !== 'city') return true;
+      if (normalize(item.cityName) !== needle) return true;
+      return item.cityAirports?.length > 0;
+    });
 
     let locations = dedupeLocations([
       countryEntry,
       exactLocalIata,
-      ...exactCityMatches,
+      ...exactCityWithAirports,
+      ...nearest,
+      ...exactLocalCityAirports,
       ...localMatches,
-      ...liveMatches,
+      ...remainingLiveMatches,
     ], 12);
-
-    const hasLocalAirport = localMatches.some(item => item.entityType === 'airport');
-    const hasResolvedCity = liveMatches.some(item => item.entityType === 'city');
-    const shouldResolveNearest = !countryEntry && keyword.length >= 3 && !hasLocalAirport && !hasResolvedCity;
-
-    if (shouldResolveNearest) {
-      const nearest = await resolveNearestAirportsForUnknownPlace(keyword);
-      if (nearest.length > 0) {
-        locations = dedupeLocations([...locations, ...nearest], 12);
-      }
-    }
 
     return res.json({
       success: true,
       data: {
         query: keyword,
+        locale,
         locations,
         count: locations.length,
         resolvedBy: locations[0]?.source || 'none',
         includesCityAllAirports: locations.some(item => item.entityType === 'city'),
-        includesNearestAirports: locations.some(item => item.entityType === 'nearest-airport'),
+        includesNearestAirports: nearest.length > 0,
+        matchedCityWithoutAirport: exactCityWithoutAirport
+          ? {
+            cityName: exactCityWithoutAirport.cityName,
+            countryName: exactCityWithoutAirport.countryName,
+            providerCode: exactCityWithoutAirport.iataCode,
+          }
+          : null,
       },
     });
   } catch (error) {
