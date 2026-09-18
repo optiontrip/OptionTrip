@@ -35,6 +35,10 @@ jobs:
       - name: Check backend JavaScript syntax
         run: find Backend/src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
 
+      - name: Location resolver regression checks
+        working-directory: Backend
+        run: npm run test:locations
+
       - name: Install frontend dependencies
         working-directory: Frontend
         run: npm ci
@@ -112,6 +116,7 @@ jobs:
             echo '🧱 Preparing Backend dependencies...'
             cd ~/OptionTrip/Backend
             npm ci
+            npm run test:locations
 
             echo '🎨 Building Frontend before touching production...'
             cd ~/OptionTrip/Frontend
