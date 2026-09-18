@@ -5,6 +5,22 @@ const provider = ({ verticals, credentialEnv = [], access = 'credentials', notes
   enabled: () => liveByDefault || (credentialEnv.length > 0 && hasEnv(...credentialEnv)),
 });
 
+// Only declare filters that OptionTrip can actually honor with normalized data from
+// the current integration. Widget/affiliate-only providers intentionally expose no
+// internal filters until a richer adapter is wired.
+const PROVIDER_FILTER_CAPABILITIES = Object.freeze({
+  travelpayouts: Object.freeze({
+    flights: Object.freeze(['price', 'stops', 'airline', 'departure_time', 'duration']),
+    hotels: Object.freeze(['price', 'stars', 'guest_rating']),
+  }),
+  duffel: Object.freeze({
+    flights: Object.freeze(['price', 'stops', 'airline', 'departure_time', 'arrival_time', 'duration']),
+  }),
+  hotelbeds: Object.freeze({
+    hotels: Object.freeze(['price', 'stars', 'breakfast', 'refundable']),
+  }),
+});
+
 export const TRAVEL_PROVIDER_REGISTRY = Object.freeze({
   travelpayouts: provider({ verticals: ['flights', 'hotels'], credentialEnv: ['TRAVELPAYOUTS_TOKEN', 'TRAVELPAYOUTS_MARKER'], access: 'token' }),
   travelpayouts_car_rental_widget: provider({ verticals: ['cars'], access: 'widget', integration: 'widget', liveByDefault: true, notes: 'Live affiliate widget already integrated in OptionTrip.' }),
@@ -57,21 +73,46 @@ export const TRAVEL_PROVIDER_REGISTRY = Object.freeze({
   gettransfer: provider({ verticals: ['transfers'], credentialEnv: ['GETTRANSFER_ACCESS_TOKEN'], access: 'approval_and_credentials', notes: 'Separate provider approval/access token is required.' }),
 });
 
+const filtersForProvider = providerName => PROVIDER_FILTER_CAPABILITIES[providerName] || {};
+
 export const getProviderCapabilities = () => Object.entries(TRAVEL_PROVIDER_REGISTRY).map(([providerName, config]) => ({
-  provider: providerName, verticals: [...config.verticals], configured: config.enabled(), available: true,
-  access: config.access, integration: config.integration,
+  provider: providerName,
+  verticals: [...config.verticals],
+  configured: config.enabled(),
+  available: true,
+  access: config.access,
+  integration: config.integration,
+  filters: filtersForProvider(providerName),
   missingCredentials: config.credentialEnv.filter(name => !process.env[name]),
 }));
 
 export const getConfiguredProviders = vertical => getProviderCapabilities()
-  .filter(item => item.configured && (!vertical || item.verticals.includes(vertical))).map(item => item.provider);
+  .filter(item => item.configured && (!vertical || item.verticals.includes(vertical)))
+  .map(item => item.provider);
+
+export const getConfiguredFilterCapabilities = vertical => {
+  const filters = new Set();
+  getProviderCapabilities()
+    .filter(item => item.configured && item.verticals.includes(vertical))
+    .forEach(item => (item.filters?.[vertical] || []).forEach(filter => filters.add(filter)));
+  return [...filters].sort();
+};
 
 export const getProviderReadiness = providerName => {
   const config = TRAVEL_PROVIDER_REGISTRY[providerName];
   if (!config) return null;
   const missingCredentials = config.credentialEnv.filter(name => !process.env[name]);
-  return { provider: providerName, verticals: [...config.verticals], configured: config.enabled(), available: true,
-    access: config.access, integration: config.integration, missingCredentials, notes: config.notes };
+  return {
+    provider: providerName,
+    verticals: [...config.verticals],
+    configured: config.enabled(),
+    available: true,
+    access: config.access,
+    integration: config.integration,
+    filters: filtersForProvider(providerName),
+    missingCredentials,
+    notes: config.notes,
+  };
 };
 
 export const isProviderConfigured = providerName => Boolean(TRAVEL_PROVIDER_REGISTRY[providerName]?.enabled());
