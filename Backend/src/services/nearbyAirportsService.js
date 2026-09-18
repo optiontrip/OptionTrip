@@ -4,9 +4,20 @@ import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const airports = JSON.parse(
+const baseAirports = JSON.parse(
   readFileSync(join(__dirname, '../data/airports.json'), 'utf-8')
 );
+
+const supplementalAirports = [
+  { iata: 'BEG', name: 'Belgrade Nikola Tesla Airport', city: 'Belgrade', country: 'Serbia', lat: 44.8184, lng: 20.3091 },
+  { iata: 'INI', name: 'Niš Constantine the Great Airport', city: 'Niš', country: 'Serbia', lat: 43.3373, lng: 21.8537 },
+];
+
+const existingCodes = new Set(baseAirports.map(a => a.iata?.toUpperCase()).filter(Boolean));
+const airports = [
+  ...baseAirports,
+  ...supplementalAirports.filter(a => !existingCodes.has(a.iata.toUpperCase())),
+];
 
 const normalize = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
