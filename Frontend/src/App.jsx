@@ -42,6 +42,7 @@ import CookiePolicyPage from './pages/CookiePolicyPage';
 import DataProtectionPage from './pages/DataProtectionPage';
 import HelpCenterPage from './pages/HelpCenterPage';
 import FlightSearch from './pages/FlightSearch';
+import CheapFlightExplorerPage from './pages/CheapFlightExplorerPage';
 import PlanMyDay from './pages/PlanMyDay';
 import WhereCanIGo from './pages/WhereCanIGo';
 import ExploreAnywhereDetailPage from './pages/ExploreAnywhereDetailPage';
@@ -113,6 +114,7 @@ function App() {
                     <Route path="/cookie-policy" element={<CookiePolicyPage />} />
                     <Route path="/data-protection" element={<DataProtectionPage />} />
                     <Route path="/flights/explore" element={<ExploreAnywhereDetailPage />} />
+                    <Route path="/flights/cheap" element={<CheapFlightExplorerPage />} />
                     <Route path="/flights" element={<FlightSearch />} />
                     <Route path="/hotels" element={<HotelSearch />} />
                     <Route path="/car-rental" element={<CarRentalSearch />} />
