@@ -178,6 +178,11 @@
 .hbs-location__option:last-child { border-bottom: 0; }
 .hbs-location__option:hover,
 .hbs-location__option:focus { background: #f0fbfa; outline: none; }
+.hbs-location__option--anywhere {
+  background: linear-gradient(135deg, #edfdfb, #eef7ff);
+  border-bottom: 1px solid #ccebe8;
+}
+.hbs-location__option--anywhere strong { color: #047c7b; }
 .hbs-location__option-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .hbs-location__option-main strong { font-size: 0.91rem; line-height: 1.2; white-space: normal; }
 .hbs-location__option-main small { color: #64748b; font-size: 0.76rem; line-height: 1.25; white-space: normal; }
@@ -210,7 +215,8 @@
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   align-self: flex-end;
 }
-.hbs__swap:hover { background: var(--primary-light, #f0fdfa); color: var(--primary, #029e9d); border-color: var(--primary, #029e9d); }
+.hbs__swap:hover:not(:disabled) { background: var(--primary-light, #f0fdfa); color: var(--primary, #029e9d); border-color: var(--primary, #029e9d); }
+.hbs__swap:disabled { opacity: 0.42; cursor: not-allowed; }
 
 .hbs-stepper {
   display: flex;
