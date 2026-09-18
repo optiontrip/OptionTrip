@@ -73,6 +73,9 @@ const BookingServiceMenu = ({ mobile = false, onNavigate }) => {
         <Link to="/services" onClick={onNavigate} className="booking-service-menu__all">
           <span>{labels.all}</span><i className="fa fa-arrow-right" aria-hidden="true" />
         </Link>
+        <Link to="/travel-buddy?intent=plan-trip" onClick={onNavigate} className="booking-service-menu__vi-link">
+          <span className="booking-service-menu__vi-mark">Vi</span><span>{labels.ask}</span>
+        </Link>
       </div>
     </div>
   );
