@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { searchAirports } from '../../services/flightService';
+import TripDatePicker from '../TripDatePicker/TripDatePicker';
 import './HomeBookingSection.css';
 
 const toISO = (date) => date.toISOString().split('T')[0];
@@ -151,6 +152,16 @@ const HomeLocationInput = ({ label, placeholder, value, code, onChange, onSelect
   );
 };
 
+const codesForSearch = (code, countryData) => {
+  if (countryData?.isCountry && Array.isArray(countryData.countryAirports)) {
+    return [...new Set(countryData.countryAirports
+      .map((airport) => String(airport?.iataCode || '').trim().toUpperCase())
+      .filter((iata) => /^[A-Z]{3}$/.test(iata)))];
+  }
+  const normalized = String(code || '').trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(normalized) ? [normalized] : [];
+};
+
 const HomeBookingSection = () => {
   const navigate = useNavigate();
   const [tab, setTab] = useState('flights');
@@ -163,6 +174,9 @@ const HomeBookingSection = () => {
   const [fToCountryData, setFToCountryData] = useState(null);
   const [fDate, setFDate] = useState('');
   const [fReturn, setFReturn] = useState('');
+  const [fMonth, setFMonth] = useState('');
+  const [fReturnMonth, setFReturnMonth] = useState('');
+  const [fSearchMode, setFSearchMode] = useState('exact');
   const [fTripType, setFTripType] = useState('one-way');
   const [fPassengers, setFPassengers] = useState(1);
   const [flightErrors, setFlightErrors] = useState({});
@@ -186,8 +200,41 @@ const HomeBookingSection = () => {
     if (!fFromCode) nextErrors.from = 'Choose a city, country or airport from the suggestions.';
     if (!fToCode) nextErrors.to = 'Choose a city, country or airport from the suggestions.';
     if (fFromCode && fToCode && fFromCode === fToCode) nextErrors.to = 'Origin and destination must differ.';
+
+    if (fSearchMode === 'month') {
+      if (!fMonth) nextErrors.departureDate = 'Choose a travel month.';
+      if (fTripType === 'round-trip' && !fReturnMonth) nextErrors.returnDate = 'Choose a return month.';
+    } else {
+      if (!fDate) nextErrors.departureDate = 'Choose a departure date.';
+      if (fTripType === 'round-trip' && !fReturn) nextErrors.returnDate = 'Choose a return date.';
+    }
+
     if (Object.keys(nextErrors).length > 0) {
       setFlightErrors(nextErrors);
+      return;
+    }
+
+    if (fSearchMode === 'month') {
+      const origins = codesForSearch(fFromCode, fFromCountryData);
+      const destinations = codesForSearch(fToCode, fToCountryData);
+
+      if (!origins.length || !destinations.length) {
+        setFlightErrors({
+          ...(origins.length ? {} : { from: 'Choose a departure place with supported airports.' }),
+          ...(destinations.length ? {} : { to: 'Choose a destination with supported airports.' }),
+        });
+        return;
+      }
+
+      const query = new URLSearchParams({
+        origins: origins.join(','),
+        destinations: destinations.join(','),
+        month: fMonth,
+        originLabel: fFrom,
+        destinationLabel: fTo,
+      });
+      if (fTripType === 'round-trip' && fReturnMonth) query.set('returnMonth', fReturnMonth);
+      navigate(`/flights/cheap?${query.toString()}`);
       return;
     }
 
@@ -204,6 +251,7 @@ const HomeBookingSection = () => {
         returnDate: fTripType === 'round-trip' ? fReturn : '',
         adults: fPassengers,
         tripType: fTripType,
+        searchMode: 'exact',
       },
     });
   };
@@ -217,6 +265,32 @@ const HomeBookingSection = () => {
     setFToCode(oldFrom.code);
     setFToCountryData(oldFrom.country);
     setFlightErrors({});
+  };
+
+  const setFlightTripType = (type) => {
+    setFTripType(type);
+    if (type === 'one-way') {
+      setFReturn('');
+      setFReturnMonth('');
+    }
+    setFlightErrors((previous) => ({ ...previous, returnDate: '' }));
+  };
+
+  const handleFlightDateApply = ({ searchMode, month, returnMonth, startDate, endDate }) => {
+    if (searchMode === 'month') {
+      setFSearchMode('month');
+      setFMonth(month || '');
+      setFReturnMonth(fTripType === 'round-trip' ? (returnMonth || '') : '');
+      setFDate('');
+      setFReturn('');
+    } else {
+      setFSearchMode('exact');
+      setFDate(startDate || '');
+      setFReturn(fTripType === 'round-trip' ? (endDate || '') : '');
+      setFMonth('');
+      setFReturnMonth('');
+    }
+    setFlightErrors((previous) => ({ ...previous, departureDate: '', returnDate: '' }));
   };
 
   const handleHotelSearch = (event) => {
@@ -250,7 +324,7 @@ const HomeBookingSection = () => {
           <form className="hbs__form" onSubmit={handleFlightSearch}>
             <div className="hbs__trip-type">
               {['one-way', 'round-trip'].map((type) => (
-                <button key={type} type="button" className={`hbs__pill${fTripType === type ? ' hbs__pill--on' : ''}`} onClick={() => setFTripType(type)}>
+                <button key={type} type="button" className={`hbs__pill${fTripType === type ? ' hbs__pill--on' : ''}`} onClick={() => setFlightTripType(type)}>
                   {type === 'one-way' ? 'One way' : 'Round trip'}
                 </button>
               ))}
@@ -299,22 +373,33 @@ const HomeBookingSection = () => {
                   }}
                 />
               </div>
-              <div className="hbs__field">
-                <label className="hbs__label">Depart</label>
-                <input className="hbs__input" type="date" value={fDate} min={TODAY} max={MAX_TRAVEL_DATE} onChange={(event) => setFDate(event.target.value)} required />
+              <div className="hbs__field hbs__field--date-picker">
+                <TripDatePicker
+                  mode={fTripType === 'round-trip' ? 'range' : 'single'}
+                  startDate={fDate}
+                  endDate={fReturn}
+                  selectedMonth={fMonth}
+                  selectedReturnMonth={fReturnMonth}
+                  searchMode={fSearchMode}
+                  minDate={TODAY}
+                  onApply={handleFlightDateApply}
+                  startLabel="Departure"
+                  endLabel="Return"
+                  startPlaceholder="Date or whole month"
+                  endPlaceholder="Date or return month"
+                  startError={flightErrors.departureDate}
+                  endError={flightErrors.returnDate}
+                  origin={/^[A-Z]{3}$/.test(fFromCode) ? fFromCode : undefined}
+                  destination={/^[A-Z]{3}$/.test(fToCode) ? fToCode : undefined}
+                />
               </div>
-              {fTripType === 'round-trip' && (
-                <div className="hbs__field">
-                  <label className="hbs__label">Return</label>
-                  <input className="hbs__input" type="date" value={fReturn} min={fDate || TODAY} max={MAX_TRAVEL_DATE} onChange={(event) => setFReturn(event.target.value)} required />
-                </div>
-              )}
               <div className="hbs__field hbs__field--narrow">
                 <label className="hbs__label">Passengers</label>
                 <Stepper value={fPassengers} onChange={setFPassengers} />
               </div>
-              <button type="submit" className="hbs__search-btn"><SearchIcon /> Search prices</button>
+              <button type="submit" className="hbs__search-btn"><SearchIcon /> {fSearchMode === 'month' ? 'Find cheapest month fares' : 'Search prices'}</button>
             </div>
+            <p className="hbs__date-help">Choose <strong>Specific dates</strong>, <strong>Flexible dates</strong>, or <strong>Whole month</strong>. Whole-month search compares available fares across the selected month instead of forcing a day.</p>
           </form>
         )}
 
