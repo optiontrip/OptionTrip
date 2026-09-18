@@ -78,7 +78,7 @@ const buildCountryEntry = (keyword) => {
 
 const searchTravelpayoutsLocations = async (keyword) => {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3000);
+  const timeoutId = setTimeout(() => controller.abort(), 1800);
   try {
     const qs = `term=${encodeURIComponent(keyword)}&locale=en&types[]=airport&types[]=city`;
     const response = await fetch(`https://autocomplete.travelpayouts.com/places2?${qs}`, {
@@ -143,7 +143,12 @@ export const getLocations = async (req, res) => {
 
     const countryEntry = buildCountryEntry(keyword);
     const localMatches = searchAirportDirectory(keyword, 14);
-    const liveMatches = await searchTravelpayoutsLocations(keyword);
+
+    // Common cities, airport codes and supported countries resolve locally so the
+    // mobile dropdown is not blocked by a third-party network round trip.
+    const liveMatches = (!countryEntry && localMatches.length === 0)
+      ? await searchTravelpayoutsLocations(keyword)
+      : [];
 
     let locations = dedupeLocations([
       countryEntry,
