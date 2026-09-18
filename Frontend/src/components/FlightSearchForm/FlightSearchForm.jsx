@@ -67,19 +67,31 @@ const AirportInput = ({ label, placeholder, value, iataCode, onChange, onSelect,
   };
 
   const handleSelect = (airport) => {
+    const isNearest = airport.entityType === 'nearest-airport' || airport.isNearest;
+    const isCity = airport.entityType === 'city' || airport.isCity;
     const display = airport.isCountry
       ? `${airport.cityName} (${airport.iataCode})`
-      : `${airport.cityName || airport.name} (${airport.iataCode})`;
+      : isNearest && airport.requestedPlace
+        ? `${airport.requestedPlace} → ${airport.cityName || airport.name} (${airport.iataCode})`
+        : `${airport.cityName || airport.name} (${airport.iataCode})`;
+
     setQuery(display);
     setSelected(true);
     setOpen(false);
     setSuggestions([]);
-    onSelect(airport.iataCode, display, airport.isCountry ? {
-      isCountry: true,
-      countryCode: airport.iataCode,
-      countryName: airport.cityName,
+    onSelect(airport.iataCode, display, {
+      entityType: airport.entityType || (airport.isCountry ? 'country' : 'airport'),
+      isCountry: Boolean(airport.isCountry),
+      isCity,
+      isNearest,
+      countryCode: airport.countryCode || (airport.isCountry ? airport.iataCode : ''),
+      countryName: airport.countryName || airport.cityName || '',
       countryAirports: airport.countryAirports || [],
-    } : null);
+      cityAirports: airport.cityAirports || [],
+      requestedPlace: airport.requestedPlace || '',
+      requestedAddress: airport.requestedAddress || '',
+      distanceKm: airport.distanceKm,
+    });
   };
 
   const handleClear = () => {
@@ -137,26 +149,42 @@ const AirportInput = ({ label, placeholder, value, iataCode, onChange, onSelect,
             </li>
           )}
 
-          {suggestions.map(airport => (
-            <li key={airport.iataCode + (airport.isCountry ? '-country' : '')}
-              className={`fsf-ac-item${airport.isCountry ? ' fsf-ac-item--country' : ''}`}
-              onPointerDown={(e) => { e.preventDefault(); handleSelect(airport); }}>
-              <div className="fsf-ac-item__left">
-                {airport.isCountry ? (
-                  <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><circle cx="12" cy="12" r="10" stroke="#029e9d" strokeWidth="2"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="#029e9d" strokeWidth="2"/></svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#029e9d"/></svg>
-                )}
-                <div>
-                  <span className="fsf-ac-item__name">{airport.isCountry ? airport.cityName : (airport.cityName || airport.name)}</span>
-                  {!airport.isCountry && airport.name !== airport.cityName && airport.name && <span className="fsf-ac-item__airport">{airport.name}</span>}
-                  {airport.isCountry ? <span className="fsf-ac-item__airport">All cities & airports</span>
-                    : airport.countryName && <span className="fsf-ac-item__country">{airport.countryName}</span>}
+          {suggestions.map(airport => {
+            const isNearest = airport.entityType === 'nearest-airport' || airport.isNearest;
+            const isCity = airport.entityType === 'city' || airport.isCity;
+            const itemClass = `fsf-ac-item${airport.isCountry ? ' fsf-ac-item--country' : ''}${isNearest ? ' fsf-ac-item--nearest' : ''}${isCity ? ' fsf-ac-item--city' : ''}`;
+            return (
+              <li key={`${airport.entityType || 'airport'}-${airport.iataCode}-${airport.requestedPlace || ''}`}
+                className={itemClass}
+                onPointerDown={(e) => { e.preventDefault(); handleSelect(airport); }}>
+                <div className="fsf-ac-item__left">
+                  {airport.isCountry ? (
+                    <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><circle cx="12" cy="12" r="10" stroke="#029e9d" strokeWidth="2"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="#029e9d" strokeWidth="2"/></svg>
+                  ) : isNearest ? (
+                    <i className="fa fa-location-arrow" aria-hidden="true" />
+                  ) : isCity ? (
+                    <i className="fa fa-map-marker" aria-hidden="true" />
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#029e9d"/></svg>
+                  )}
+                  <div>
+                    <span className="fsf-ac-item__name">{airport.isCountry ? airport.cityName : (airport.cityName || airport.name)}</span>
+                    {airport.isCountry ? (
+                      <span className="fsf-ac-item__airport">All cities & airports</span>
+                    ) : isNearest ? (
+                      <span className="fsf-ac-item__airport">{airport.name}</span>
+                    ) : isCity ? (
+                      <span className="fsf-ac-item__airport">All airports in this city</span>
+                    ) : airport.name !== airport.cityName && airport.name ? (
+                      <span className="fsf-ac-item__airport">{airport.name}</span>
+                    ) : null}
+                    {!airport.isCountry && airport.countryName && <span className="fsf-ac-item__country">{airport.countryName}</span>}
+                  </div>
                 </div>
-              </div>
-              <span className="fsf-ac-item__iata">{airport.iataCode}</span>
-            </li>
-          ))}
+                <span className="fsf-ac-item__iata">{airport.iataCode}</span>
+              </li>
+            );
+          })}
 
           {!loading && suggestions.length === 0 && query.trim().length >= 2 && !onExploreAnywhere && (
             <li className="fsf-ac-item" aria-disabled="true"><div className="fsf-ac-item__left"><div><span className="fsf-ac-item__name">No location found</span><span className="fsf-ac-item__airport">Try a city, country, airport name or IATA code</span></div></div></li>
@@ -188,18 +216,30 @@ const FlightSearchForm = ({ onSearch, isLoading, prefillDest, prefillOrigin, ori
   const [errors,            setErrors]            = useState({});
   const [includeNearby,     setIncludeNearby]     = useState(false);
   const [includeHotels,     setIncludeHotels]     = useState(false);
+  const lastPrefillOriginRef = useRef('');
+  const lastPrefillDestRef = useRef('');
 
   useEffect(() => {
     if (prefillOrigin?.code && prefillOrigin?.display) {
-      setOriginCode(prefillOrigin.code); setOriginDisplay(prefillOrigin.display); setIsExploreAnywhere(false);
+      const key = `${prefillOrigin.code}|${prefillOrigin.display}`;
+      lastPrefillOriginRef.current = key;
+      setOriginCode(prefillOrigin.code); setOriginDisplay(prefillOrigin.display); setOriginCountryData(prefillOrigin.locationData || null); setIsExploreAnywhere(false);
       setErrors(p => ({ ...p, origin: '' }));
+    } else if (lastPrefillOriginRef.current) {
+      lastPrefillOriginRef.current = '';
+      setOriginCode(''); setOriginDisplay(''); setOriginCountryData(null);
     }
   }, [prefillOrigin]);
 
   useEffect(() => {
     if (prefillDest?.code && prefillDest?.display) {
-      setDestCode(prefillDest.code); setDestDisplay(prefillDest.display); setIsExploreAnywhere(false);
+      const key = `${prefillDest.code}|${prefillDest.display}`;
+      lastPrefillDestRef.current = key;
+      setDestCode(prefillDest.code); setDestDisplay(prefillDest.display); setDestCountryData(prefillDest.locationData || null); setIsExploreAnywhere(false);
       setErrors(p => ({ ...p, destination: '' }));
+    } else if (lastPrefillDestRef.current) {
+      lastPrefillDestRef.current = '';
+      setDestCode(''); setDestDisplay(''); setDestCountryData(null);
     }
   }, [prefillDest]);
 
@@ -255,6 +295,17 @@ const FlightSearchForm = ({ onSearch, isLoading, prefillDest, prefillOrigin, ori
     adults: Number(adults), children: Number(children), includeNearby, includeHotels, tripType,
   });
 
+  const getSearchableAirports = (locationData, code) => {
+    const candidates = locationData?.countryAirports?.length
+      ? locationData.countryAirports
+      : locationData?.cityAirports?.length
+        ? locationData.cityAirports
+        : [];
+    const codes = candidates.map(item => item.iataCode).filter(Boolean);
+    if (codes.length > 0) return [...new Set(codes)];
+    return /^[A-Z]{3}$/i.test(code || '') ? [code.toUpperCase()] : [];
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const errs = validate();
@@ -262,14 +313,8 @@ const FlightSearchForm = ({ onSearch, isLoading, prefillDest, prefillOrigin, ori
     const searchParams = buildParams();
 
     if (dateSearchMode === 'month') {
-      const originAirports = originCountryData?.countryAirports?.length
-        ? originCountryData.countryAirports.map(item => item.iataCode).filter(Boolean)
-        : (/^[A-Z]{3}$/i.test(originCode) ? [originCode] : []);
-      const destinationAirports = isExploreAnywhere
-        ? []
-        : (destCountryData?.countryAirports?.length
-          ? destCountryData.countryAirports.map(item => item.iataCode).filter(Boolean)
-          : (/^[A-Z]{3}$/i.test(destCode) ? [destCode] : []));
+      const originAirports = getSearchableAirports(originCountryData, originCode);
+      const destinationAirports = isExploreAnywhere ? [] : getSearchableAirports(destCountryData, destCode);
 
       if (!originAirports.length || (!isExploreAnywhere && !destinationAirports.length)) {
         setErrors(p => ({ ...p, origin: !originAirports.length ? 'Select a departure place with supported airports' : p.origin, destination: !isExploreAnywhere && !destinationAirports.length ? 'Select a destination with supported airports' : p.destination }));
@@ -318,7 +363,7 @@ const FlightSearchForm = ({ onSearch, isLoading, prefillDest, prefillOrigin, ori
               <div className="fsf-col fsf-col--airport">
                 <AirportInput label="From" placeholder="Airport, city or country" value={originDisplay} iataCode={originCode}
                   onChange={(code, display) => { setOriginCode(code); setOriginDisplay(display); setOriginCountryData(null); setIsExploreAnywhere(false); clearError('origin'); onOriginErrorClear?.(); }}
-                  onSelect={(code, display, countryData) => { setOriginCode(code); setOriginDisplay(display); setOriginCountryData(countryData || null); setIsExploreAnywhere(false); clearError('origin'); onOriginErrorClear?.(); }}
+                  onSelect={(code, display, locationData) => { setOriginCode(code); setOriginDisplay(display); setOriginCountryData(locationData || null); setIsExploreAnywhere(false); clearError('origin'); onOriginErrorClear?.(); }}
                   error={errors.origin || originError} />
               </div>
 
@@ -331,7 +376,7 @@ const FlightSearchForm = ({ onSearch, isLoading, prefillDest, prefillOrigin, ori
               <div className="fsf-col fsf-col--airport">
                 <AirportInput label="To" placeholder="Airport, city, country or Anywhere" value={destDisplay} iataCode={destCode}
                   onChange={(code, display) => { setDestCode(code); setDestDisplay(display); setDestCountryData(null); setIsExploreAnywhere(false); clearError('destination'); }}
-                  onSelect={(code, display, countryData) => { setDestCode(code); setDestDisplay(display); setDestCountryData(countryData || null); setIsExploreAnywhere(false); clearError('destination'); }}
+                  onSelect={(code, display, locationData) => { setDestCode(code); setDestDisplay(display); setDestCountryData(locationData || null); setIsExploreAnywhere(false); clearError('destination'); }}
                   error={errors.destination}
                   onExploreAnywhere={() => { setDestCode('EXPLORE_ANYWHERE'); setDestDisplay('Explore Anywhere'); setDestCountryData(null); setIsExploreAnywhere(true); clearError('destination'); }} />
               </div>
