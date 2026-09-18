@@ -31,7 +31,7 @@ const Stepper = ({ value, min = 1, max = 9, onChange }) => (
   </div>
 );
 
-const HomeLocationInput = ({ label, placeholder, value, code, onChange, onSelect, error }) => {
+const HomeLocationInput = ({ label, placeholder, value, code, onChange, onSelect, error, onExploreAnywhere }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -89,6 +89,17 @@ const HomeLocationInput = ({ label, placeholder, value, code, onChange, onSelect
     onSelect(item.iataCode, display, countryData);
   };
 
+  const chooseAnywhere = (event) => {
+    event.preventDefault();
+    requestRef.current += 1;
+    setSuggestions([]);
+    setNoResults(false);
+    setOpen(false);
+    onExploreAnywhere?.();
+  };
+
+  const canShowDropdown = open && !code && (Boolean(onExploreAnywhere) || value.trim().length >= 2);
+
   return (
     <div className={`hbs-location${error ? ' hbs-location--error' : ''}`} ref={wrapRef}>
       <label className="hbs__label">{label}</label>
@@ -100,26 +111,42 @@ const HomeLocationInput = ({ label, placeholder, value, code, onChange, onSelect
           autoComplete="off"
           spellCheck={false}
           onFocus={() => {
-            if (!code && value.trim().length >= 2) setOpen(true);
+            if (onExploreAnywhere) setOpen(true);
+            else if (!code && value.trim().length >= 2) setOpen(true);
           }}
           onChange={(event) => {
             requestRef.current += 1;
             setSuggestions([]);
             setNoResults(false);
-            setOpen(event.target.value.trim().length >= 2);
+            setOpen(Boolean(onExploreAnywhere) || event.target.value.trim().length >= 2);
             onChange(event.target.value);
           }}
         />
         {loading && <span className="hbs-location__spinner" aria-label="Searching locations" />}
-        {code && <span className="hbs-location__code">{code}</span>}
+        {code && <span className="hbs-location__code">{code === 'ANYWHERE' ? 'ANY' : code}</span>}
       </div>
 
-      {open && !code && value.trim().length >= 2 && (
+      {canShowDropdown && (
         <div className="hbs-location__dropdown" role="listbox">
-          {loading && suggestions.length === 0 && (
+          {onExploreAnywhere && (
+            <button
+              type="button"
+              className="hbs-location__option hbs-location__option--anywhere"
+              role="option"
+              aria-selected="false"
+              onPointerDown={chooseAnywhere}
+            >
+              <span className="hbs-location__option-main">
+                <strong>Explore Anywhere</strong>
+                <small>No destination yet - show the cheapest places you can fly</small>
+              </span>
+              <span className="hbs-location__option-code">ANY</span>
+            </button>
+          )}
+          {loading && suggestions.length === 0 && value.trim().length >= 2 && (
             <div className="hbs-location__status">Searching cities, countries and airports…</div>
           )}
-          {!loading && noResults && (
+          {!loading && noResults && value.trim().length >= 2 && (
             <div className="hbs-location__status">No matches yet. Try a city, country or airport code.</div>
           )}
           {suggestions.map((item) => (
@@ -197,9 +224,10 @@ const HomeBookingSection = () => {
   const handleFlightSearch = (event) => {
     event.preventDefault();
     const nextErrors = {};
+    const isAnywhere = fToCode === 'ANYWHERE';
     if (!fFromCode) nextErrors.from = 'Choose a city, country or airport from the suggestions.';
-    if (!fToCode) nextErrors.to = 'Choose a city, country or airport from the suggestions.';
-    if (fFromCode && fToCode && fFromCode === fToCode) nextErrors.to = 'Origin and destination must differ.';
+    if (!fToCode) nextErrors.to = 'Choose a destination or Explore Anywhere.';
+    if (!isAnywhere && fFromCode && fToCode && fFromCode === fToCode) nextErrors.to = 'Origin and destination must differ.';
 
     if (fSearchMode === 'month') {
       if (!fMonth) nextErrors.departureDate = 'Choose a travel month.';
@@ -216,25 +244,42 @@ const HomeBookingSection = () => {
 
     if (fSearchMode === 'month') {
       const origins = codesForSearch(fFromCode, fFromCountryData);
-      const destinations = codesForSearch(fToCode, fToCountryData);
+      const destinations = isAnywhere ? [] : codesForSearch(fToCode, fToCountryData);
 
-      if (!origins.length || !destinations.length) {
+      if (!origins.length || (!isAnywhere && !destinations.length)) {
         setFlightErrors({
           ...(origins.length ? {} : { from: 'Choose a departure place with supported airports.' }),
-          ...(destinations.length ? {} : { to: 'Choose a destination with supported airports.' }),
+          ...((isAnywhere || destinations.length) ? {} : { to: 'Choose a destination with supported airports.' }),
         });
         return;
       }
 
       const query = new URLSearchParams({
         origins: origins.join(','),
-        destinations: destinations.join(','),
+        destinations: isAnywhere ? 'ANYWHERE' : destinations.join(','),
         month: fMonth,
         originLabel: fFrom,
-        destinationLabel: fTo,
+        destinationLabel: isAnywhere ? 'Anywhere' : fTo,
       });
       if (fTripType === 'round-trip' && fReturnMonth) query.set('returnMonth', fReturnMonth);
       navigate(`/flights/cheap?${query.toString()}`);
+      return;
+    }
+
+    if (isAnywhere) {
+      const origins = codesForSearch(fFromCode, fFromCountryData);
+      if (origins.length !== 1) {
+        setFlightErrors({ from: 'For exact-date Anywhere search, choose one departure city or airport. Use Whole month for country-wide discovery.' });
+        return;
+      }
+      const query = new URLSearchParams({
+        origin: origins[0],
+        originDisplay: fFrom,
+        departureDate: fDate,
+        adults: String(fPassengers),
+      });
+      if (fTripType === 'round-trip' && fReturn) query.set('returnDate', fReturn);
+      navigate(`/flights/explore?${query.toString()}`);
       return;
     }
 
@@ -257,6 +302,7 @@ const HomeBookingSection = () => {
   };
 
   const swapFlightLocations = () => {
+    if (fFromCode === 'ANYWHERE' || fToCode === 'ANYWHERE') return;
     const oldFrom = { display: fFrom, code: fFromCode, country: fFromCountryData };
     setFFrom(fTo);
     setFFromCode(fToCode);
@@ -351,11 +397,17 @@ const HomeBookingSection = () => {
                   }}
                 />
               </div>
-              <button type="button" className="hbs__swap" title="Swap origin and destination" onClick={swapFlightLocations}><SwapIcon /></button>
+              <button
+                type="button"
+                className="hbs__swap"
+                title={fToCode === 'ANYWHERE' ? 'Choose a destination before swapping' : 'Swap origin and destination'}
+                onClick={swapFlightLocations}
+                disabled={fFromCode === 'ANYWHERE' || fToCode === 'ANYWHERE'}
+              ><SwapIcon /></button>
               <div className="hbs__field hbs__field--grow2 hbs__field--location">
                 <HomeLocationInput
                   label="To"
-                  placeholder="City, country or airport"
+                  placeholder="City, country, airport or Anywhere"
                   value={fTo}
                   code={fToCode}
                   error={flightErrors.to}
@@ -369,6 +421,12 @@ const HomeBookingSection = () => {
                     setFTo(display);
                     setFToCode(code);
                     setFToCountryData(countryData);
+                    clearFlightError('to');
+                  }}
+                  onExploreAnywhere={() => {
+                    setFTo('Anywhere');
+                    setFToCode('ANYWHERE');
+                    setFToCountryData(null);
                     clearFlightError('to');
                   }}
                 />
@@ -399,7 +457,7 @@ const HomeBookingSection = () => {
               </div>
               <button type="submit" className="hbs__search-btn"><SearchIcon /> {fSearchMode === 'month' ? 'Find cheapest month fares' : 'Search prices'}</button>
             </div>
-            <p className="hbs__date-help">Choose <strong>Specific dates</strong>, <strong>Flexible dates</strong>, or <strong>Whole month</strong>. Whole-month search compares available fares across the selected month instead of forcing a day.</p>
+            <p className="hbs__date-help">Choose <strong>Specific dates</strong>, <strong>Flexible dates</strong>, or <strong>Whole month</strong>. You can also choose <strong>Explore Anywhere</strong> to rank destinations by available fare.</p>
           </form>
         )}
 
