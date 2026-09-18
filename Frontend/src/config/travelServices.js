@@ -9,6 +9,18 @@ export const TRAVEL_SERVICE_GROUPS = Object.freeze([
     { id: 'cars', label: 'Car Rental', route: '/car-rental', icon: 'fa-car', live: true, inventoryVertical: 'cars' },
     { id: 'activities', label: 'Tours & Activities', route: '/tours', icon: 'fa-ticket', live: true, inventoryVertical: 'activities' },
     { id: 'esim', label: 'eSIM', route: '/esim', icon: 'fa-wifi', live: true, inventoryVertical: 'esim' },
+    {
+      id: 'food',
+      label: 'Food & dining',
+      icon: 'fa-utensils',
+      inventoryVertical: 'food',
+      labels: {
+        en: 'Food & dining', ru: 'Еда и рестораны', uk: 'Їжа та ресторани', de: 'Essen & Restaurants', fr: 'Gastronomie & restaurants', es: 'Gastronomía y restaurantes',
+        it: 'Cibo e ristoranti', pt: 'Gastronomia e restaurantes', pl: 'Jedzenie i restauracje', tr: 'Yeme içme ve restoranlar', sr: 'Hrana i restorani', ar: 'الطعام والمطاعم',
+        zh: '美食与餐厅', ja: 'グルメ・レストラン', ko: '음식 및 레스토랑', id: 'Kuliner & restoran', vi: 'Ẩm thực & nhà hàng', th: 'อาหารและร้านอาหาร',
+        hi: 'भोजन और रेस्तरां', bn: 'খাবার ও রেস্তোরাঁ', hu: 'Ételek és éttermek', sv: 'Mat och restauranger'
+      }
+    },
   ]},
   { id: 'move', label: 'Get Around', services: [
     { id: 'rail', label: 'Trains', icon: 'fa-train', inventoryVertical: 'rail' },
@@ -37,3 +49,10 @@ export const TRAVEL_SERVICES = Object.freeze(TRAVEL_SERVICE_GROUPS.flatMap(group
 
 export const getTravelService = id => TRAVEL_SERVICES.find(service => service.id === id);
 export const getLiveTravelServices = () => TRAVEL_SERVICES.filter(service => service.live && service.route);
+
+export const getTravelServiceDisplayLabel = (service, language, labels = {}) => {
+  if (!service) return '';
+  if (labels[service.id]) return labels[service.id];
+  const languageCode = (language || 'en').split('-')[0];
+  return service.labels?.[languageCode] || service.labels?.en || service.label;
+};

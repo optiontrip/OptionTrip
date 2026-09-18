@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { TRAVEL_SERVICE_GROUPS } from '../../config/travelServices';
+import { TRAVEL_SERVICE_GROUPS, getTravelServiceDisplayLabel } from '../../config/travelServices';
 import { getTravelServiceLabels } from '../../config/travelServiceLabels';
 import './BookingServiceMenu.css';
 
@@ -54,7 +54,7 @@ const BookingServiceMenu = ({ mobile = false, onNavigate }) => {
               <ul id={panelId} className="booking-service-menu__items" hidden={mobile && !isOpen}>
                 {group.services.map(service => {
                   const route = serviceRoute({ ...service, group: group.id });
-                  const serviceLabel = labels[service.id] || service.label;
+                  const serviceLabel = getTravelServiceDisplayLabel(service, i18n.language, labels);
                   return (
                     <li key={service.id}>
                       <Link to={route} onClick={onNavigate} className="booking-service-menu__link" title={serviceLabel}>
@@ -72,6 +72,9 @@ const BookingServiceMenu = ({ mobile = false, onNavigate }) => {
       <div className="booking-service-menu__footer">
         <Link to="/services" onClick={onNavigate} className="booking-service-menu__all">
           <span>{labels.all}</span><i className="fa fa-arrow-right" aria-hidden="true" />
+        </Link>
+        <Link to="/travel-buddy?intent=plan-trip" onClick={onNavigate} className="booking-service-menu__vi-link">
+          <span className="booking-service-menu__vi-mark">Vi</span><span>{labels.ask}</span>
         </Link>
       </div>
     </div>

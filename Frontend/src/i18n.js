@@ -1,6 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { RTL_LANGUAGE_CODES, SUPPORTED_LANGUAGE_CODES, normalizeLanguageCode } from './config/supportedLanguages';
 
 import enTranslations from './locales/en.json';
 import ruTranslations from './locales/ru.json';
@@ -25,14 +26,11 @@ import hiTranslations from './locales/hi.json';
 import bnTranslations from './locales/bn.json';
 import idTranslations from './locales/id.json';
 
-const supportedLngs = ['en','ru','de','fr','it','es','pl','uk','tr','hu','sv','pt','sr','ar','zh','ja','vi','th','ko','hi','bn','id'];
-const rtlLanguages = ['ar'];
-
-const setDocumentDirection = (lng) => {
-  const base = (lng || 'en').split('-')[0];
+const setDocumentDirection = lng => {
+  const base = normalizeLanguageCode(lng);
   const body = document.body;
   const html = document.documentElement;
-  if (rtlLanguages.includes(base)) {
+  if (RTL_LANGUAGE_CODES.includes(base)) {
     html.setAttribute('dir', 'rtl');
     body.style.direction = 'rtl';
   } else {
@@ -69,7 +67,7 @@ i18n
       bn: { translation: bnTranslations },
       id: { translation: idTranslations },
     },
-    supportedLngs,
+    supportedLngs: SUPPORTED_LANGUAGE_CODES,
     nonExplicitSupportedLngs: true,
     fallbackLng: 'en',
     debug: false,
@@ -83,13 +81,13 @@ i18n
 
 setDocumentDirection(i18n.language);
 
-i18n.on('languageChanged', (lng) => {
+i18n.on('languageChanged', lng => {
   setDocumentDirection(lng);
   localStorage.setItem('i18nextLng', lng);
 });
 
 i18n.on('missingKey', (_lngs, ns, key, fallbackValue) => {
-  const lang = (i18n.language || 'en').split('-')[0];
+  const lang = normalizeLanguageCode(i18n.language);
   if (lang === 'en' || !fallbackValue) return;
 
   const pendingKey = `__lt_pending__${lang}__${key}`;
