@@ -34,8 +34,9 @@ const Header = () => {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
   const { user, isAuthenticated, logout } = useAuth();
-  const uiLabels = getHeaderUiLabels(i18n.language);
-  const serviceLabels = getTravelServiceLabels(i18n.language);
+  const languageCode = (i18n.language || 'en').split('-')[0];
+  const uiLabels = getHeaderUiLabels(languageCode);
+  const serviceLabels = getTravelServiceLabels(languageCode);
 
   const closeTimeout = useRef(null);
   const bookingRef = useRef(null);
@@ -46,27 +47,35 @@ const Header = () => {
     ...item,
     label: item.serviceLabel
       ? (serviceLabels[item.serviceLabel] || item.fallback)
-      : (uiLabels[item.id] || item.fallback),
+      : (uiLabels[item.headerLabel || item.id] || item.fallback),
   }));
 
   useEffect(() => {
     const fetchLocation = async () => {
-      const cachedLocation = localStorage.getItem('userLocation');
-      const cachedTime = localStorage.getItem('userLocationTime');
+      const locationKey = `userLocation:${languageCode}`;
+      const locationTimeKey = `userLocationTime:${languageCode}`;
+      const cachedLocation = localStorage.getItem(locationKey);
+      const cachedTime = localStorage.getItem(locationTimeKey);
+
+      setUserLocation(null);
+      setIsLoadingLocation(true);
+
       if (cachedLocation && cachedTime && parseInt(cachedTime, 10) > Date.now() - 3600000) {
         setUserLocation(cachedLocation);
         setIsLoadingLocation(false);
         return;
       }
+
       if (!('geolocation' in navigator)) {
         setUserLocation(uiLabels.location);
         setIsLoadingLocation(false);
         return;
       }
+
       navigator.geolocation.getCurrentPosition(async ({ coords }) => {
         try {
           const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}&zoom=10&addressdetails=1`, {
-            headers: { 'Accept-Language': i18n.language || 'en' },
+            headers: { 'Accept-Language': i18n.language || languageCode },
           });
           if (response.ok) {
             const data = await response.json();
@@ -74,8 +83,10 @@ const Header = () => {
             const country = data.address?.country || '';
             const value = city && country ? `${city}, ${country}` : city || country || uiLabels.location;
             setUserLocation(value);
-            localStorage.setItem('userLocation', value);
-            localStorage.setItem('userLocationTime', Date.now().toString());
+            localStorage.setItem(locationKey, value);
+            localStorage.setItem(locationTimeKey, Date.now().toString());
+          } else {
+            setUserLocation(uiLabels.location);
           }
         } catch {
           setUserLocation(uiLabels.location);
@@ -86,8 +97,9 @@ const Header = () => {
         setIsLoadingLocation(false);
       }, { timeout: 10000, maximumAge: 300000 });
     };
+
     fetchLocation();
-  }, [i18n.language, uiLabels.location]);
+  }, [i18n.language, languageCode, uiLabels.location]);
 
   useEffect(() => {
     const handler = e => {
@@ -132,7 +144,7 @@ const Header = () => {
     catch (e) { console.error('Logout error:', e); }
   };
   const handleLangChange = code => { i18n.changeLanguage(code); setIsLangOpen(false); };
-  const currentLang = LANGUAGES.find(l => l.code === (i18n.language?.split('-')[0] || 'en')) || LANGUAGES[0];
+  const currentLang = LANGUAGES.find(l => l.code === languageCode) || LANGUAGES[0];
   const openLangDropdown = () => {
     if (langBtnRef.current) {
       const rect = langBtnRef.current.getBoundingClientRect();
