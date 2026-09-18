@@ -148,9 +148,14 @@ export const getLocations = async (req, res) => {
       ...liveMatches,
     ], 12);
 
-    if (locations.length === 0 && keyword.length >= 3) {
+    const hasLocalAirport = localMatches.some(item => item.entityType === 'airport');
+    const shouldResolveNearest = !countryEntry && keyword.length >= 3 && !hasLocalAirport;
+
+    if (shouldResolveNearest) {
       const nearest = await resolveNearestAirportsForUnknownPlace(keyword);
-      locations = dedupeLocations(nearest, 8);
+      if (nearest.length > 0) {
+        locations = dedupeLocations([...locations, ...nearest], 12);
+      }
     }
 
     return res.json({
@@ -160,6 +165,7 @@ export const getLocations = async (req, res) => {
         locations,
         count: locations.length,
         resolvedBy: locations[0]?.source || 'none',
+        includesNearestAirports: locations.some(item => item.entityType === 'nearest-airport'),
       },
     });
   } catch (error) {
