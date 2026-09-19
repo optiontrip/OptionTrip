@@ -22,13 +22,24 @@ assert.equal(lax[0]?.iataCode, 'LAX', 'Exact IATA lookup must rank LAX first');
 
 const belgrade = searchAirportDirectory('Belgrade', 10);
 assert.ok(hasCode(belgrade, 'BEG'), 'Belgrade must resolve BEG');
+assert.ok(hasCode(searchAirportDirectory('Beograd', 10), 'BEG'), 'Serbian Latin Beograd must resolve BEG');
+assert.ok(hasCode(searchAirportDirectory('Београд', 10), 'BEG'), 'Serbian Cyrillic Београд must resolve BEG');
+assert.ok(hasCode(searchAirportDirectory('Белград', 10), 'BEG'), 'Russian Белград must resolve BEG');
 
 const directBelgrade = findAirportsForCity('Belgrade', 'Serbia', 10);
 assert.ok(hasCode(directBelgrade, 'BEG'), 'Exact-city lookup must expose BEG for Belgrade');
 assert.ok(directBelgrade.every(item => item.cityName === 'Belgrade'), 'Exact-city lookup must not include nearby-city airports');
+const directBelgradeSerbian = findAirportsForCity('Београд', 'Србија', 10);
+assert.ok(hasCode(directBelgradeSerbian, 'BEG'), 'Localized city and country aliases must resolve through the same city lookup');
+
+const nisAscii = searchAirportDirectory('Nis', 10);
+assert.ok(hasCode(nisAscii, 'INI'), 'Accent-insensitive Nis must resolve indexed Niš/INI');
+const nisCyrillic = searchAirportDirectory('Ниш', 10);
+assert.ok(hasCode(nisCyrillic, 'INI'), 'Cyrillic Ниш must resolve INI');
 
 const sarajevo = searchAirportDirectory('Sarajevo', 10);
 assert.ok(hasCode(sarajevo, 'SJJ'), 'Sarajevo must resolve SJJ from supplemental coverage');
+assert.ok(hasCode(searchAirportDirectory('Сараево', 10), 'SJJ'), 'Cyrillic Сараево must resolve SJJ');
 assert.equal(sarajevo.find(item => item.iataCode === 'SJJ')?.countryCode, 'BA', 'Sarajevo airport must expose Bosnia and Herzegovina ISO code');
 
 const mostar = findAirportsForCity('Mostar', 'Bosnia and Herzegovina', 10);
@@ -36,21 +47,32 @@ assert.ok(hasCode(mostar, 'OMO'), 'Mostar must resolve OMO from supplemental cov
 
 const podgorica = searchAirportDirectory('Podgorica', 10);
 assert.ok(hasCode(podgorica, 'TGD'), 'Podgorica must resolve TGD');
+assert.ok(hasCode(searchAirportDirectory('Подгорица', 10), 'TGD'), 'Cyrillic Подгорица must resolve TGD');
 const tivat = searchAirportDirectory('Tivat', 10);
 assert.ok(hasCode(tivat, 'TIV'), 'Tivat must resolve TIV');
+assert.ok(hasCode(searchAirportDirectory('Тиват', 10), 'TIV'), 'Cyrillic Тиват must resolve TIV');
 
 const tirana = searchAirportDirectory('Tirana', 10);
 assert.ok(hasCode(tirana, 'TIA'), 'Tirana must resolve TIA');
+assert.ok(hasCode(searchAirportDirectory('Тирана', 10), 'TIA'), 'Cyrillic Тирана must resolve TIA');
 const skopje = searchAirportDirectory('Skopje', 10);
 assert.ok(hasCode(skopje, 'SKP'), 'Skopje must resolve SKP');
+assert.ok(hasCode(searchAirportDirectory('Скопье', 10), 'SKP'), 'Russian Скопье must resolve SKP');
 const pristina = searchAirportDirectory('Pristina', 10);
 assert.ok(hasCode(pristina, 'PRN'), 'Pristina must resolve PRN');
+assert.ok(hasCode(searchAirportDirectory('Приштина', 10), 'PRN'), 'Cyrillic Приштина must resolve PRN');
 assert.equal(pristina.find(item => item.iataCode === 'PRN')?.countryCode, 'XK', 'Kosovo airport records must expose XK in the application country contract');
+
+const directLondonLocalized = findAirportsForCity('Лондон', 'Великобритания', 10);
+assert.ok(hasCode(directLondonLocalized, 'LHR'), 'Localized London lookup must expose Heathrow');
+assert.ok(hasCode(directLondonLocalized, 'LGW'), 'Localized London lookup must expand to all indexed London airports, not only the alias anchor airport');
 
 const directPasadena = findAirportsForCity('Pasadena', 'United States', 10);
 assert.equal(directPasadena.length, 0, 'Pasadena must not be treated as having its own indexed airport');
 
 assert.equal(resolveCountryCode('Serbia'), 'RS', 'Serbia must resolve to ISO RS');
+assert.equal(resolveCountryCode('Србија'), 'RS', 'Serbian Cyrillic country alias must resolve to RS');
+assert.equal(resolveCountryCode('Сербия'), 'RS', 'Russian country alias must resolve to RS');
 assert.equal(resolveCountryCode('Kosovo'), 'XK', 'Kosovo must resolve to the application XK code');
 assert.equal(resolveCountryCode('Latvia'), 'LV', 'Country resolver must support countries outside the old manual map');
 assert.equal(resolveCountryCode('Czech Republic'), 'CZ', 'Legacy country names must keep resolving to ISO codes');
@@ -61,6 +83,9 @@ assert.equal(serbia?.countryCode, 'RS', 'Country directory matches must expose I
 assert.ok(serbia?.countryAirports?.some(item => item.iataCode === 'BEG'), 'Serbia must expose BEG');
 assert.ok(serbia?.countryAirports?.some(item => item.iataCode === 'INI'), 'Serbia must expose INI');
 assert.ok(serbia?.countryAirports?.some(item => item.iataCode === 'KVO'), 'Serbia must expose Morava/KVO');
+const serbiaRussian = findCountryDirectoryMatch('Сербия', 10);
+assert.equal(serbiaRussian?.countryName, 'Serbia', 'Russian Сербия must resolve to canonical Serbia');
+assert.equal(serbiaRussian?.countryCode, 'RS', 'Russian Сербия must preserve the RS country contract');
 
 const serbiaByCode = findAirportsForCountryCode('RS', 10);
 assert.ok(hasCode(serbiaByCode, 'BEG'), 'ISO country lookup must expose Belgrade for RS');
@@ -71,12 +96,17 @@ assert.ok(serbiaByCode.every(item => item.countryCode === 'RS'), 'ISO country lo
 const montenegro = findCountryDirectoryMatch('Montenegro', 10);
 assert.ok(montenegro?.countryAirports?.some(item => item.iataCode === 'TGD'), 'Montenegro must expose Podgorica/TGD');
 assert.ok(montenegro?.countryAirports?.some(item => item.iataCode === 'TIV'), 'Montenegro must expose Tivat/TIV');
+const montenegroLocal = findCountryDirectoryMatch('Crna Gora', 10);
+assert.equal(montenegroLocal?.countryName, 'Montenegro', 'Crna Gora must resolve to canonical Montenegro');
+assert.ok(montenegroLocal?.countryAirports?.some(item => item.iataCode === 'TGD'), 'Crna Gora must expose Podgorica/TGD');
 
 const bosnia = findCountryDirectoryMatch('Bosnia and Herzegovina', 10);
 assert.ok(bosnia?.countryAirports?.some(item => item.iataCode === 'SJJ'), 'Bosnia and Herzegovina must expose Sarajevo/SJJ');
 assert.ok(bosnia?.countryAirports?.some(item => item.iataCode === 'OMO'), 'Bosnia and Herzegovina must expose Mostar/OMO');
 assert.ok(bosnia?.countryAirports?.some(item => item.iataCode === 'TZL'), 'Bosnia and Herzegovina must expose Tuzla/TZL');
 assert.ok(bosnia?.countryAirports?.some(item => item.iataCode === 'BNX'), 'Bosnia and Herzegovina must expose Banja Luka/BNX');
+const bosniaRussian = findCountryDirectoryMatch('Босния и Герцеговина', 10);
+assert.equal(bosniaRussian?.countryCode, 'BA', 'Russian Bosnia and Herzegovina alias must resolve BA');
 
 const nearestLax = findAirportsNearCoordinates(34.0522, -118.2437, 100, 5);
 assert.ok(hasCode(nearestLax, 'LAX'), 'Los Angeles coordinates must include LAX as a nearby airport');
@@ -91,4 +121,4 @@ assert.ok(nearestSubotica.length > 0, 'Subotica coordinates must resolve to regi
 assert.ok(nearestSubotica.some(item => ['OSI', 'BEG', 'KVO'].includes(item.iataCode)), 'Subotica must surface practical nearby regional airport choices');
 assert.ok(nearestSubotica.every(item => item.isNearest), 'Subotica nearest-airport results must be marked as fallback candidates');
 
-console.log('✅ Location resolver regression checks passed');
+console.log('✅ Multilingual location resolver regression checks passed');
