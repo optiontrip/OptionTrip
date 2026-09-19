@@ -51,6 +51,10 @@ jobs:
         working-directory: Backend
         run: npm run test:partner-links
 
+      - name: Site and travel-service integrity checks
+        working-directory: Backend
+        run: npm run test:site-services
+
       - name: Travel news runner checks
         working-directory: Backend
         run: npm run test:news-runner
@@ -152,6 +156,7 @@ jobs:
             npm run test:vi-marketplace
             npm run test:partner-routing
             npm run test:partner-links
+            npm run test:site-services
             npm run test:news-runner
 
             echo '🎨 Testing and building Frontend before touching production...'
