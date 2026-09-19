@@ -65,6 +65,121 @@ html:lang(ar) body {
   }
 }
 
+@media (max-width: 767px) {
+  /* Translation-safe controls: these labels can grow substantially in German,
+     Russian, Serbian and other supported languages. Buttons must wrap rather
+     than forcing the page wider than the viewport. */
+  .auth-button,
+  .auth-modal__submit,
+  .footer-subscribe-btn,
+  .mtp__plan-btn,
+  .vt__add-btn,
+  .pmd-loc-edit__cancel,
+  .pmd-loc-edit__save,
+  .pmd-loc-search button,
+  .yr-download-btn {
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    min-height: 44px;
+    line-height: 1.25;
+  }
+
+  /* Four budget labels in one phone row become unreadable after translation. */
+  .pmd-budget-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .pmd-budget-row > * {
+    min-width: 0;
+  }
+
+  /* Yearly report had no mobile breakpoint at all. Preserve four metrics but
+     render them as a stable 2x2 grid instead of four squeezed columns. */
+  .yr-overlay {
+    align-items: flex-start !important;
+    overflow-y: auto;
+    padding-top: max(12px, env(safe-area-inset-top)) !important;
+    padding-right: max(12px, env(safe-area-inset-right)) !important;
+    padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+    padding-left: max(12px, env(safe-area-inset-left)) !important;
+  }
+
+  .yr-modal {
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+  }
+
+  .yr-header {
+    padding: 14px 12px !important;
+    gap: 8px;
+  }
+
+  .yr-header__year-picker {
+    min-width: 0;
+    gap: 8px !important;
+  }
+
+  .yr-header__year-picker button,
+  .yr-close {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .yr-body {
+    padding: 14px !important;
+  }
+
+  .yr-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .yr-stat {
+    min-width: 0;
+  }
+
+  .yr-stat__label {
+    overflow-wrap: anywhere;
+  }
+
+  /* My Trips header/actions should not be wider than translated navigation. */
+  .mtp__header-inner {
+    padding: 10px 12px !important;
+    gap: 10px !important;
+    flex-wrap: wrap;
+  }
+
+  .mtp__nav {
+    order: 3;
+    width: 100%;
+    margin-left: 0 !important;
+    gap: 8px !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mtp__nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mtp__nav-link {
+    flex: 0 0 auto;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .mtp__plan-btn {
+    margin-left: auto;
+    text-align: center;
+  }
+
+  .mtp__share-map-result input {
+    min-width: 0 !important;
+    width: 100%;
+  }
+}
+
 /* Landscape phones often exceed the classic 767px CSS breakpoint while still
    having very little vertical room. Keep fixed UI inside the visual viewport. */
 @media (min-width: 768px) and (max-width: 1299px) and (max-height: 700px) {
