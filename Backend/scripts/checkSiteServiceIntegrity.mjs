@@ -42,10 +42,14 @@ const scanFiles = (directory, output = []) => {
   return output;
 };
 
+// Match only absolute application route literals such as '/services/bus'.
+// Do not confuse relative source imports such as '../services/flightService'
+// with browser routes.
+const deadServiceRouteLiteral = /(['"`])\/services\/[a-z0-9_-]+\1/i;
 for (const base of ['Frontend/src', 'Backend/src']) {
   for (const file of scanFiles(path.join(root, base))) {
     const source = fs.readFileSync(file, 'utf8');
-    const deadServicePath = source.match(/\/services\/[a-z0-9_-]+/i);
+    const deadServicePath = source.match(deadServiceRouteLiteral);
     if (deadServicePath) {
       errors.push(`Dead legacy service route ${deadServicePath[0]} found in ${path.relative(root, file)}`);
     }
@@ -82,6 +86,10 @@ const requiredServiceIds = [
 ];
 for (const id of requiredServiceIds) {
   if (!new RegExp(`id:\\s*'${id}'`).test(services)) errors.push(`Required travel service missing from catalog: ${id}`);
+}
+
+if (!app.includes('NotFoundPage') || !app.includes('<Route path="*" element={<NotFoundPage />} />')) {
+  errors.push('Public route tree must end in a useful NotFoundPage instead of an empty layout.');
 }
 
 if (errors.length) {
