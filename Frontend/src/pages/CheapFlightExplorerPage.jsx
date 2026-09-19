@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PageMeta from '../hooks/usePageMeta';
 import useCurrency from '../hooks/useCurrency';
-import { searchCheapRoutePairsByMonth, searchCheapRoutesByMonth } from '../services/cheapFlightExplorerService';
+import { searchCheapCountryRoutesByMonth, searchCheapRoutePairsByMonth, searchCheapRoutesByMonth } from '../services/cheapFlightExplorerService';
 import { exploreDestinations, searchAirports, searchFlightsDuffel, searchFlightsTP } from '../services/flightService';
 import './CheapFlightExplorerPage.css';
 
@@ -17,6 +17,10 @@ const monthLabel = (value) => {
 
 const exactDate = (value) => String(value || '').slice(0, 10);
 const codesFromQuery = (value) => String(value || '').split(',').map(v => v.trim().toUpperCase()).filter(v => /^[A-Z]{3}$/.test(v));
+const countryFromQuery = value => {
+  const code = String(value || '').trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(code) ? code : '';
+};
 
 const mergeRoutes = (existing = [], incoming = []) => {
   const map = new Map();
@@ -68,11 +72,14 @@ const CheapFlightExplorerPage = () => {
   const origins = useMemo(() => codesFromQuery(rawOrigins), [rawOrigins]);
   const rawDestinations = params.get('destinations') || '';
   const initialDestinations = useMemo(() => codesFromQuery(rawDestinations), [rawDestinations]);
+  const originCountry = countryFromQuery(params.get('originCountry'));
+  const destinationCountry = countryFromQuery(params.get('destinationCountry'));
+  const countryToCountry = Boolean(originCountry && destinationCountry && originCountry !== destinationCountry);
   const anywhere = rawDestinations === 'ANYWHERE';
   const month = params.get('month') || '';
   const returnMonth = params.get('returnMonth') || '';
-  const originLabel = params.get('originLabel') || origins.join(', ');
-  const destinationLabel = params.get('destinationLabel') || (anywhere ? 'Anywhere' : initialDestinations.join(', '));
+  const originLabel = params.get('originLabel') || originCountry || origins.join(', ');
+  const destinationLabel = params.get('destinationLabel') || destinationCountry || (anywhere ? 'Anywhere' : initialDestinations.join(', '));
 
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -96,7 +103,7 @@ const CheapFlightExplorerPage = () => {
   useEffect(() => {
     let active = true;
     const run = async () => {
-      if (!origins.length || !/^\d{4}-\d{2}$/.test(month)) {
+      if ((!countryToCountry && !origins.length) || !/^\d{4}-\d{2}$/.test(month)) {
         setError('Choose a valid departure place and travel month.');
         setLoading(false);
         return;
@@ -115,7 +122,16 @@ const CheapFlightExplorerPage = () => {
       setMaxPrice('');
 
       try {
-        if (anywhere) {
+        if (countryToCountry) {
+          const result = await searchCheapCountryRoutesByMonth({
+            originCountry,
+            destinationCountry,
+            month,
+            returnMonth: returnMonth || null,
+          });
+          if (!active) return;
+          setData(result);
+        } else if (anywhere) {
           const sourceOrigins = origins.slice(0, 16);
           const candidateMaps = await Promise.all(sourceOrigins.map(async origin => ({ origin, map: await exploreDestinations(origin) })));
           if (!active) return;
@@ -176,7 +192,7 @@ const CheapFlightExplorerPage = () => {
     };
     run();
     return () => { active = false; };
-  }, [origins, initialDestinations, anywhere, month, returnMonth]);
+  }, [origins, initialDestinations, countryToCountry, originCountry, destinationCountry, anywhere, month, returnMonth]);
 
   const loadMoreAnywhere = async () => {
     if (!anywhere || loadingMore || searchedCandidateCount >= candidatePairs.length) return;
@@ -252,10 +268,10 @@ const CheapFlightExplorerPage = () => {
 
     if (scopeFilter !== 'all') {
       result = result.filter(route => {
-        const originCountry = airportNames[route.origin]?.country || '';
-        const destinationCountry = airportNames[route.destination]?.country || '';
-        if (!originCountry || !destinationCountry) return false;
-        const domestic = originCountry === destinationCountry;
+        const originCountryName = airportNames[route.origin]?.country || '';
+        const destinationCountryName = airportNames[route.destination]?.country || '';
+        if (!originCountryName || !destinationCountryName) return false;
+        const domestic = originCountryName === destinationCountryName;
         return scopeFilter === 'domestic' ? domestic : !domestic;
       });
     }
@@ -333,6 +349,11 @@ const CheapFlightExplorerPage = () => {
     }
   };
 
+  const matrixCoverage = Number(data?.coveragePercent);
+  const matrixCoverageText = Number.isFinite(matrixCoverage)
+    ? ` ${matrixCoverage}% of ${Number(data?.totalPairs || 0)} airport pairs checked${data?.capped ? ' using a balanced matrix' : ''}.`
+    : '';
+
   return (
     <>
       <PageMeta title="Cheapest Flights by Month" description="Compare the cheapest real flight routes across cities, countries and airports for an entire month." path="/flights/cheap" />
@@ -364,6 +385,7 @@ const CheapFlightExplorerPage = () => {
                 </div>
                 <p>
                   Discovery fares can be cached or indicative. OptionTrip rechecks the selected route before the final booking handoff.
+                  {matrixCoverageText}
                   {anywhere && candidatePairs.length > 0 ? ` ${searchedCandidateCount} of ${candidatePairs.length} provider-priced destination candidates checked so far.` : ''}
                 </p>
               </div>
