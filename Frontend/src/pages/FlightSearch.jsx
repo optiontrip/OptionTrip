@@ -26,6 +26,39 @@ const buildAviasalesUrl = ({ originCode, destinationCode, departureDate, returnD
   return `https://www.aviasales.com/search/${originCode}${fmt(departureDate)}${destinationCode}${returnPart}${pax}?marker=${TP_MARKER}`;
 };
 
+const getProviderCandidates = ({ duffelResult, gfResult, tpResult, amadResult }) => [
+  {
+    source: 'duffel',
+    count: duffelResult?.flights?.length || 0,
+    flights: duffelResult?.flights || [],
+    nearbyMeta: duffelResult?.nearbyMeta || null,
+    priority: 0,
+  },
+  {
+    source: 'gf',
+    count: (gfResult?.topFlights?.length || 0) + (gfResult?.otherFlights?.length || 0),
+    topFlights: gfResult?.topFlights || [],
+    otherFlights: gfResult?.otherFlights || [],
+    nearbyMeta: gfResult?.nearbyMeta || null,
+    priority: 1,
+  },
+  {
+    source: 'tp',
+    count: tpResult?.flights?.length || 0,
+    flights: tpResult?.flights || [],
+    priority: 2,
+  },
+  {
+    source: 'amadeus',
+    count: amadResult?.flights?.length || 0,
+    flights: amadResult?.flights || [],
+    priority: 3,
+  },
+].filter(candidate => candidate.count > 0)
+  .sort((a, b) => (b.count - a.count) || (a.priority - b.priority));
+
+const pickRichestProvider = results => getProviderCandidates(results)[0] || null;
+
 const SkeletonCard = () => (
   <div className="fcgf-skeleton">
     <div className="fcgf-skeleton__logo pulse" />
@@ -56,7 +89,7 @@ const FlightSectionHeader = ({ type, count, route }) => {
         <div>
           <div className="fs-section-header__title">{isTop ? 'Top Flights' : 'Other Flights'}</div>
           <div className="fs-section-header__sub">
-            {isTop ? `Best value & fastest — ${route}` : `More options for ${route}`}
+            {isTop ? `Best value & fastest - ${route}` : `More options for ${route}`}
           </div>
         </div>
       </div>
@@ -67,9 +100,9 @@ const FlightSectionHeader = ({ type, count, route }) => {
 
 const SourceHeader = ({ source, count, route }) => {
   const cfg = {
-    duffel: { cls: 'top',   title: 'Option Trip Flights',    sub: `Real-time fares · ${route}` },
-    tp:     { cls: 'top',   title: 'Option Trip Flights',    sub: `Best available fares · ${route}` },
-    amadeus:{ cls: 'other', title: 'Option Trip Flights',    sub: `Real-time fares · ${route}` },
+    duffel: { cls: 'top',   title: 'OptionTrip Flights', sub: `Real-time fares · ${route}` },
+    tp:     { cls: 'top',   title: 'OptionTrip Flights', sub: `Best available fares · ${route}` },
+    amadeus:{ cls: 'other', title: 'OptionTrip Flights', sub: `Real-time fares · ${route}` },
   }[source] || {};
   return (
     <div className={`fs-section-header fs-section-header--${cfg.cls}`} style={{ marginTop: 0 }}>
@@ -117,7 +150,6 @@ const Pagination = ({ page, total, onChange }) => {
 };
 
 const SOURCE_NONE = null;
-
 const EXPLORE_MODAL_LIMIT = 8;
 
 const formatModalTime = (value) => {
@@ -208,15 +240,9 @@ const FlightSearch = () => {
   const exploreRef = useRef(null);
 
   useEffect(() => {
-    if (exploreModal.isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
+    if (exploreModal.isOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'unset';
+    return () => { document.body.style.overflow = 'unset'; };
   }, [exploreModal.isOpen]);
 
   const resetResults = () => {
@@ -227,6 +253,23 @@ const FlightSearch = () => {
     setError(''); setCurrentPage(1); setFilters(DEFAULT_FILTERS);
     setNearbyMeta(null);
     setHotelResults([]); setHotelsLoading(false); setHotelError(null); setHotelsFor(null);
+  };
+
+  const applyProviderSelection = (candidate) => {
+    if (!candidate) {
+      setSource('gf');
+      return;
+    }
+
+    setSource(candidate.source);
+    if (candidate.source === 'duffel') setDuffelFlights(candidate.flights || []);
+    if (candidate.source === 'gf') {
+      setTopFlights(candidate.topFlights || []);
+      setOtherFlights(candidate.otherFlights || []);
+    }
+    if (candidate.source === 'tp') setTpFlights(candidate.flights || []);
+    if (candidate.source === 'amadeus') setAmadFlights(candidate.flights || []);
+    if (candidate.nearbyMeta) setNearbyMeta(candidate.nearbyMeta);
   };
 
   const handleSearch = async (params) => {
@@ -277,97 +320,53 @@ const FlightSearch = () => {
       setHotelsLoading(true);
       setHotelsFor(cityName || params.destinationCode);
       searchHotels({
-        destId:     params.destinationCode.toUpperCase(),
+        destId: params.destinationCode.toUpperCase(),
         searchType: 'CITY',
         checkIn,
         checkOut,
-        adults:   params.adults || 1,
+        adults: params.adults || 1,
         cityName,
       })
         .then(data => { setHotelResults(data.hotels || []); setHotelsLoading(false); })
-        .catch(err  => { console.warn('Hotel search failed:', err.message); setHotelError(err.message); setHotelsLoading(false); });
+        .catch(err => { console.warn('Hotel search failed:', err.message); setHotelError(err.message); setHotelsLoading(false); });
     }
 
     try {
-      let duffelResult = null;
-      try {
-        duffelResult = await searchFlightsDuffel({
-          originCode:      params.originCode,
+      const [duffelResult, gfResult, tpResult, amadResult] = await Promise.all([
+        searchFlightsDuffel({
+          originCode: params.originCode,
           destinationCode: params.destinationCode,
-          departureDate:   params.departureDate,
-          returnDate:      params.returnDate || null,
-          adults:          params.adults,
-          includeNearby:   params.includeNearby || false,
-        });
-      } catch {}
-
-      if (duffelResult?.flights?.length > 0) {
-        setSource('duffel');
-        setDuffelFlights(duffelResult.flights);
-        if (duffelResult.nearbyMeta) setNearbyMeta(duffelResult.nearbyMeta);
-        return;
-      }
-
-      let gfResult = null;
-      try {
-        gfResult = await searchFlightsGoogle({
-          originCode:      params.originCode,
+          departureDate: params.departureDate,
+          returnDate: params.returnDate || null,
+          adults: params.adults,
+          includeNearby: params.includeNearby || false,
+        }).catch(() => null),
+        searchFlightsGoogle({
+          originCode: params.originCode,
           destinationCode: params.destinationCode,
-          departureDate:   params.departureDate,
-          returnDate:      params.returnDate || null,
-          adults:          params.adults,
-          includeNearby:   params.includeNearby || false,
-        });
-      } catch {}
-
-      const gfCount = (gfResult?.topFlights?.length || 0) + (gfResult?.otherFlights?.length || 0);
-
-      if (gfCount >= 5) {
-        setSource('gf');
-        setTopFlights(gfResult.topFlights || []);
-        setOtherFlights(gfResult.otherFlights || []);
-        if (gfResult.nearbyMeta) setNearbyMeta(gfResult.nearbyMeta);
-        return;
-      }
-
-      let tpResult = null;
-      try {
-        tpResult = await searchFlightsTP({
-          origin:      params.originCode,
+          departureDate: params.departureDate,
+          returnDate: params.returnDate || null,
+          adults: params.adults,
+          includeNearby: params.includeNearby || false,
+        }).catch(() => null),
+        searchFlightsTP({
+          origin: params.originCode,
           destination: params.destinationCode,
           departureAt: params.departureDate,
-          returnAt:    params.returnDate || null,
-          limit:       30,
-        });
-      } catch {}
-
-      if (tpResult?.flights?.length > 0) {
-        setSource('tp');
-        setTpFlights(tpResult.flights);
-        return;
-      }
-
-      let amadResult = null;
-      try {
-        amadResult = await searchFlightsAmadeus({
-          originCode:      params.originCode,
+          returnAt: params.returnDate || null,
+          limit: 50,
+        }).catch(() => null),
+        searchFlightsAmadeus({
+          originCode: params.originCode,
           destinationCode: params.destinationCode,
-          departureDate:   params.departureDate,
-          returnDate:      params.returnDate || null,
-          adults:          params.adults,
-        });
-      } catch {}
+          departureDate: params.departureDate,
+          returnDate: params.returnDate || null,
+          adults: params.adults,
+        }).catch(() => null),
+      ]);
 
-      if (amadResult?.flights?.length > 0) {
-        setSource('amadeus');
-        setAmadFlights(amadResult.flights);
-        return;
-      }
-
-      setSource('gf');
-      setTopFlights(gfResult?.topFlights || []);
-      setOtherFlights(gfResult?.otherFlights || []);
-
+      const best = pickRichestProvider({ duffelResult, gfResult, tpResult, amadResult });
+      applyProviderSelection(best);
     } catch (err) {
       setError(err.message || 'Search failed');
     } finally {
@@ -392,13 +391,10 @@ const FlightSearch = () => {
 
     if (tripContext.returnDate) query.set('returnDate', tripContext.returnDate);
     if (originDisplay) query.set('originDisplay', originDisplay);
-
     navigate(`/flights/explore?${query.toString()}`);
   };
 
-  const handleOriginDetected = (result) => {
-    setDetectedOrigin(result);
-  };
+  const handleOriginDetected = (result) => { setDetectedOrigin(result); };
 
   const closeExploreModal = () => {
     setExploreModal(prev => ({ ...prev, isOpen: false }));
@@ -407,92 +403,34 @@ const FlightSearch = () => {
   };
 
   const fetchExploreTickets = async ({ originCode, destinationCode, departureDate, returnDate = null, adults }) => {
-    let duffelResult = null;
-    try {
-      duffelResult = await searchFlightsDuffel({
-        originCode,
-        destinationCode,
-        departureDate,
-        returnDate,
-        adults,
-      });
-    } catch {}
-    if (duffelResult?.flights?.length) return { source: 'duffel', flights: duffelResult.flights };
+    const [duffelResult, gfResult, tpResult, amadResult] = await Promise.all([
+      searchFlightsDuffel({ originCode, destinationCode, departureDate, returnDate, adults }).catch(() => null),
+      searchFlightsGoogle({ originCode, destinationCode, departureDate, returnDate, adults }).catch(() => null),
+      searchFlightsTP({ origin: originCode, destination: destinationCode, departureAt: departureDate, returnAt: returnDate || null, limit: 30 }).catch(() => null),
+      searchFlightsAmadeus({ originCode, destinationCode, departureDate, returnDate, adults }).catch(() => null),
+    ]);
 
-    let gfResult = null;
-    try {
-      gfResult = await searchFlightsGoogle({
-        originCode,
-        destinationCode,
-        departureDate,
-        returnDate,
-        adults,
-      });
-    } catch {}
-    const gfFlights = [...(gfResult?.topFlights || []), ...(gfResult?.otherFlights || [])];
-    if (gfFlights.length) return { source: 'gf', flights: gfFlights };
-
-    let tpResult = null;
-    try {
-      tpResult = await searchFlightsTP({
-        origin:      originCode,
-        destination: destinationCode,
-        departureAt: departureDate,
-        returnAt:    returnDate || null,
-        limit:       20,
-      });
-    } catch {}
-    if (tpResult?.flights?.length) return { source: 'tp', flights: tpResult.flights };
-
-    let amadeusResult = null;
-    try {
-      amadeusResult = await searchFlightsAmadeus({
-        originCode,
-        destinationCode,
-        departureDate,
-        returnDate,
-        adults,
-      });
-    } catch {}
-    if (amadeusResult?.flights?.length) return { source: 'amadeus', flights: amadeusResult.flights };
-
-    return { source: 'none', flights: [] };
+    const best = pickRichestProvider({ duffelResult, gfResult, tpResult, amadResult });
+    if (!best) return { source: 'none', flights: [] };
+    if (best.source === 'gf') return { source: 'gf', flights: [...best.topFlights, ...best.otherFlights] };
+    return { source: best.source, flights: best.flights || [] };
   };
 
   const openExploreTicketsModal = async ({ destination, returnDate = null }) => {
     const originCode = detectedOrigin?.iata || '';
     const originDisplay = detectedOrigin?.display || '';
 
-    setExploreModal({
-      isOpen: true,
-      isLoading: true,
-      error: '',
-      destination,
-      originDisplay,
-      tickets: [],
-      source: '',
-    });
+    setExploreModal({ isOpen: true, isLoading: true, error: '', destination, originDisplay, tickets: [], source: '' });
 
     if (!originCode) {
-      setExploreModal(prev => ({
-        ...prev,
-        isLoading: false,
-        error: 'Please set your departure city first so we can show available tickets.',
-      }));
+      setExploreModal(prev => ({ ...prev, isLoading: false, error: 'Please set your departure city first so we can show available tickets.' }));
       return;
     }
 
     const departureDate = getFutureDate(30);
 
     try {
-      const result = await fetchExploreTickets({
-        originCode,
-        destinationCode: destination.iata,
-        departureDate,
-        returnDate,
-        adults: 1,
-      });
-
+      const result = await fetchExploreTickets({ originCode, destinationCode: destination.iata, departureDate, returnDate, adults: 1 });
       const tickets = (result.flights || [])
         .slice(0, EXPLORE_MODAL_LIMIT)
         .map(f => normalizeExploreFlight(f, result.source, originCode, destination.iata));
@@ -505,11 +443,7 @@ const FlightSearch = () => {
         error: tickets.length ? '' : 'No tickets found for this destination right now. Try another one or a different date.',
       }));
     } catch (err) {
-      setExploreModal(prev => ({
-        ...prev,
-        isLoading: false,
-        error: err.message || 'Unable to load available tickets right now.',
-      }));
+      setExploreModal(prev => ({ ...prev, isLoading: false, error: err.message || 'Unable to load available tickets right now.' }));
     }
   };
 
@@ -517,25 +451,19 @@ const FlightSearch = () => {
     setExploreTripType(newType);
     if (newType === 'one-way') {
       setExploreReturnDate('');
-      if (exploreModal.destination) {
-        openExploreTicketsModal({ destination: exploreModal.destination, returnDate: null });
-      }
+      if (exploreModal.destination) openExploreTicketsModal({ destination: exploreModal.destination, returnDate: null });
     }
   };
 
   const handleExploreReturnDateChange = (date) => {
     setExploreReturnDate(date);
-    if (date && exploreModal.destination) {
-      openExploreTicketsModal({ destination: exploreModal.destination, returnDate: date });
-    }
+    if (date && exploreModal.destination) openExploreTicketsModal({ destination: exploreModal.destination, returnDate: date });
   };
 
   const handleModalGoToSearch = () => {
     closeExploreModal();
     setOriginFieldError('Enter your departure city or allow location access to view available tickets');
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
+    setTimeout(() => { formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
   };
 
   const handleExploreSelect = ({ iata, city }) => {
@@ -543,7 +471,6 @@ const FlightSearch = () => {
     setPrefillDest(dest);
     setPrefillOrigin(detectedOrigin ? { code: detectedOrigin.iata, display: detectedOrigin.display } : null);
     setOriginFieldError('');
-
     openExploreTicketsModal({ destination: { iata, city } });
   };
 
@@ -556,30 +483,29 @@ const FlightSearch = () => {
         : amadFlights;
 
   const filterable = source !== 'amadeus';
-  const filtered   = filterable ? applyFilters(allRaw, filters) : allRaw;
+  const filtered = filterable ? applyFilters(allRaw, filters) : allRaw;
 
   const sourceNote = {
-    duffel: 'Option Trip · Real-time fares · Refundable options available',
-    gf:     'Option Trip · Best prices per person',
-    tp:     'Option Trip · Best available fares',
-    amadeus:'Option Trip · Real-time fares',
+    duffel: 'OptionTrip · Real-time fares · Refundable options available',
+    gf: 'OptionTrip · Best prices per person',
+    tp: 'OptionTrip · Best available fares',
+    amadeus: 'OptionTrip · Real-time fares',
   }[source] || '';
 
   return (
     <>
-      <PageMeta title="Search Flights" description="Search and compare flights from Duffel, Google Flights, and more. Find the best prices for your next trip." path="/flights" />
+      <PageMeta title="Search Flights" description="Search and compare flights from multiple trusted sources. Find the best prices for your next trip." path="/flights" />
 
       <section className="flight-hero">
         <div className="container">
           <div className="flight-hero__content text-center">
             <h1 className="mb-3">Find Your <span className="theme">Perfect Flight</span></h1>
             <p className="flight-hero__subtitle">
-              Search, compare, and book flights بسهولة from trusted sources—all in one platform.
+              Search, compare, and book flights easily from trusted sources - all in one platform.
             </p>
           </div>
         </div>
       </section>
-
 
       <div ref={formRef}>
         <FlightSearchForm
@@ -592,7 +518,6 @@ const FlightSearch = () => {
           onExploreAnywhere={handleExploreAnywhereFromForm}
         />
       </div>
-
 
       {countryFlow && (
         <section className="flight-results-section">
@@ -611,13 +536,7 @@ const FlightSearch = () => {
                     setCountryFlow(f => ({ ...f, step: 'origin', selectedDestCity: city }));
                   } else {
                     setCountryFlow(null);
-                    handleSearch({
-                      originCode:    countryFlow.originCode,
-                      destinationCode: city.iataCode,
-                      departureDate: countryFlow.departureDate,
-                      returnDate:    countryFlow.returnDate,
-                      adults:        countryFlow.adults,
-                    });
+                    handleSearch({ originCode: countryFlow.originCode, destinationCode: city.iataCode, departureDate: countryFlow.departureDate, returnDate: countryFlow.returnDate, adults: countryFlow.adults });
                   }
                 }}
                 onBack={() => setCountryFlow(null)}
@@ -636,13 +555,7 @@ const FlightSearch = () => {
                 onSelect={(city) => {
                   const destCode = countryFlow.selectedDestCity?.iataCode || countryFlow.destCode;
                   setCountryFlow(null);
-                  handleSearch({
-                    originCode:      city.iataCode,
-                    destinationCode: destCode,
-                    departureDate:   countryFlow.departureDate,
-                    returnDate:      countryFlow.returnDate,
-                    adults:          countryFlow.adults,
-                  });
+                  handleSearch({ originCode: city.iataCode, destinationCode: destCode, departureDate: countryFlow.departureDate, returnDate: countryFlow.returnDate, adults: countryFlow.adults });
                 }}
                 onBack={() => setCountryFlow(f => ({ ...f, step: 'dest' }))}
               />
@@ -651,34 +564,23 @@ const FlightSearch = () => {
         </section>
       )}
 
-
       {!searched && !countryFlow && (
         <div ref={exploreRef}>
-          <ExploreDestinations
-            onSelect={handleExploreSelect}
-            onOriginDetected={handleOriginDetected}
-          />
+          <ExploreDestinations onSelect={handleExploreSelect} onOriginDetected={handleOriginDetected} />
         </div>
       )}
-
 
       {searched && (
         <section className="flight-results-section">
           <div className="container">
-
-            {isLoading && (
-              <div>
-                {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
-              </div>
-            )}
+            {isLoading && <div>{[1, 2, 3].map(i => <SkeletonCard key={i} />)}</div>}
 
             {!isLoading && error && (
               <div className="flight-empty">
                 <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>✈️</div>
                 <h3>Search failed</h3>
                 <p style={{ marginBottom: 16 }}>{error}</p>
-                <a href={buildAviasalesUrl(lastSearch)} target="_blank" rel="noopener noreferrer"
-                  className="fsf-search-btn" style={{ textDecoration: 'none', display: 'inline-flex' }}>
+                <a href={buildAviasalesUrl(lastSearch)} target="_blank" rel="noopener noreferrer" className="fsf-search-btn" style={{ textDecoration: 'none', display: 'inline-flex' }}>
                   Search on Aviasales ↗
                 </a>
               </div>
@@ -686,20 +588,13 @@ const FlightSearch = () => {
 
             {!isLoading && !error && allRaw.length === 0 && (
               !lastSearch?.includeNearby ? (
-                <NearbyAirportsBanner
-                  lastSearch={lastSearch}
-                  onRetry={(enrichedParams) => handleSearch(enrichedParams)}
-                />
+                <NearbyAirportsBanner lastSearch={lastSearch} onRetry={(enrichedParams) => handleSearch(enrichedParams)} />
               ) : (
                 <div className="flight-empty">
                   <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>✈️</div>
                   <h3>No flights found</h3>
-                  <p>
-                    No results for <strong>{lastSearch?.originCode} → {lastSearch?.destinationCode}</strong> on{' '}
-                    <strong>{lastSearch?.departureDate}</strong>, including nearby airports. Try different dates.
-                  </p>
-                  <a href={buildAviasalesUrl(lastSearch)} target="_blank" rel="noopener noreferrer"
-                    className="fsf-search-btn" style={{ textDecoration: 'none', display: 'inline-flex', marginTop: 16 }}>
+                  <p>No results for <strong>{lastSearch?.originCode} → {lastSearch?.destinationCode}</strong> on <strong>{lastSearch?.departureDate}</strong>, including nearby airports. Try different dates.</p>
+                  <a href={buildAviasalesUrl(lastSearch)} target="_blank" rel="noopener noreferrer" className="fsf-search-btn" style={{ textDecoration: 'none', display: 'inline-flex', marginTop: 16 }}>
                     Search on Aviasales ↗
                   </a>
                 </div>
@@ -707,16 +602,16 @@ const FlightSearch = () => {
             )}
 
             {!isLoading && !error && allRaw.length > 0 && (() => {
-              const route      = `${lastSearch?.originCode} → ${lastSearch?.destinationCode}`;
+              const route = `${lastSearch?.originCode} → ${lastSearch?.destinationCode}`;
               const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-              const safePage   = Math.min(currentPage, Math.max(1, totalPages));
+              const safePage = Math.min(currentPage, Math.max(1, totalPages));
 
               return (
                 <>
                   <div className="flight-results-header">
                     <h2 className="flight-results-title">
                       {filtered.length} flight{filtered.length !== 1 ? 's' : ''} found
-                      <span className="flight-results-route"> — {route}</span>
+                      <span className="flight-results-route"> - {route}</span>
                     </h2>
                     <p className="flight-results-note">{sourceNote}</p>
                     {nearbyMeta && (
@@ -741,92 +636,59 @@ const FlightSearch = () => {
                   </div>
 
                   <div className="fs-results-layout">
-
                     {filterable && (
-                      <FlightFilters
-                        flights={allRaw}
-                        filters={filters}
-                        onChange={f => { setFilters(f); setCurrentPage(1); }}
-                      />
+                      <FlightFilters flights={allRaw} filters={filters} onChange={f => { setFilters(f); setCurrentPage(1); }} />
                     )}
 
                     <div className="fs-results-col">
-
-
                       {source === 'duffel' && (() => {
                         const filtDuffel = applyFilters(duffelFlights, filters);
-                        const pSlice     = filtDuffel.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+                        const pSlice = filtDuffel.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
                         return (
                           <>
                             <SourceHeader source="duffel" count={duffelFlights.length} route={route} />
                             {pSlice.length === 0
                               ? <p style={{ color: '#64748b', padding: '32px 0', textAlign: 'center' }}>No flights match your filters.</p>
-                              : pSlice.map(f => <FlightCardDuffel key={f.id} flight={f} />)
-                            }
+                              : pSlice.map(f => <FlightCardDuffel key={f.id} flight={f} />)}
                           </>
                         );
                       })()}
-
 
                       {source === 'gf' && (() => {
-                        const filtTop   = applyFilters(topFlights,   filters);
-                        const filtOther = applyFilters(otherFlights,  filters);
-                        const allFilt   = [...filtTop, ...filtOther];
-                        const pSlice    = allFilt.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-                        const pTop      = pSlice.filter(f => filtTop.includes(f));
-                        const pOther    = pSlice.filter(f => filtOther.includes(f));
+                        const filtTop = applyFilters(topFlights, filters);
+                        const filtOther = applyFilters(otherFlights, filters);
+                        const allFilt = [...filtTop, ...filtOther];
+                        const pSlice = allFilt.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+                        const pTop = pSlice.filter(f => filtTop.includes(f));
+                        const pOther = pSlice.filter(f => filtOther.includes(f));
                         return (
                           <>
-                            {pTop.length > 0 && (
-                              <>
-                                <FlightSectionHeader type="top"   count={filtTop.length}   route={route} />
-                                {pTop.map(f => <FlightCardGF key={f.id} flight={f} />)}
-                              </>
-                            )}
-                            {pOther.length > 0 && (
-                              <>
-                                <FlightSectionHeader type="other" count={filtOther.length} route={route} />
-                                {pOther.map(f => <FlightCardGF key={f.id} flight={f} />)}
-                              </>
-                            )}
-                            {allFilt.length === 0 && (
-                              <p style={{ color: '#64748b', padding: '32px 0', textAlign: 'center' }}>
-                                No flights match your filters.
-                              </p>
-                            )}
+                            {pTop.length > 0 && <><FlightSectionHeader type="top" count={filtTop.length} route={route} />{pTop.map(f => <FlightCardGF key={f.id} flight={f} />)}</>}
+                            {pOther.length > 0 && <><FlightSectionHeader type="other" count={filtOther.length} route={route} />{pOther.map(f => <FlightCardGF key={f.id} flight={f} />)}</>}
+                            {allFilt.length === 0 && <p style={{ color: '#64748b', padding: '32px 0', textAlign: 'center' }}>No flights match your filters.</p>}
                           </>
                         );
                       })()}
 
-
                       {source === 'tp' && (() => {
-                        const filtTP  = applyFilters(tpFlights, filters);
-                        const pSlice  = filtTP.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+                        const filtTP = applyFilters(tpFlights, filters);
+                        const pSlice = filtTP.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
                         return (
                           <>
                             <SourceHeader source="tp" count={tpFlights.length} route={route} />
                             {pSlice.length === 0
                               ? <p style={{ color: '#64748b', padding: '32px 0', textAlign: 'center' }}>No flights match your filters.</p>
-                              : pSlice.map(f => <FlightCardTP key={f.id} flight={f} />)
-                            }
+                              : pSlice.map(f => <FlightCardTP key={f.id} flight={f} />)}
                           </>
                         );
                       })()}
-
 
                       {source === 'amadeus' && (() => {
                         const pSlice = amadFlights.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-                        return (
-                          <>
-                            <SourceHeader source="amadeus" count={amadFlights.length} route={route} />
-                            {pSlice.map((f, i) => <FlightCard key={f.id || i} flight={f} />)}
-                          </>
-                        );
+                        return <><SourceHeader source="amadeus" count={amadFlights.length} route={route} />{pSlice.map((f, i) => <FlightCard key={f.id || i} flight={f} />)}</>;
                       })()}
 
-                      {totalPages > 1 && filtered.length > 0 && (
-                        <Pagination page={safePage} total={totalPages} onChange={setCurrentPage} />
-                      )}
+                      {totalPages > 1 && filtered.length > 0 && <Pagination page={safePage} total={totalPages} onChange={setCurrentPage} />}
                     </div>
                   </div>
                 </>
@@ -839,62 +701,30 @@ const FlightSearch = () => {
       {exploreModal.isOpen && (
         <div className="explore-ticket-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) closeExploreModal(); }}>
           <div className="explore-ticket-modal" role="dialog" aria-modal="true" aria-label="Available tickets">
-            <button className="explore-ticket-modal__close" onClick={closeExploreModal} aria-label="Close ticket modal">
-              ×
-            </button>
+            <button className="explore-ticket-modal__close" onClick={closeExploreModal} aria-label="Close ticket modal">×</button>
 
             <div className="explore-ticket-modal__head">
-              <h3>
-                Available Tickets: {exploreModal.destination?.city} ({exploreModal.destination?.iata})
-              </h3>
-              <p>
-                {exploreModal.originDisplay
-                  ? `From ${exploreModal.originDisplay} · ${EXPLORE_MODAL_LIMIT} best options`
-                  : 'Set departure city to load available tickets'}
-              </p>
-
+              <h3>Available Tickets: {exploreModal.destination?.city} ({exploreModal.destination?.iata})</h3>
+              <p>{exploreModal.originDisplay ? `From ${exploreModal.originDisplay} · ${EXPLORE_MODAL_LIMIT} best options` : 'Set departure city to load available tickets'}</p>
 
               <div className="explore-trip-type-row" style={{ display: 'flex', gap: '8px', marginTop: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <button
-                  className={`explore-trip-type-btn${exploreTripType === 'one-way' ? ' explore-trip-type-btn--active' : ''}`}
-                  onClick={() => handleExploreTripTypeChange('one-way')}
-                >
-                  One Way
-                </button>
-                <button
-                  className={`explore-trip-type-btn${exploreTripType === 'round-trip' ? ' explore-trip-type-btn--active' : ''}`}
-                  onClick={() => handleExploreTripTypeChange('round-trip')}
-                >
-                  Round Trip
-                </button>
+                <button className={`explore-trip-type-btn${exploreTripType === 'one-way' ? ' explore-trip-type-btn--active' : ''}`} onClick={() => handleExploreTripTypeChange('one-way')}>One Way</button>
+                <button className={`explore-trip-type-btn${exploreTripType === 'round-trip' ? ' explore-trip-type-btn--active' : ''}`} onClick={() => handleExploreTripTypeChange('round-trip')}>Round Trip</button>
                 {exploreTripType === 'round-trip' && (
                   <div className="explore-return-date-picker" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <label htmlFor="fs-explore-return-date" style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>Return:</label>
-                    <input
-                      id="fs-explore-return-date"
-                      type="date"
-                      value={exploreReturnDate}
-                      min={getFutureDate(31)}
-                      onChange={(e) => handleExploreReturnDateChange(e.target.value)}
-                      className="explore-return-date-input"
-                    />
+                    <input id="fs-explore-return-date" type="date" value={exploreReturnDate} min={getFutureDate(31)} onChange={(e) => handleExploreReturnDateChange(e.target.value)} className="explore-return-date-input" />
                   </div>
                 )}
               </div>
             </div>
 
-            {exploreModal.isLoading && (
-              <div className="explore-ticket-modal__state">Loading available tickets...</div>
-            )}
+            {exploreModal.isLoading && <div className="explore-ticket-modal__state">Loading available tickets...</div>}
 
             {!exploreModal.isLoading && exploreModal.error && (
               <div className="explore-ticket-modal__state explore-ticket-modal__state--error">
                 <p>{exploreModal.error}</p>
-                {!exploreModal.originDisplay && (
-                  <button className="explore-ticket-modal__action" onClick={handleModalGoToSearch}>
-                    Set departure city
-                  </button>
-                )}
+                {!exploreModal.originDisplay && <button className="explore-ticket-modal__action" onClick={handleModalGoToSearch}>Set departure city</button>}
               </div>
             )}
 
@@ -908,32 +738,16 @@ const FlightSearch = () => {
                 <div className="explore-ticket-modal__list">
                   {exploreModal.tickets.map((ticket) => {
                     const price = ticket.price != null ? formatPriceFromCurrency(ticket.price, ticket.currency || 'USD') : null;
-                    const stopsText = ticket.stops === 0
-                      ? 'Direct'
-                      : `${ticket.stops} stop${ticket.stops > 1 ? 's' : ''}`;
-
+                    const stopsText = ticket.stops === 0 ? 'Direct' : `${ticket.stops} stop${ticket.stops > 1 ? 's' : ''}`;
                     return (
                       <div className="explore-ticket-item" key={ticket.id}>
-                        <div className="explore-ticket-item__top">
-                          <strong>{ticket.airline}</strong>
-                          <span className="explore-ticket-item__stops">{stopsText}</span>
-                        </div>
-
-                        <div className="explore-ticket-item__route">
-                          <span>{ticket.origin} {formatModalTime(ticket.departureTime)}</span>
-                          <span>{ticket.duration}</span>
-                          <span>{ticket.destination} {formatModalTime(ticket.arrivalTime)}</span>
-                        </div>
-
+                        <div className="explore-ticket-item__top"><strong>{ticket.airline}</strong><span className="explore-ticket-item__stops">{stopsText}</span></div>
+                        <div className="explore-ticket-item__route"><span>{ticket.origin} {formatModalTime(ticket.departureTime)}</span><span>{ticket.duration}</span><span>{ticket.destination} {formatModalTime(ticket.arrivalTime)}</span></div>
                         <div className="explore-ticket-item__bottom">
                           <span className="explore-ticket-item__price">{price || 'Price unavailable'}</span>
-                          {ticket.bookingUrl ? (
-                            <a href={ticket.bookingUrl} target="_blank" rel="noopener noreferrer" className="explore-ticket-item__book">
-                              Book now
-                            </a>
-                          ) : (
-                            <span className="explore-ticket-item__book explore-ticket-item__book--disabled">No booking link</span>
-                          )}
+                          {ticket.bookingUrl
+                            ? <a href={ticket.bookingUrl} target="_blank" rel="noopener noreferrer" className="explore-ticket-item__book">Book now</a>
+                            : <span className="explore-ticket-item__book explore-ticket-item__book--disabled">No booking link</span>}
                         </div>
                       </div>
                     );
@@ -945,16 +759,12 @@ const FlightSearch = () => {
         </div>
       )}
 
-
       {(hotelsLoading || hotelResults.length > 0 || hotelError) && (
         <section className="flt-hotels-section">
           <div className="container">
-
-
             <div className="fs-section-header fs-section-header--hotel" style={{ marginTop: 0 }}>
               <div className="fs-section-header__left">
                 <div className="fs-section-header__icon">
-
                   <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
                     <path d="M2 20h20M2 20V8l10-5 10 5v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M9 20v-5h6v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -962,32 +772,18 @@ const FlightSearch = () => {
                   </svg>
                 </div>
                 <div>
-                  <div className="fs-section-header__title">
-                    Stays in {hotelsFor}
-                  </div>
+                  <div className="fs-section-header__title">Stays in {hotelsFor}</div>
                   <div className="fs-section-header__sub">
-                    {lastSearch?.departureDate && (
-                      <>
-                        Check-in {lastSearch.departureDate}
-                        {lastSearch.returnDate
-                          ? ` · Check-out ${lastSearch.returnDate}`
-                          : ' (3 nights)'}
-                        {` · ${lastSearch.adults} adult${lastSearch.adults !== 1 ? 's' : ''}`}
-                      </>
-                    )}
+                    {lastSearch?.departureDate && <>
+                      Check-in {lastSearch.departureDate}
+                      {lastSearch.returnDate ? ` · Check-out ${lastSearch.returnDate}` : ' (3 nights)'}
+                      {` · ${lastSearch.adults} adult${lastSearch.adults !== 1 ? 's' : ''}`}
+                    </>}
                   </div>
                 </div>
               </div>
-              {!hotelsLoading && hotelResults.length > 0 && (
-                <span className="fs-section-header__badge">
-                  {hotelResults.length} stay{hotelResults.length !== 1 ? 's' : ''}
-                </span>
-              )}
-              {hotelsLoading && (
-                <span className="fs-section-header__badge flt-hotels-badge--loading">
-                  Searching…
-                </span>
-              )}
+              {!hotelsLoading && hotelResults.length > 0 && <span className="fs-section-header__badge">{hotelResults.length} stay{hotelResults.length !== 1 ? 's' : ''}</span>}
+              {hotelsLoading && <span className="fs-section-header__badge flt-hotels-badge--loading">Searching…</span>}
             </div>
 
             {hotelsLoading && (
@@ -995,26 +791,17 @@ const FlightSearch = () => {
                 {[1,2,3].map(i => (
                   <div key={i} className="hs-skeleton">
                     <div className="hs-skeleton__img pulse" />
-                    <div className="hs-skeleton__body">
-                      <div className="hs-skeleton__line pulse" />
-                      <div className="hs-skeleton__line hs-skeleton__line--short pulse" />
-                    </div>
+                    <div className="hs-skeleton__body"><div className="hs-skeleton__line pulse" /><div className="hs-skeleton__line hs-skeleton__line--short pulse" /></div>
                     <div className="hs-skeleton__cta pulse" />
                   </div>
                 ))}
               </div>
             )}
 
-            {!hotelsLoading && hotelError && (
-              <p className="flt-hotels-error">Could not load stays — {hotelError}</p>
-            )}
+            {!hotelsLoading && hotelError && <p className="flt-hotels-error">Could not load stays - {hotelError}</p>}
 
             {!hotelsLoading && !hotelError && hotelResults.length > 0 && (
-              <div className="flt-hotels-grid">
-                {hotelResults.slice(0, 6).map(hotel => (
-                  <HotelCard key={hotel.hotelId} hotel={hotel} />
-                ))}
-              </div>
+              <div className="flt-hotels-grid">{hotelResults.slice(0, 6).map(hotel => <HotelCard key={hotel.hotelId} hotel={hotel} />)}</div>
             )}
           </div>
         </section>

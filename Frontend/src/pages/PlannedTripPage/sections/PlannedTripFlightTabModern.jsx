@@ -56,6 +56,37 @@ const pickBestAirport = (locations = [], searchTerm = '') => {
     || locations[0];
 };
 
+const getProviderCandidates = ({ duffelResult, googleResult, tpResult, amadeusResult }) => [
+  {
+    source: 'duffel',
+    count: duffelResult?.flights?.length || 0,
+    flights: duffelResult?.flights || [],
+    priority: 0,
+  },
+  {
+    source: 'gf',
+    count: (googleResult?.topFlights?.length || 0) + (googleResult?.otherFlights?.length || 0),
+    topFlights: googleResult?.topFlights || [],
+    otherFlights: googleResult?.otherFlights || [],
+    priority: 1,
+  },
+  {
+    source: 'tp',
+    count: tpResult?.flights?.length || 0,
+    flights: tpResult?.flights || [],
+    priority: 2,
+  },
+  {
+    source: 'amadeus',
+    count: amadeusResult?.flights?.length || 0,
+    flights: amadeusResult?.flights || [],
+    priority: 3,
+  },
+].filter(candidate => candidate.count > 0)
+  .sort((a, b) => (b.count - a.count) || (a.priority - b.priority));
+
+const pickRichestProvider = results => getProviderCandidates(results)[0] || null;
+
 const PlannedTripFlightTabModern = ({ tripData, onFlightSelected }) => {
   const tripId = tripData?.trip_id || null;
   const token = getAccessToken();
@@ -117,6 +148,22 @@ const PlannedTripFlightTabModern = ({ tripData, onFlightSelected }) => {
     setSearched(false);
   };
 
+  const applyProviderSelection = candidate => {
+    if (!candidate) {
+      setSource('gf');
+      return;
+    }
+
+    setSource(candidate.source);
+    if (candidate.source === 'duffel') setDuffelFlights(candidate.flights || []);
+    if (candidate.source === 'gf') {
+      setTopFlights(candidate.topFlights || []);
+      setOtherFlights(candidate.otherFlights || []);
+    }
+    if (candidate.source === 'tp') setTpFlights(candidate.flights || []);
+    if (candidate.source === 'amadeus') setAmadFlights(candidate.flights || []);
+  };
+
   const handleSearch = async (params) => {
     resetResults();
     setIsLoading(true);
@@ -132,59 +179,40 @@ const PlannedTripFlightTabModern = ({ tripData, onFlightSelected }) => {
     } = params;
 
     try {
-      let duffelResult = null;
-      try {
-        duffelResult = await searchFlightsDuffel({ originCode, destinationCode, departureDate, returnDate: returnDate || null, adults, includeNearby });
-      } catch {}
+      const [duffelResult, googleResult, tpResult, amadeusResult] = await Promise.all([
+        searchFlightsDuffel({
+          originCode,
+          destinationCode,
+          departureDate,
+          returnDate: returnDate || null,
+          adults,
+          includeNearby,
+        }).catch(() => null),
+        searchFlightsGoogle({
+          originCode,
+          destinationCode,
+          departureDate,
+          returnDate: returnDate || null,
+          adults,
+          includeNearby,
+        }).catch(() => null),
+        searchFlightsTP({
+          origin: originCode,
+          destination: destinationCode,
+          departureAt: departureDate,
+          returnAt: returnDate || null,
+          limit: 50,
+        }).catch(() => null),
+        searchFlightsAmadeus({
+          originCode,
+          destinationCode,
+          departureDate,
+          returnDate: returnDate || null,
+          adults,
+        }).catch(() => null),
+      ]);
 
-      if (duffelResult?.flights?.length) {
-        setSource('duffel');
-        setDuffelFlights(duffelResult.flights);
-        setSearched(true);
-        return;
-      }
-
-      let googleResult = null;
-      try {
-        googleResult = await searchFlightsGoogle({ originCode, destinationCode, departureDate, returnDate: returnDate || null, adults, includeNearby });
-      } catch {}
-
-      const googleCount = (googleResult?.topFlights?.length || 0) + (googleResult?.otherFlights?.length || 0);
-      if (googleCount >= 5) {
-        setSource('gf');
-        setTopFlights(googleResult.topFlights || []);
-        setOtherFlights(googleResult.otherFlights || []);
-        setSearched(true);
-        return;
-      }
-
-      let tpResult = null;
-      try {
-        tpResult = await searchFlightsTP({ origin: originCode, destination: destinationCode, departureAt: departureDate, returnAt: returnDate || null, limit: 50 });
-      } catch {}
-
-      if (tpResult?.flights?.length) {
-        setSource('tp');
-        setTpFlights(tpResult.flights);
-        setSearched(true);
-        return;
-      }
-
-      let amadeusResult = null;
-      try {
-        amadeusResult = await searchFlightsAmadeus({ originCode, destinationCode, departureDate, returnDate: returnDate || null, adults });
-      } catch {}
-
-      if (amadeusResult?.flights?.length) {
-        setSource('amadeus');
-        setAmadFlights(amadeusResult.flights);
-        setSearched(true);
-        return;
-      }
-
-      setSource('gf');
-      setTopFlights(googleResult?.topFlights || []);
-      setOtherFlights(googleResult?.otherFlights || []);
+      applyProviderSelection(pickRichestProvider({ duffelResult, googleResult, tpResult, amadeusResult }));
       setSearched(true);
     } catch (error) {
       setSearchError(error?.message || 'Search failed. Please try again.');
