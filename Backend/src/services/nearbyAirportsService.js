@@ -150,6 +150,17 @@ export const findAirportsForCity = (cityName, countryName = '', limit = 20) => {
     .map(airport => toLocation(airport));
 };
 
+export const findAirportsForCountryCode = (countryCode, limit = 20) => {
+  const code = String(countryCode || '').trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code)) return [];
+
+  return airports
+    .filter(airport => resolveCountryCode(airport.country) === code)
+    .sort((a, b) => a.city.localeCompare(b.city) || a.iata.localeCompare(b.iata))
+    .slice(0, Math.max(1, limit))
+    .map(airport => toLocation(airport));
+};
+
 export const findCountryDirectoryMatch = (query, limit = 12) => {
   const needle = normalize(query);
   if (needle.length < 2) return null;
@@ -158,18 +169,7 @@ export const findCountryDirectoryMatch = (query, limit = 12) => {
   const prefix = exact || countries.find(country => normalize(country).startsWith(needle));
   if (!prefix) return null;
 
-  const countryAirports = airports
-    .filter(airport => airport.country === prefix)
-    .slice(0, Math.max(1, limit))
-    .map(airport => ({
-      iataCode: airport.iata,
-      cityName: airport.city,
-      name: airport.name,
-      countryName: airport.country,
-      countryCode: resolveCountryCode(airport.country),
-      latitude: airport.lat,
-      longitude: airport.lng,
-    }));
+  const countryAirports = findAirportsForCountryCode(resolveCountryCode(prefix), limit);
 
   return {
     countryName: prefix,
