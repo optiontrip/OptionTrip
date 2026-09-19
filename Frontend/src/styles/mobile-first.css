@@ -102,9 +102,9 @@
     padding-bottom: 10px;
   }
 
-  /* Do not let the persistent assistant cover search fields. Mobile already
-     has a dedicated Vi quick action in the travel tools bar. */
-  .vi-button {
+  /* Search-heavy screens already expose Vi from the quick-tools bar. Hide
+     the floating launcher there so it never covers booking fields/results. */
+  .vi-mobile-suppressed .vi-button {
     display: none !important;
   }
 
@@ -165,7 +165,7 @@
     min-width: 0;
   }
 
-  /* Fixed popups respect phone safe areas. */
+  /* Fixed chat window respects phone safe areas whenever Vi is opened. */
   .vi-window {
     left: 8px !important;
     right: 8px !important;
