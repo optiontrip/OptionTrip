@@ -90,12 +90,49 @@
 
 @keyframes ot-widget-spin { to { transform: rotate(360deg); } }
 
+.ot-partner-widget__fallbacks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.ot-partner-widget__fallback-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 13px;
+  border: 1px solid #cfe1e1;
+  border-radius: 12px;
+  background: #fff;
+  color: #0f4f5a;
+  font-weight: 800;
+  line-height: 1.3;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.ot-partner-widget__fallback-link:hover,
+.ot-partner-widget__fallback-link:focus-visible {
+  border-color: #029e9d;
+  color: #027d7c;
+  text-decoration: none;
+}
+
+.ot-partner-widget__fallback-link i {
+  flex: 0 0 auto;
+  font-size: 12px;
+}
+
 .ot-partner-widget__error-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: 6px;
+  margin-top: 10px;
 }
 
 .ot-partner-widget__error-actions button,
@@ -156,6 +193,16 @@
   .ot-partner-widget__state {
     font-size: 12px;
     line-height: 1.45;
+  }
+
+  .ot-partner-widget__fallbacks {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .ot-partner-widget__fallback-link {
+    width: 100%;
+    border-radius: 11px;
   }
 
   .ot-partner-widget__error-actions {
