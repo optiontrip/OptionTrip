@@ -24,6 +24,7 @@ const servicesPageCss = read('Frontend/src/pages/TravelServicesPage/TravelServic
 const cheapFlightsCss = read('Frontend/src/pages/CheapFlightExplorerPage.css');
 const hotelCss = read('Frontend/src/pages/HotelSearch.css');
 const layout = read('Frontend/src/components/Layout/Layout.jsx');
+const partnerWidget = read('Frontend/src/pages/PlannedTripPage/sections/TravelpayoutsWidget.jsx');
 
 const errors = [];
 const unique = values => [...new Set(values)];
@@ -100,8 +101,8 @@ if (!mobileUx.includes('.vi-mobile-suppressed .vi-button')) {
 if (!layout.includes('MOBILE_SEARCH_SURFACES') || !layout.includes('vi-mobile-suppressed')) {
   errors.push('Layout must mark mobile search surfaces so Vi cannot cover booking controls.');
 }
-if (!/@media\s*\(max-width:\s*767px\)[\s\S]*?\.tsr__scroll\s*\{\s*display:\s*none/s.test(serviceRailCss)) {
-  errors.push('Mobile travel-service rail must not render the clipped desktop carousel.');
+if (!/@media\s*\(max-width:\s*991px\)[\s\S]*?\.tsr__scroll\s*\{\s*display:\s*none/s.test(serviceRailCss)) {
+  errors.push('Compact travel-service rail must match the 991px hamburger breakpoint and hide the clipped desktop carousel.');
 }
 
 if (!/h1,[\s\S]*h6\s*\{\s*text-transform:\s*none\s*!important/s.test(mobileUx)) {
@@ -112,6 +113,18 @@ if (!mobileUx.includes('.hbs__date-help') || !/\.hbs__date-help\s*\{\s*display:\
 }
 if (!mobileUx.includes('.banner.pt-10.pb-0') || !mobileUx.includes('.flight-hero') || !mobileUx.includes('.hotel-search-hero')) {
   errors.push('Oversized legacy and search heroes must have mobile-first overrides.');
+}
+if (!mobileUx.includes('100dvh') || !mobileUx.includes('.auth-page') || !mobileUx.includes('.tmp-page')) {
+  errors.push('Mobile keyboard and dynamic-viewport guards are missing for auth/map surfaces.');
+}
+if (!mobileUx.includes('env(safe-area-inset-bottom)') || !mobileUx.includes('.auth-modal-overlay') || !mobileUx.includes('.wcig-modal')) {
+  errors.push('Mobile safe-area guards are missing for fixed controls or overlays.');
+}
+if (!mobileUx.includes('.planned-trip-share-bar') || !mobileUx.includes('.planned-trip-summary-bar__inner')) {
+  errors.push('Planned Trip fixed controls are not protected from mobile overlap.');
+}
+if (!mobileUx.includes('#back-to-top') || !mobileUx.includes('display: none !important')) {
+  errors.push('Mobile floating-control cleanup is missing.');
 }
 
 if (!ecosystem.includes('openMobileGroups') || !ecosystem.includes('tes__group--mobile-collapsed')) {
@@ -131,6 +144,16 @@ if (!cheapFlightsCss.includes('.cheapx-filters{display:flex') || !cheapFlightsCs
 }
 if (!/@media\s*\(max-width:\s*768px\)[\s\S]*?\.hs-form__row\s*\{[\s\S]*?flex-direction:\s*column/s.test(hotelCss)) {
   errors.push('Hotel search form must stack into a true single-column mobile form.');
+}
+
+if (!partnerWidget.includes('localizeWidgetUrl') || !partnerWidget.includes("url.searchParams.set('locale', locale)")) {
+  errors.push('Travelpayouts widgets must inherit the OptionTrip interface language instead of forcing English.');
+}
+if (!partnerWidget.includes('hasRenderedWidget') || !partnerWidget.includes('MutationObserver')) {
+  errors.push('Partner widget readiness must verify rendered booking UI, not only script load.');
+}
+if (!partnerWidget.includes('Ask Vi') || !partnerWidget.includes('viFallback')) {
+  errors.push('Partner widget failures must provide a Vi fallback instead of a dead end.');
 }
 
 if (!home.includes('data-season={season}') || !home.includes('home-seasonal-hero--${season}')) {
