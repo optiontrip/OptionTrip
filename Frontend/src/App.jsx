@@ -50,6 +50,7 @@ import HotelSearch from './pages/HotelSearch';
 import CarRentalSearch from './pages/CarRentalSearch';
 import EsimSearch from './pages/EsimSearch';
 import TravelServicesPage from './pages/TravelServicesPage/TravelServicesPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 const toLocalISODate = (date) => {
   const year = date.getFullYear();
@@ -173,6 +174,7 @@ function App() {
                     <Route path="/plan-my-day" element={<PlanMyDay />} />
                     <Route path="/where-can-i-go" element={<WhereCanIGo />} />
                     <Route path="/help-center" element={<HelpCenterPage />} />
+                    <Route path="*" element={<NotFoundPage />} />
                   </Routes>
                 </Layout>
               } />
