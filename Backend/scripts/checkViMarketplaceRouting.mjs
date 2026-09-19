@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { buildMarketplaceSuggestion, detectMarketplaceIntent, formatMarketplaceForViPrompt } from '../src/services/viMarketplaceRouter.js';
+import { buildViConversion, buildViTripContext } from '../src/services/viConversionService.js';
 import { inferConversationLanguage } from '../src/services/chatService.js';
 
 const russianBus = buildMarketplaceSuggestion('Мне нужен автобус из Белграда в Сараево');
@@ -45,6 +46,52 @@ assert.match(partnerPrompt, /DO NOT expose or invent a direct partner URL/i, 'Vi
 assert.doesNotMatch(partnerPrompt, /https:\/\//i, 'Marketplace prompt must not expose a raw affiliate URL to Vi');
 assert.match(partnerPrompt, /\/services\/insurance/, 'Vi must point partner services to a canonical OptionTrip service page');
 
+const tripContext = buildViTripContext({
+  currentTrip: {
+    trip_id: 'trip_test_1',
+    origin: { name: 'Los Angeles' },
+    destination: { name: 'Las Vegas' },
+    dates: { start_date: '2026-10-10', end_date: '2026-10-13' },
+    guests: { adults: 2 },
+  },
+  preferences: { currency: 'USD' },
+});
+assert.equal(tripContext.origin, 'Los Angeles', 'Vi conversion must normalize structured trip origins into text');
+assert.equal(tripContext.originCode, 'LAX', 'Vi conversion must preserve a trusted origin IATA code');
+assert.equal(tripContext.destination, 'Las Vegas', 'Vi conversion must normalize structured trip destinations into text');
+assert.equal(tripContext.destinationCode, 'LAS', 'Vi conversion must preserve a trusted destination IATA code');
+assert.equal(tripContext.tripId, 'trip_test_1', 'Vi conversion must prefer the public trip_id over Mongo object identifiers');
+
+const busConversion = buildViConversion({
+  message: 'I need a bus for this trip',
+  context: {
+    currentTrip: {
+      trip_id: 'trip_test_1',
+      origin: { name: 'Los Angeles' },
+      destination: { name: 'Las Vegas' },
+      dates: { start_date: '2026-10-10', end_date: '2026-10-13' },
+    },
+  },
+});
+assert.equal(busConversion?.vertical, 'bus', 'Vi conversion must match the requested marketplace vertical');
+assert.match(busConversion?.href || '', /^\/services\/bus\?/, 'Vi conversion must keep the user on the canonical OptionTrip bus page');
+assert.match(busConversion?.href || '', /originCode=LAX/, 'Vi conversion URL must carry the known origin IATA code');
+assert.match(busConversion?.href || '', /destinationCode=LAS/, 'Vi conversion URL must carry the known destination IATA code');
+assert.doesNotMatch(busConversion?.href || '', /%5Bobject\+Object%5D|%5Bobject%20Object%5D/, 'Structured trip locations must never leak as [object Object] in handoff URLs');
+
+const transferConversion = buildViConversion({
+  message: 'I need an airport transfer',
+  context: {
+    currentTrip: {
+      trip_id: 'trip_belgrade',
+      destination: { name: 'Belgrade' },
+    },
+  },
+});
+assert.equal(transferConversion?.vertical, 'transfers', 'Vi conversion must match airport-transfer intent');
+assert.match(transferConversion?.href || '', /^\/services\/transfers\?/, 'Transfers must stay on the canonical OptionTrip transfer page');
+assert.match(transferConversion?.href || '', /destinationCode=BEG/, 'Transfer handoff must preserve the known destination code');
+
 assert.equal(
   inferConversationLanguage('Найди мне билет из Москвы в Стамбул'),
   'ru',
@@ -66,4 +113,4 @@ assert.equal(
   'English travel requests must remain English',
 );
 
-console.log('✅ Vi marketplace routing, canonical OptionTrip handoff and conversation-language regression checks passed');
+console.log('✅ Vi marketplace routing, structured trip handoff and conversation-language regression checks passed');
