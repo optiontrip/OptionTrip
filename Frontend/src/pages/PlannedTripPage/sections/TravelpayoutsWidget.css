@@ -2,6 +2,31 @@
   min-width: 0;
 }
 
+.ot-partner-widget__context {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  margin-bottom: 10px;
+  padding: 8px 11px;
+  border: 1px solid #cfe7e6;
+  border-radius: 999px;
+  background: #eefafa;
+  color: #145c64;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.ot-partner-widget__context i {
+  flex: 0 0 auto;
+  color: #029e9d;
+}
+
+.ot-partner-widget__context span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .ot-partner-widget__trust {
   display: flex;
   align-items: center;
@@ -172,6 +197,13 @@
 }
 
 @media (max-width: 640px) {
+  .ot-partner-widget__context {
+    width: 100%;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    padding: 8px 9px;
+  }
+
   .ot-partner-widget__trust {
     align-items: flex-start;
     margin-bottom: 9px;
