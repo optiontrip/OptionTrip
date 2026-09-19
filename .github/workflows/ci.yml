@@ -55,6 +55,10 @@ jobs:
         working-directory: Backend
         run: npm run test:partner-links
 
+      - name: Country-to-country flight matrix checks
+        working-directory: Backend
+        run: npm run test:flight-country-matrix
+
       - name: Site and travel-service integrity checks
         working-directory: Backend
         run: npm run test:site-services
