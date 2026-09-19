@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import TravelpayoutsWidget from './TravelpayoutsWidget';
 import { logActivity } from '../../../services/activityService';
 import './ToursTab.css';
@@ -6,7 +6,35 @@ import './ToursTab.css';
 const TOURS_WIDGET_SRC =
   'https://tpwdgt.com/content?trs=176202&shmarker=370056&locale=en&tours=3&powered_by=true&campaign_id=150&promo_id=4489';
 
+const safeText = value => String(value || '')
+  .replace(/[\r\n\t]+/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .slice(0, 120);
+
+const safeIata = value => {
+  const code = String(value || '').trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(code) ? code : '';
+};
+
 const ToursTab = ({ tripData, source = 'landing_page' }) => {
+  const destinationName = safeText(
+    tripData?.destination?.name
+      || tripData?.destination_name
+      || tripData?.location?.destination
+  );
+  const destinationCode = safeIata(
+    tripData?.destination?.iataCode
+      || tripData?.destination?.iata
+      || tripData?.destination?.code
+      || tripData?.destinationCode
+  );
+
+  const bookingContext = useMemo(() => ({
+    destination: destinationName || destinationCode || '',
+    destinationCode,
+  }), [destinationName, destinationCode]);
+
   useEffect(() => {
     logActivity({
       type: 'tours',
@@ -15,11 +43,11 @@ const ToursTab = ({ tripData, source = 'landing_page' }) => {
       metadata: {
         source,
         trip_id: tripData?.trip_id,
-        destination: tripData?.destination?.name,
+        destination: destinationName || undefined,
+        destinationCode: destinationCode || undefined,
       },
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source, tripData?.trip_id]);
+  }, [source, tripData?.trip_id, destinationName, destinationCode]);
 
   return (
     <div className="tt-root">
@@ -33,8 +61,8 @@ const ToursTab = ({ tripData, source = 'landing_page' }) => {
         <div>
           <h3 className="tt-card__title">Book Tours & Activities</h3>
           <p className="tt-card__sub">
-            {tripData?.destination?.name
-              ? `Guided tours and things to do in ${tripData.destination.name}`
+            {destinationName || destinationCode
+              ? `Guided tours and things to do in ${destinationName || destinationCode}`
               : 'Guided tours and things to do at your destination'}
           </p>
         </div>
@@ -43,7 +71,10 @@ const ToursTab = ({ tripData, source = 'landing_page' }) => {
       <TravelpayoutsWidget
         src={TOURS_WIDGET_SRC}
         vertical="activities"
-        title="Live tours & activities search"
+        title={destinationName || destinationCode
+          ? `Live tours & activities for ${destinationName || destinationCode}`
+          : 'Live tours & activities search'}
+        context={bookingContext}
       />
     </div>
   );
