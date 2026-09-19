@@ -16,6 +16,7 @@ const bookingMenu = read('Frontend/src/components/Header/BookingServiceMenu.jsx'
 const home = read('Frontend/src/pages/Home.jsx');
 const mainEntry = read('Frontend/src/main.jsx');
 const mobileUx = read('Frontend/src/styles/mobile-first.css');
+const mobileHardening = read('Frontend/src/styles/mobile-hardening.css');
 const serviceRailCss = read('Frontend/src/components/TravelServiceRail/TravelServiceRail.css');
 const ecosystem = read('Frontend/src/components/TravelEcosystemSection/TravelEcosystemSection.jsx');
 const ecosystemCss = read('Frontend/src/components/TravelEcosystemSection/TravelEcosystemSection.css');
@@ -92,8 +93,8 @@ if (!bookingMenu.includes('const [openGroup, setOpenGroup] = useState(null)')) {
   errors.push('Mobile Booking menu must start collapsed rather than dumping the service catalog into the drawer.');
 }
 
-if (!mainEntry.includes("./styles/mobile-first.css")) {
-  errors.push('Global mobile-first guardrails must be loaded by the frontend entrypoint.');
+if (!mainEntry.includes("./styles/mobile-first.css") || !mainEntry.includes("./styles/mobile-hardening.css")) {
+  errors.push('Global mobile guardrail styles must be loaded by the frontend entrypoint.');
 }
 if (!mobileUx.includes('.vi-mobile-suppressed .vi-button')) {
   errors.push('Booking/search surfaces must suppress the floating Vi launcher on mobile.');
@@ -101,8 +102,11 @@ if (!mobileUx.includes('.vi-mobile-suppressed .vi-button')) {
 if (!layout.includes('MOBILE_SEARCH_SURFACES') || !layout.includes('vi-mobile-suppressed')) {
   errors.push('Layout must mark mobile search surfaces so Vi cannot cover booking controls.');
 }
-if (!/@media\s*\(max-width:\s*991px\)[\s\S]*?\.tsr__scroll\s*\{\s*display:\s*none/s.test(serviceRailCss)) {
-  errors.push('Compact travel-service rail must match the 991px hamburger breakpoint and hide the clipped desktop carousel.');
+if (!/@media\s*\(max-width:\s*1299px\)[\s\S]*?\.tsr__scroll\s*\{\s*display:\s*none/s.test(serviceRailCss)) {
+  errors.push('Compact travel-service rail must match the 1299px hamburger breakpoint and hide the clipped desktop carousel.');
+}
+if (!/@media\s*\(max-width:\s*1299px\)[\s\S]*?\.tsr__vi\s*\{[\s\S]*?width:\s*44px[\s\S]*?height:\s*44px/s.test(serviceRailCss)) {
+  errors.push('Compact travel-service controls must keep touch-safe 44px targets.');
 }
 
 if (!/h1,[\s\S]*h6\s*\{\s*text-transform:\s*none\s*!important/s.test(mobileUx)) {
@@ -125,6 +129,15 @@ if (!mobileUx.includes('.planned-trip-share-bar') || !mobileUx.includes('.planne
 }
 if (!mobileUx.includes('#back-to-top') || !mobileUx.includes('display: none !important')) {
   errors.push('Mobile floating-control cleanup is missing.');
+}
+if (!mobileHardening.includes('html:lang(ar)') || !mobileHardening.includes('direction: rtl')) {
+  errors.push('Arabic compact navigation must switch to RTL even when legacy dir attributes are absent.');
+}
+if (!mobileHardening.includes('max-width: 1299px') || !mobileHardening.includes('max-height: 700px')) {
+  errors.push('Landscape-phone hardening must cover the compact-header range beyond the classic 767px breakpoint.');
+}
+if (!mobileHardening.includes('.main_header_area .hamburger') || !mobileHardening.includes('min-width: 44px')) {
+  errors.push('Compact hamburger touch target is not protected.');
 }
 
 if (!ecosystem.includes('openMobileGroups') || !ecosystem.includes('tes__group--mobile-collapsed')) {
