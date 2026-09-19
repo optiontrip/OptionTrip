@@ -181,18 +181,7 @@ jobs:
             sleep 4
             INVENTORY_JSON="$(curl -fsS --retry 8 --retry-delay 2 --retry-connrefused --max-time 5 http://127.0.0.1:5000/api/travel-inventory)"
             printf '%s' "$INVENTORY_JSON" | grep -q '"verticals"'
-            printf '%s' "$INVENTORY_JSON" | node -e '
-              let input="";
-              process.stdin.on("data", chunk => input += chunk);
-              process.stdin.on("end", () => {
-                const data = JSON.parse(input);
-                const wanted = new Set(["rail", "bus", "ferries", "transfers", "city_passes", "activities"]);
-                for (const item of data.verticals || []) {
-                  if (!wanted.has(item.vertical)) continue;
-                  const options = (item.bookingOptions || []).map(option => option.provider).join(",") || "none";
-                  console.log(`affiliate-status ${item.vertical}: live=${item.live} bookingProviders=${options}`);
-                }
-              });'
+            printf '%s' "$INVENTORY_JSON" | node ~/OptionTrip/Backend/scripts/printAffiliateInventory.mjs
 
             echo '📦 Publishing Frontend...'
             rm -rf /var/www/optiontrip/*
