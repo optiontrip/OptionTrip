@@ -18,7 +18,7 @@ const CarRentalTab = () => (
       </div>
       <div>
         <h3 className="cr-card__title">Find Rental Cars</h3>
-        <p className="cr-card__sub">Search a live rental partner now. OptionTrip only adds its own filters when the provider returns filterable inventory.</p>
+        <p className="cr-card__sub">Compare live rental options, choose the car that fits your trip, and continue with the booking partner.</p>
       </div>
     </div>
 
