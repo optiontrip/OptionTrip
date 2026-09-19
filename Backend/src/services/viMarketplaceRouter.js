@@ -37,8 +37,6 @@ const matchesTerm = (text, rawTerm) => {
   const term = normalize(rawTerm);
   if (!term) return false;
 
-  // Very short keywords such as "tour" / "тур" / "bus" must match a full
-  // token only. Otherwise "тур" incorrectly matches "туристическая карта".
   if (!term.includes(' ') && term.length <= 4) {
     return tokenize(text).includes(term);
   }
@@ -70,9 +68,6 @@ export const buildMarketplaceSuggestion = message => {
     mode: service.mode,
     live: service.live,
     route,
-    // Booking targets stay internal to the marketplace state. Vi must route a
-    // traveler through OptionTrip first instead of bypassing comparison with a
-    // raw affiliate URL in chat.
     bookingAvailable: Boolean(service.bookingUrl),
     bookingProvider: service.bookingProvider || null,
     primaryProvider: service.primaryProvider,
@@ -89,9 +84,10 @@ export const formatMarketplaceForViPrompt = message => {
     ? ` ${suggestion.liveProviderCount} configured provider${suggestion.liveProviderCount === 1 ? '' : 's'} are currently available for this service.`
     : '';
 
+  const optionTripFirst = ` Keep the traveler inside OptionTrip first. DO NOT expose or invent a direct partner URL in chat. Send the traveler to ${suggestion.route}; any outbound partner checkout is the final step only.`;
   const bookingInstruction = suggestion.bookingAvailable
-    ? ` A verified booking handoff exists, but DO NOT expose or invent a direct partner URL in chat. Send the traveler to ${suggestion.route} so OptionTrip can show the available provider choices first; outbound partner checkout is the final step only.`
+    ? ' A verified booking handoff exists behind the OptionTrip comparison flow.'
     : '';
 
-  return `\nMARKETPLACE MATCH: The user's message matches OptionTrip service "${suggestion.label}" (${suggestion.vertical}). Current mode: ${suggestion.mode}. Live: ${suggestion.live ? 'yes' : 'no'}. OptionTrip route: ${suggestion.route}.${providerSummary}${bookingInstruction} ${suggestion.live ? 'Proactively offer this OptionTrip service, preserve known trip context, and keep the traveler inside OptionTrip until the final booking handoff.' : 'Do not claim live booking; explain that this service is being connected and continue helping conversationally.'}`;
+  return `\nMARKETPLACE MATCH: The user's message matches OptionTrip service "${suggestion.label}" (${suggestion.vertical}). Current mode: ${suggestion.mode}. Live: ${suggestion.live ? 'yes' : 'no'}. OptionTrip route: ${suggestion.route}.${providerSummary}${bookingInstruction}${optionTripFirst} ${suggestion.live ? 'Proactively offer this OptionTrip service and preserve known trip context.' : 'Do not claim live booking; explain that this service is being connected and continue helping conversationally.'}`;
 };
