@@ -8,27 +8,27 @@
 
 @media (max-width: 767px) {
   .footer-subscribe-strip {
-    padding: 30px 0;
+    padding: 24px 0;
   }
 
   .footer-subscribe-strip .container,
   .footer-main .container {
-    padding-left: 18px;
-    padding-right: 18px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
   .footer-subscribe-inner {
-    gap: 18px;
+    gap: 14px;
   }
 
   .footer-subscribe-title {
-    font-size: 21px;
-    line-height: 1.25;
+    font-size: 20px;
+    line-height: 1.22;
   }
 
   .footer-subscribe-subtitle {
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 13px;
+    line-height: 1.55;
     max-width: 34rem;
   }
 
@@ -37,20 +37,20 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 10px 22px;
+    padding: 10px 20px;
   }
 
   .footer-main {
-    padding-top: 28px;
+    padding-top: 22px;
     background-color: #0f1e32;
   }
 
   .footer-columns {
-    padding-bottom: 24px;
+    padding-bottom: 18px;
   }
 
   .footer-columns-grid {
-    gap: 14px;
+    gap: 10px;
   }
 
   .footer-col {
@@ -58,78 +58,78 @@
   }
 
   .footer-col--about {
-    padding: 20px;
+    padding: 17px;
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 18px;
+    border-radius: 16px;
     background: linear-gradient(145deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018));
-    box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+    box-shadow: 0 10px 26px rgba(0,0,0,0.10);
   }
 
   .footer-logo {
-    height: 40px;
-    margin-bottom: 14px;
+    height: 36px;
+    margin-bottom: 12px;
   }
 
   .footer-about-desc {
-    font-size: 14px;
-    line-height: 1.7;
-    margin-bottom: 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 12px;
   }
 
   .footer-contact-list {
-    gap: 6px;
-    margin-bottom: 18px;
+    gap: 4px;
+    margin-bottom: 14px;
   }
 
   .footer-contact-list li {
-    min-height: 44px;
-    gap: 10px;
+    min-height: 40px;
+    gap: 9px;
   }
 
   .footer-contact-icon {
-    width: 30px;
-    height: 30px;
-    flex: 0 0 30px;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     color: #17b7b4;
     background: rgba(2,158,157,0.12);
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .footer-contact-list a {
-    font-size: 14px;
+    font-size: 13px;
     overflow-wrap: anywhere;
   }
 
   .footer-trust-block {
-    padding-top: 14px;
+    padding-top: 10px;
   }
 
   .footer-trust-list {
-    gap: 4px;
+    gap: 2px;
   }
 
   .footer-trust-list li {
-    min-height: 38px;
-    font-size: 13px;
-    line-height: 1.45;
+    min-height: 34px;
+    font-size: 12px;
+    line-height: 1.4;
   }
 
   .footer-col:not(.footer-col--about) {
-    padding: 18px 18px 10px;
+    padding: 14px 16px 7px;
     border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 16px;
+    border-radius: 14px;
     background: rgba(255,255,255,0.025);
   }
 
   .footer-col-title {
-    font-size: 14px;
-    line-height: 1.25;
-    margin-bottom: 8px;
-    letter-spacing: 0.055em;
+    font-size: 13px;
+    line-height: 1.2;
+    margin-bottom: 5px;
+    letter-spacing: 0.045em;
   }
 
   .footer-col-links {
@@ -147,47 +147,35 @@
   }
 
   .footer-col-links li a {
-    min-height: 42px;
+    min-height: 38px;
     width: 100%;
     display: flex;
     align-items: center;
-    font-size: 14px;
-    line-height: 1.45;
-    padding: 8px 0;
+    font-size: 13px;
+    line-height: 1.4;
+    padding: 6px 0;
     overflow-wrap: anywhere;
   }
 
+  /* Mobile has one preferences model: country/language in the drawer and
+     currency in the quick-tools bar. Repeating the same selectors in the
+     footer adds length without helping the traveler. */
   .footer-locale-section {
-    padding: 18px 0;
-  }
-
-  .footer-locale-bar {
-    gap: 10px;
-  }
-
-  .footer-locale-item {
-    min-width: 0;
-    width: 100%;
-  }
-
-  /* Currency is already available in the persistent mobile header. Avoid
-     repeating the same preference in three different mobile locations. */
-  .footer-locale-item--currency {
     display: none;
   }
 
   .footer-bottom {
-    padding-top: 18px;
-    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+    padding-top: 16px;
+    padding-bottom: calc(26px + env(safe-area-inset-bottom, 0px));
   }
 
   .footer-bottom-inner {
-    gap: 14px;
+    gap: 12px;
   }
 
   .footer-copyright-text {
     font-size: 12px;
-    line-height: 1.55;
+    line-height: 1.5;
   }
 
   .footer-social a {
@@ -208,14 +196,14 @@
 
   .footer-col--about,
   .footer-col:not(.footer-col--about) {
-    border-radius: 14px;
+    border-radius: 13px;
   }
 
   .footer-col--about {
-    padding: 18px;
+    padding: 16px;
   }
 
   .footer-col:not(.footer-col--about) {
-    padding: 16px 16px 8px;
+    padding: 13px 14px 6px;
   }
 }

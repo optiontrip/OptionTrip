@@ -1,126 +1,105 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import PageMeta from '../hooks/usePageMeta';
+import './TravelBuddyPage.css';
 
 const features = [
-  { icon: 'fas fa-robot', title: 'Natural Conversations', desc: 'VI understands your travel preferences through natural conversation, just like talking to an expert travel advisor who knows you personally.' },
-  { icon: 'fas fa-route', title: 'Smart Itinerary Builder', desc: 'From flights to accommodations, VI builds a complete day-by-day itinerary tailored to your budget, pace, and interests.' },
-  { icon: 'fas fa-map-marked-alt', title: 'Real-Time Recommendations', desc: 'Get live suggestions for restaurants, attractions, and hidden gems based on your current location and travel style.' },
-  { icon: 'fas fa-language', title: 'Multilingual Support', desc: 'VI speaks 22+ languages, so you can plan your trip in your native language and communicate effortlessly worldwide.' },
-  { icon: 'fas fa-sync-alt', title: 'Adaptive Planning', desc: 'Change your plans mid-trip? VI adapts instantly, re-routing and re-scheduling so you never miss an experience.' },
-  { icon: 'fas fa-shield-alt', title: 'Safe Travel Insights', desc: 'VI monitors safety advisories, local regulations, and travel alerts to keep your journey smooth and secure.' },
+  { icon: 'fas fa-comments', title: 'Natural conversations', desc: 'Tell Vi what you want in normal language. Vi keeps the travel context and helps you turn an idea into a practical next step.' },
+  { icon: 'fas fa-route', title: 'Trip planning', desc: 'Build routes, compare travel options and organize the trip around your dates, budget, pace and interests.' },
+  { icon: 'fas fa-map-marked-alt', title: 'Help during the trip', desc: 'Use Vi for local ideas, nearby places, practical questions and changes while you are already traveling.' },
+  { icon: 'fas fa-language', title: 'Multilingual support', desc: 'Plan in the language that feels natural to you. Vi can follow the language you use in the conversation.' },
+  { icon: 'fas fa-sync-alt', title: 'Plans that can change', desc: 'Trips change. Vi can help adjust an itinerary, rethink a day or compare another route without starting over.' },
+  { icon: 'fas fa-compass', title: 'One travel ecosystem', desc: 'Flights, stays, cars, activities, trains, buses, transfers, city passes and other OptionTrip services stay connected.' },
 ];
 
 const steps = [
-  { num: '01', title: 'Tell VI Your Dream', desc: 'Describe your ideal trip — destination, dates, budget, and what excites you most.' },
-  { num: '02', title: 'VI Plans Everything', desc: 'VI instantly generates a personalized itinerary with flights, stays, and activities.' },
-  { num: '03', title: 'Refine Together', desc: 'Adjust any detail through conversation — VI updates your plan in real time.' },
-  { num: '04', title: 'Travel with Confidence', desc: 'Head out with a fully curated plan and VI by your side for on-the-go support.' },
+  { num: '01', title: 'Tell Vi what you need', desc: 'A destination, a rough idea or even just a budget is enough to start.' },
+  { num: '02', title: 'Compare the possibilities', desc: 'Vi helps narrow the options and points you to the right OptionTrip search or partner.' },
+  { num: '03', title: 'Refine the trip', desc: 'Change dates, priorities, pace or route and continue from the same travel context.' },
+  { num: '04', title: 'Keep Vi with you', desc: 'Come back before, during and after the trip when you need the next answer.' },
 ];
 
-const TravelBuddyPage = () => {
-  return (
-    <>
-      <PageMeta
-        title="Meet Vi — Your Personal Travel Partner"
-        description="Vi is your Travel Partner — plans your trips, packs your list, and helps you on the ground with local knowledge in 22+ languages."
-        keywords="AI travel assistant, travel buddy, AI concierge, Vi, personalized travel, AI trip planner"
-        path="/travel-buddy"
-      />
+const TravelBuddyPage = () => (
+  <div className="tb-page">
+    <PageMeta
+      title="Meet Vi - Your Personal Travel Partner"
+      description="Meet Vi, OptionTrip's personal travel partner for planning, comparing and navigating your trip across the OptionTrip travel ecosystem."
+      keywords="AI travel assistant, travel partner, Vi, trip planner, travel planning, OptionTrip"
+      path="/travel-buddy"
+    />
 
-      <div className="banner pt-10 pb-0 overflow-hidden" style={{ backgroundImage: `url(/images/bg/bg2.jpg)` }}>
-        <div className="container">
-          <div className="banner-in">
-            <div className="row align-items-center">
-              <div className="col-lg-12 mb-4">
-                <div className="banner-content text-center">
-                  <h4 className="theme mb-0" style={{ color: '#fdc703', textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>Meet VI</h4>
-                  <h1 style={{ color: 'rgb(255 255 255 / 85%)', textShadow: '0 3px 12px rgba(0,0,0,0.5)' }}>Your Personal TravelBuddy</h1>
-                  <p className="mb-4" style={{ color: 'rgba(255,255,255,0.9)', textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>VI is Option Trip's intelligent Travel Partner — designed to plan, guide, and inspire your every journey.</p>
-                  <Link to="/" className="btn-main">Start Planning with Travel Partner Vi</Link>
-                </div>
-              </div>
-            </div>
+    <section className="tb-hero" style={{ backgroundImage: 'url(/images/bg/bg2.jpg)' }}>
+      <div className="container">
+        <div className="tb-hero__content">
+          <span className="tb-eyebrow"><i className="fas fa-plane" aria-hidden="true" /> Meet Vi</span>
+          <h1>Your Personal Travel Partner</h1>
+          <p>Vi is OptionTrip's intelligent travel partner, built to help you plan, compare, decide and keep moving throughout the whole trip.</p>
+          <Link to="/" className="tb-primary-cta">Start planning with Vi <i className="fas fa-arrow-right" aria-hidden="true" /></Link>
+        </div>
+      </div>
+    </section>
+
+    <section className="tb-section">
+      <div className="container">
+        <div className="tb-intro-grid">
+          <div className="tb-intro-visual">
+            <img src="/images/illu1.png" alt="Illustration of travel planning with Vi" loading="lazy" />
+          </div>
+          <div className="tb-intro-copy">
+            <p className="tb-kicker">WHY VI</p>
+            <h2>Travel planning that stays with you</h2>
+            <p>Vi is more than a one-time itinerary generator. The goal is to connect inspiration, search, booking options, preparation and help on the road in one continuous OptionTrip experience.</p>
+            <p>Start with as much or as little information as you have. Vi can help you decide what to do next and move you into the right travel service when you are ready.</p>
           </div>
         </div>
       </div>
+    </section>
 
-
-      <section style={{ padding: '80px 0', background: '#fff' }}>
-        <div className="container">
-          <div className="row align-items-center g-5">
-            <div className="col-lg-6">
-              <img src="/images/illu1.png" alt="VI TravelBuddy" style={{ width: '100%', borderRadius: '16px' }} />
-            </div>
-            <div className="col-lg-6">
-              <h4 style={{ color: '#029e9d', marginBottom: '8px' }}>Why VI?</h4>
-              <h2 style={{ color: '#17233e', marginBottom: '20px' }}>Travel Planning Reimagined by Vi</h2>
-              <p style={{ color: '#777', lineHeight: '1.8', marginBottom: '20px' }}>
-                VI — short for <strong>Virtual Intelligence</strong> — is not just a chatbot. It's a comprehensive travel companion that learns your preferences, anticipates your needs, and crafts journeys that feel truly yours.
-              </p>
-              <p style={{ color: '#777', lineHeight: '1.8' }}>
-                Powered by advanced language models and real-time travel data, VI delivers personalized recommendations that traditional travel agencies simply cannot match.
-              </p>
-            </div>
-          </div>
+    <section className="tb-section tb-section--soft">
+      <div className="container">
+        <div className="tb-section-heading">
+          <p className="tb-kicker">CAPABILITIES</p>
+          <h2>What Vi can help you do</h2>
+          <p>Useful help before the trip, while you travel and when plans change.</p>
         </div>
-      </section>
-
-
-      <section style={{ padding: '80px 0', background: '#f8f9fa' }}>
-        <div className="container">
-          <div className="text-center mb-5">
-            <h4 style={{ color: '#029e9d', marginBottom: '8px' }}>Capabilities</h4>
-            <h2 style={{ color: '#17233e' }}>What VI Can Do for You</h2>
-            <p style={{ color: '#777', maxWidth: '600px', margin: '0 auto' }}>From first inspiration to final destination, VI is with you every step of the way.</p>
-          </div>
-          <div className="row g-4">
-            {features.map((f, i) => (
-              <div className="col-lg-4 col-md-6" key={i}>
-                <div style={{ background: '#fff', borderRadius: '16px', padding: '36px 28px', height: '100%', boxShadow: '0 4px 24px rgba(2,158,157,0.08)' }}>
-                  <div style={{ width: '60px', height: '60px', borderRadius: '14px', background: 'linear-gradient(135deg, #0A539D, #029e9d)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
-                    <i className={f.icon} style={{ color: '#fff', fontSize: '24px' }}></i>
-                  </div>
-                  <h5 style={{ color: '#17233e', marginBottom: '12px' }}>{f.title}</h5>
-                  <p style={{ color: '#777', lineHeight: '1.7', margin: 0 }}>{f.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="tb-features">
+          {features.map(feature => (
+            <article className="tb-feature" key={feature.title}>
+              <div className="tb-feature__icon"><i className={feature.icon} aria-hidden="true" /></div>
+              <h3>{feature.title}</h3>
+              <p>{feature.desc}</p>
+            </article>
+          ))}
         </div>
-      </section>
+      </div>
+    </section>
 
-
-      <section style={{ padding: '80px 0', background: '#fff' }}>
-        <div className="container">
-          <div className="text-center mb-5">
-            <h4 style={{ color: '#029e9d', marginBottom: '8px' }}>Simple Process</h4>
-            <h2 style={{ color: '#17233e' }}>How to Travel with VI</h2>
-          </div>
-          <div className="row g-4">
-            {steps.map((s, i) => (
-              <div className="col-lg-3 col-md-6" key={i}>
-                <div style={{ textAlign: 'center', padding: '20px' }}>
-                  <div style={{ fontSize: '48px', fontWeight: '800', color: '#029e9d', opacity: 0.2, lineHeight: 1, marginBottom: '12px' }}>{s.num}</div>
-                  <h5 style={{ color: '#17233e', marginBottom: '12px' }}>{s.title}</h5>
-                  <p style={{ color: '#777', lineHeight: '1.7', margin: 0 }}>{s.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+    <section className="tb-section">
+      <div className="container">
+        <div className="tb-section-heading">
+          <p className="tb-kicker">HOW IT WORKS</p>
+          <h2>A simple travel flow</h2>
         </div>
-      </section>
-
-
-      <section style={{ padding: '80px 0', background: 'linear-gradient(135deg, #0A539D 0%, #029e9d 100%)', textAlign: 'center' }}>
-        <div className="container">
-          <h2 style={{ color: '#fff', marginBottom: '16px' }}>Ready to Travel Smarter?</h2>
-          <p style={{ color: 'rgba(255,255,255,0.85)', marginBottom: '32px', fontSize: '18px' }}>Let VI plan your next adventure — personalized, effortless, and unforgettable.</p>
-          <Link to="/" className="btn-white">Start Your Journey</Link>
+        <div className="tb-steps">
+          {steps.map(step => (
+            <article className="tb-step" key={step.num}>
+              <div className="tb-step__num">{step.num}</div>
+              <h3>{step.title}</h3>
+              <p>{step.desc}</p>
+            </article>
+          ))}
         </div>
-      </section>
-    </>
-  );
-};
+      </div>
+    </section>
+
+    <section className="tb-cta">
+      <div className="container">
+        <h2>Ready to plan your next trip?</h2>
+        <p>Start with the search you need now, or use Vi when you want help deciding what comes next.</p>
+        <Link to="/" className="tb-secondary-cta">Start on OptionTrip</Link>
+      </div>
+    </section>
+  </div>
+);
 
 export default TravelBuddyPage;

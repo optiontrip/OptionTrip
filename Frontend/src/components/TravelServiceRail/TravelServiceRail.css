@@ -183,43 +183,84 @@
 .tsr__vi:hover { color: #fff; background: #074683; }
 
 @media (max-width: 767px) {
+  .tsr {
+    box-shadow: none;
+    background: rgba(255,255,255,.99);
+  }
+
   .tsr__inner {
-    display: flex;
-    justify-content: flex-end;
-    min-height: 50px;
-    padding-top: 5px;
-    padding-bottom: 5px;
-  }
-
-  /* The full service catalog already lives in the mobile drawer and on the
-     homepage. Repeating it as a clipped horizontal strip competes with the
-     menu, currency and Vi controls, so mobile keeps only the two quick actions. */
-  .tsr__brand,
-  .tsr__scroll {
-    display: none;
-  }
-
-  .tsr__actions {
-    width: 100%;
-    justify-content: flex-end;
+    display: grid;
+    grid-template-columns: minmax(0,1fr) auto;
+    align-items: center;
     gap: 8px;
+    min-height: 46px;
+    padding-top: 4px;
+    padding-bottom: 4px;
   }
 
+  /* Mobile gets a compact quick-tools bar. The full service catalog remains
+     in the drawer and on /services instead of a clipped horizontal carousel. */
+  .tsr__scroll { display: none; }
+
+  .tsr__brand {
+    min-width: 0;
+    gap: 8px;
+    padding-right: 0;
+    border-right: 0;
+  }
+
+  .tsr__brand-mark {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    border-radius: 10px;
+  }
+
+  .tsr__brand-copy strong { display: none; }
+  .tsr__brand-copy small {
+    margin: 0;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .tsr__actions { gap: 7px; }
   .tsr__currency {
-    min-width: 76px;
-    min-height: 40px;
+    min-width: 72px;
+    min-height: 38px;
     justify-content: center;
-    padding: 5px 10px;
+    padding: 5px 9px;
   }
-
   .tsr__currency-copy small { display: none; }
   .tsr__currency-copy strong { margin-top: 0; font-size: 12px; }
   .tsr__currency-icon { font-size: 14px; }
-  .tsr__vi { min-height: 40px; padding: 8px 12px; }
+
+  .tsr__vi {
+    width: 38px;
+    height: 38px;
+    min-height: 38px;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .tsr__vi span { display: none; }
 }
 
-@media (max-width: 420px) {
-  .tsr__vi span { display: none; }
-  .tsr__vi { width: 40px; height: 40px; justify-content: center; padding: 0; }
-  .tsr__currency { min-width: 70px; }
+@media (max-width: 390px) {
+  .tsr__inner { gap: 6px; }
+  .tsr__brand-copy small { font-size: 11px; }
+  .tsr__currency { min-width: 66px; padding-inline: 7px; }
 }
+
+[data-theme="dark"] .tsr {
+  background: rgba(20,31,48,.98);
+  border-bottom-color: rgba(255,255,255,.07);
+}
+[data-theme="dark"] .tsr__brand-copy small,
+[data-theme="dark"] .tsr__brand-copy strong { color: #e5edf5; }
+[data-theme="dark"] .tsr__currency {
+  background: rgba(255,255,255,.06);
+  color: #f4f7fa;
+  border-color: rgba(255,255,255,.12);
+}
+[data-theme="dark"] .tsr__currency-copy strong { color: #f4f7fa; }
