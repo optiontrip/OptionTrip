@@ -20,11 +20,21 @@ export const getTravelInventoryStatus = () => ({
   verticals: SUPPORTED_VERTICALS.map(vertical => {
     const liveProviders = getConfiguredProviders(vertical);
     const candidates = providersForVertical(vertical);
+    const liveDetails = candidates.filter(item => item?.configured);
+    const bookingOptions = liveDetails
+      .filter(item => item.bookingUrl)
+      .map(item => ({
+        provider: item.provider,
+        url: item.bookingUrl,
+        integration: item.integration,
+      }));
+
     return {
       vertical,
       providers: liveProviders,
       filters: getConfiguredFilterCapabilities(vertical),
       live: liveProviders.length > 0,
+      bookingOptions,
       candidates,
       missingProvider: candidates.length === 0,
     };
@@ -33,8 +43,8 @@ export const getTravelInventoryStatus = () => ({
 });
 
 // Public status intentionally omits credential names and provider notes. The UI
-// receives only operational provider labels and filter capabilities that are live
-// right now, so it can avoid rendering dead controls.
+// receives only operational provider labels, safe HTTPS partner URLs and filter
+// capabilities that are live right now, so it can avoid rendering dead controls.
 export const getPublicTravelInventoryStatus = () => {
   const status = getTravelInventoryStatus();
   return {
@@ -43,6 +53,7 @@ export const getPublicTravelInventoryStatus = () => {
       vertical: item.vertical,
       live: item.live,
       providers: item.providers,
+      bookingOptions: item.bookingOptions,
       filters: item.filters,
       hasCandidates: item.candidates.length > 0,
     })),
@@ -55,6 +66,7 @@ export const getTravelInventoryGaps = () => getTravelInventoryStatus().verticals
     vertical: vertical.vertical,
     candidateProviders: vertical.candidates.map(candidate => candidate.provider),
     missingCredentials: [...new Set(vertical.candidates.flatMap(candidate => candidate.missingCredentials))],
+    missingDirectUrl: vertical.candidates.some(candidate => candidate.missingDirectUrl),
     missingProvider: vertical.missingProvider,
   }));
 
