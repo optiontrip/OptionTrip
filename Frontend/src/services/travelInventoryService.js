@@ -4,11 +4,14 @@ let cached = null;
 let cachedAt = 0;
 const CACHE_MS = 5 * 60 * 1000;
 
-export const fetchTravelInventoryStatus = async ({ force = false } = {}) => {
-  if (!force && cached && Date.now() - cachedAt < CACHE_MS) return cached;
+export const fetchTravelInventoryStatus = async ({ force = false, refreshPartners = false } = {}) => {
+  if (!force && !refreshPartners && cached && Date.now() - cachedAt < CACHE_MS) return cached;
 
   try {
-    const response = await fetch(`${API_BASE}/api/travel-inventory`, {
+    const params = new URLSearchParams();
+    if (refreshPartners) params.set('refreshPartners', '1');
+    const query = params.toString();
+    const response = await fetch(`${API_BASE}/api/travel-inventory${query ? `?${query}` : ''}`, {
       headers: { Accept: 'application/json' },
       credentials: 'include',
     });
@@ -21,7 +24,7 @@ export const fetchTravelInventoryStatus = async ({ force = false } = {}) => {
   } catch {
     // Provider readiness must never break navigation. Static catalog behavior is
     // the safe fallback if the backend is unreachable.
-    return {};
+    return cached || {};
   }
 };
 
@@ -35,7 +38,7 @@ const providerCount = vertical => {
   const optionProviders = options.map(option => option?.provider).filter(Boolean);
   const liveProviders = providers
     .filter(provider => provider?.configured !== false && provider?.live !== false)
-    .map(provider => provider?.provider || provider?.id || provider?.name)
+    .map(provider => provider?.provider || provider?.id || provider?.name || provider)
     .filter(Boolean);
   return new Set([...optionProviders, ...liveProviders]).size;
 };

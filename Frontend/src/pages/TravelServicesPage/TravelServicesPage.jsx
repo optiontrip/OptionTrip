@@ -14,19 +14,19 @@ const COPY = {
   en: {
     eyebrow: 'OPTIONTRIP TRAVEL SERVICES', title: 'What do you need for your trip?', intro: 'Choose one service and continue from the same place. OptionTrip keeps your selection visible and never makes you start the booking flow again.',
     plan: 'Plan my whole trip with Vi', trips: 'My trips', trustTitle: 'One choice. One clear next step.', trust: 'Direct services open their OptionTrip search. Partner services let you compare live booking partners here first, then hand you off only for the final booking step.',
-    direct: 'Search & book', partner: 'Compare partners', guided: 'Continue with Vi', selected: 'You selected', selectedIntro: 'Continue with this service. You will not be sent back to the beginning.', change: 'Choose another service',
+    direct: 'Search & book', partner: 'Compare partners', guided: 'Continue with Vi', checking: 'Checking live partners…', selected: 'You selected', selectedIntro: 'Continue with this service. You will not be sent back to the beginning.', change: 'Choose another service',
     compareTitle: 'Compare live booking partners', compareIntro: 'These partner links are available right now. Choose the provider you want only when you are ready to continue booking.', openPartner: 'Continue to provider',
   },
   ru: {
     eyebrow: 'Сервисы OptionTrip', title: 'Что вам нужно для поездки?', intro: 'Выберите один сервис и продолжайте с этого же места. OptionTrip сохраняет ваш выбор и больше не заставляет начинать бронирование заново.',
     plan: 'Спланировать всю поездку с Vi', trips: 'Мои поездки', trustTitle: 'Один выбор - один понятный следующий шаг.', trust: 'Собственные сервисы открывают поиск OptionTrip. Для партнерских услуг сначала можно сравнить доступные варианты здесь и только затем перейти к партнеру для финального бронирования.',
-    direct: 'Найти и забронировать', partner: 'Сравнить партнеров', guided: 'Продолжить с Vi', selected: 'Вы выбрали', selectedIntro: 'Продолжайте с этой услугой. Возвращаться к началу больше не нужно.', change: 'Выбрать другую услугу',
+    direct: 'Найти и забронировать', partner: 'Сравнить партнеров', guided: 'Продолжить с Vi', checking: 'Проверяем доступных партнеров…', selected: 'Вы выбрали', selectedIntro: 'Продолжайте с этой услугой. Возвращаться к началу больше не нужно.', change: 'Выбрать другую услугу',
     compareTitle: 'Сравните доступных партнеров', compareIntro: 'Здесь показаны партнеры, у которых сейчас настроен рабочий переход к бронированию. Выберите нужного только когда будете готовы продолжить.', openPartner: 'Перейти к партнеру',
   },
   uk: {
     eyebrow: 'Сервіси OptionTrip', title: 'Що вам потрібно для подорожі?', intro: 'Оберіть один сервіс і продовжуйте з цього ж місця. OptionTrip зберігає ваш вибір і не змушує починати бронювання знову.',
     plan: 'Спланувати всю подорож з Vi', trips: 'Мої подорожі', trustTitle: 'Один вибір - один зрозумілий наступний крок.', trust: 'Власні сервіси відкривають пошук OptionTrip. Для партнерських послуг спочатку можна порівняти доступні варіанти тут і лише потім перейти до партнера для фінального бронювання.',
-    direct: 'Знайти й забронювати', partner: 'Порівняти партнерів', guided: 'Продовжити з Vi', selected: 'Ви обрали', selectedIntro: 'Продовжуйте з цією послугою. Повертатися на початок більше не потрібно.', change: 'Обрати іншу послугу',
+    direct: 'Знайти й забронювати', partner: 'Порівняти партнерів', guided: 'Продовжити з Vi', checking: 'Перевіряємо доступних партнерів…', selected: 'Ви обрали', selectedIntro: 'Продовжуйте з цією послугою. Повертатися на початок більше не потрібно.', change: 'Обрати іншу послугу',
     compareTitle: 'Порівняйте доступних партнерів', compareIntro: 'Тут показані партнери, для яких зараз доступний робочий перехід до бронювання. Оберіть потрібного, коли будете готові продовжити.', openPartner: 'Перейти до партнера',
   },
 };
@@ -48,6 +48,7 @@ const PROVIDER_LABELS = {
   economybookings: 'EconomyBookings',
   localrent: 'Localrent',
   getrentacar: 'GetRentacar.com',
+  autoeurope: 'Auto Europe',
   yesim: 'Yesim',
   airalo_affiliate: 'Airalo',
   drimsim: 'Drimsim',
@@ -68,8 +69,9 @@ const providerLabel = provider => PROVIDER_LABELS[provider] || String(provider |
   .map(part => part.charAt(0).toUpperCase() + part.slice(1))
   .join(' ');
 
-const statusLabel = (state, copy) => {
+const statusLabel = (state, copy, loading = false) => {
   if (state?.direct) return copy.direct;
+  if (loading) return copy.checking;
   if (state?.external && state?.bookingUrl) return copy.partner;
   return copy.guided;
 };
@@ -85,6 +87,7 @@ export default function TravelServicesPage() {
   const labels = getTravelServiceLabels(language);
   const copy = COPY[language] || COPY.en;
   const [inventory, setInventory] = useState({});
+  const [inventoryLoading, setInventoryLoading] = useState(true);
 
   const selectedId = useMemo(() => new URLSearchParams(location.search).get('service'), [location.search]);
   const selectedService = TRAVEL_SERVICES.find(service => service.id === selectedId);
@@ -92,8 +95,11 @@ export default function TravelServicesPage() {
 
   useEffect(() => {
     let active = true;
-    fetchTravelInventoryStatus({ force: true }).then(data => {
-      if (active) setInventory(data);
+    setInventoryLoading(true);
+    fetchTravelInventoryStatus({ force: true, refreshPartners: true }).then(data => {
+      if (!active) return;
+      setInventory(data);
+      setInventoryLoading(false);
     });
     return () => { active = false; };
   }, []);
@@ -117,6 +123,7 @@ export default function TravelServicesPage() {
   const selectedState = selectedService ? getInventoryStateForService(selectedService, inventory) : null;
   const selectedVertical = selectedService?.inventoryVertical ? inventory[selectedService.inventoryVertical] : null;
   const selectedBookingOptions = safeBookingOptions(selectedVertical);
+  const selectedNeedsInventory = Boolean(selectedService?.inventoryVertical && !selectedState?.direct);
   const serviceLabel = service => getTravelServiceDisplayLabel(service, language, labels);
   const toggleMobileGroup = groupId => {
     setOpenMobileGroups(current => {
@@ -163,13 +170,20 @@ export default function TravelServicesPage() {
             </Link>
           )}
 
-          {!selectedState?.direct && selectedBookingOptions.length === 0 && (
+          {inventoryLoading && selectedNeedsInventory && (
+            <div className="travel-services-selected__checking" role="status">
+              <span className="travel-services-selected__spinner" aria-hidden="true" />
+              <span>{copy.checking}</span>
+            </div>
+          )}
+
+          {!inventoryLoading && !selectedState?.direct && selectedBookingOptions.length === 0 && (
             <Link to={viRoute(selectedService)} className="nir-btn travel-services-selected__cta">
               {copy.guided} <i className="fa fa-arrow-right" aria-hidden="true" />
             </Link>
           )}
 
-          {selectedBookingOptions.length > 0 && (
+          {!inventoryLoading && selectedBookingOptions.length > 0 && (
             <div className="travel-services-selected__providers">
               <div className="travel-services-selected__providers-head">
                 <strong>{copy.compareTitle}</strong>
@@ -230,6 +244,7 @@ export default function TravelServicesPage() {
                 {group.services.map(service => {
                   const state = getInventoryStateForService(service, inventory);
                   const target = state.direct && service.route ? service.route : serviceHubRoute(service, group.id);
+                  const checkingService = inventoryLoading && Boolean(service.inventoryVertical) && !state.direct;
                   return (
                     <Link
                       key={service.id}
@@ -238,7 +253,7 @@ export default function TravelServicesPage() {
                     >
                       <span className="travel-service-icon" aria-hidden="true"><i className={`fa ${service.icon}`} /></span>
                       <span className="travel-service-copy"><strong>{serviceLabel(service)}</strong></span>
-                      <span className="travel-service-status">{statusLabel(state, copy)} <i className="fa fa-arrow-right" aria-hidden="true" /></span>
+                      <span className="travel-service-status">{statusLabel(state, copy, checkingService)} <i className="fa fa-arrow-right" aria-hidden="true" /></span>
                     </Link>
                   );
                 })}
