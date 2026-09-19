@@ -7,11 +7,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const baseAirports = JSON.parse(
   readFileSync(join(__dirname, '../data/airports.json'), 'utf-8')
 );
-
-const supplementalAirports = [
-  { iata: 'BEG', name: 'Belgrade Nikola Tesla Airport', city: 'Belgrade', country: 'Serbia', lat: 44.8184, lng: 20.3091 },
-  { iata: 'INI', name: 'Niš Constantine the Great Airport', city: 'Niš', country: 'Serbia', lat: 43.3373, lng: 21.8537 },
-];
+const supplementalAirports = JSON.parse(
+  readFileSync(join(__dirname, '../data/airports.supplemental.json'), 'utf-8')
+);
 
 const existingCodes = new Set(baseAirports.map(a => a.iata?.toUpperCase()).filter(Boolean));
 const airports = [
@@ -22,9 +20,11 @@ const airports = [
 const normalize = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
 // Provider/source datasets still use a few legacy English country names.
-// Explicit canonical overrides also win when historical codes share a modern name.
+// Explicit canonical overrides also win when historical/non-ISO display names
+// need to map into the application's two-letter country contract.
 const COUNTRY_CODE_OVERRIDES = new Map([
   ['serbia', 'RS'],
+  ['kosovo', 'XK'],
   ['czech republic', 'CZ'],
   ['south korea', 'KR'],
   ['north korea', 'KP'],
