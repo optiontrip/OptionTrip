@@ -51,11 +51,15 @@ jobs:
         working-directory: Backend
         run: npm run test:partner-links
 
+      - name: Site and travel-service integrity checks
+        working-directory: Backend
+        run: npm run test:site-services
+
       - name: Deployment affiliate reporter check
         run: |
-          printf '%s' '{"verticals":[{"vertical":"bus","live":true,"bookingOptions":[{"provider":"twelve_go","url":"https://example.test"}]},{"vertical":"city_passes","live":true,"bookingOptions":[{"provider":"go_city","url":"https://example.test"}]}]}' | node Backend/scripts/printAffiliateInventory.mjs | tee /tmp/affiliate-status.txt
-          grep -q 'affiliate-status bus: live=true bookingProviders=twelve_go' /tmp/affiliate-status.txt
-          grep -q 'affiliate-status city_passes: live=true bookingProviders=go_city' /tmp/affiliate-status.txt
+          printf '%s' '{"verticals":[{"vertical":"bus","live":true,"providers":["twelve_go"],"bookingOptions":[{"provider":"twelve_go","url":"https://example.test"}]},{"vertical":"city_passes","live":true,"providers":["go_city"],"bookingOptions":[{"provider":"go_city","url":"https://example.test"}]}]}' | node Backend/scripts/printAffiliateInventory.mjs | tee /tmp/affiliate-status.txt
+          grep -q 'affiliate-status bus: live=true liveProviders=twelve_go bookingProviders=twelve_go' /tmp/affiliate-status.txt
+          grep -q 'affiliate-status city_passes: live=true liveProviders=go_city bookingProviders=go_city' /tmp/affiliate-status.txt
 
       - name: Travel news runner checks
         working-directory: Backend
