@@ -197,7 +197,7 @@ const MonthGrid = ({
     <p className="tdp-flex-hint">
       {hintText || (mode === 'range'
         ? (selectedStart ? `Departure: ${format(selectedStart, 'MMMM yyyy')} - now choose a return month` : 'Select a departure month')
-        : 'Select a travel month')}
+        : 'Choose a month to compare daily prices or search the whole month')}
     </p>
     {routePriced && (
       <p className="tdp-month-price-note">Indicative fares from current partner data. Live price is rechecked before booking.</p>
@@ -321,20 +321,6 @@ const TripDatePicker = ({
     setOpen(false);
   };
 
-  const handleWholeMonthClick = (month) => {
-    if (mode === 'single') {
-      applyWholeMonth(month);
-      return;
-    }
-    if (!wholeStart) {
-      setWholeStart(month);
-      return;
-    }
-    const start = isBefore(month, wholeStart) ? month : wholeStart;
-    const end = isBefore(month, wholeStart) ? wholeStart : month;
-    applyWholeMonth(start, end);
-  };
-
   const handleRangeChange = (item) => {
     const sel = item.selection;
     setRange([sel]);
@@ -365,6 +351,21 @@ const TripDatePicker = ({
     }
   };
 
+  const handleWholeMonthClick = async (month) => {
+    if (mode === 'single') {
+      setFlexView('calendar');
+      await loadMonthlyPrices(month);
+      return;
+    }
+    if (!wholeStart) {
+      setWholeStart(month);
+      return;
+    }
+    const start = isBefore(month, wholeStart) ? month : wholeStart;
+    const end = isBefore(month, wholeStart) ? wholeStart : month;
+    applyWholeMonth(start, end);
+  };
+
   const loadMonthSummaries = useCallback(async () => {
     const requestId = ++summaryRequestRef.current;
     setMonthSummaries({});
@@ -375,8 +376,6 @@ const TripDatePicker = ({
     MONTHS.forEach(month => { initialLoading[format(month, 'yyyy-MM')] = true; });
     setSummaryLoading(initialLoading);
 
-    // Use small batches so the UI becomes useful quickly without hammering the
-    // monthly-price provider with twelve simultaneous calls.
     for (let offset = 0; offset < MONTHS.length; offset += 3) {
       const batch = MONTHS.slice(offset, offset + 3);
       const rows = await Promise.all(batch.map(async month => {
@@ -406,26 +405,9 @@ const TripDatePicker = ({
   }, [origin, destination]);
 
   useEffect(() => {
-    if (open && dateMode === 'whole-month') loadMonthSummaries();
+    if (open && dateMode === 'whole-month' && flexView === 'months') loadMonthSummaries();
     return () => { summaryRequestRef.current += 1; };
-  }, [open, dateMode, loadMonthSummaries]);
-
-  const handleMonthClick = async (month) => {
-    setFlexView('calendar');
-    await loadMonthlyPrices(month);
-  };
-
-  const handleFlexibleWholeMonth = (month) => {
-    if (mode === 'single') {
-      applyWholeMonth(month);
-      return;
-    }
-    setWholeStart(month);
-    setDateMode('whole-month');
-    setFlexView('months');
-    setFlexMonth(null);
-    setMonthPrices({});
-  };
+  }, [open, dateMode, flexView, loadMonthSummaries]);
 
   const repositionPopup = useCallback(() => {
     if (!open || !triggerRef.current || typeof window === 'undefined') return;
@@ -534,9 +516,8 @@ const TripDatePicker = ({
       {open && createPortal(
         <div className="tdp-popup" ref={popupRef} style={{ top: popupPos.top, left: popupPos.left }}>
           <div className="tdp-tabs" role="tablist" aria-label="Flight date search mode">
-            <button type="button" className={`tdp-tab${dateMode === 'specific' ? ' tdp-tab--active' : ''}`} onClick={() => setDateMode('specific')}>Specific dates</button>
-            <button type="button" className={`tdp-tab${dateMode === 'whole-month' ? ' tdp-tab--active' : ''}`} onClick={() => { setDateMode('whole-month'); setWholeStart(null); }}>Whole month</button>
-            <button type="button" className={`tdp-tab${dateMode === 'flexible' ? ' tdp-tab--active' : ''}`} onClick={() => { setDateMode('flexible'); setFlexView('months'); }}>Flexible dates</button>
+            <button type="button" className={`tdp-tab${dateMode === 'specific' ? ' tdp-tab--active' : ''}`} onClick={() => { setDateMode('specific'); setFlexView('months'); }}>Specific dates</button>
+            <button type="button" className={`tdp-tab${dateMode === 'whole-month' ? ' tdp-tab--active' : ''}`} onClick={() => { setDateMode('whole-month'); setWholeStart(null); setFlexView('months'); setFlexMonth(null); setMonthPrices({}); }}>Whole month</button>
           </div>
 
           {dateMode === 'specific' && (
@@ -560,54 +541,47 @@ const TripDatePicker = ({
 
           {dateMode === 'whole-month' && (
             <>
-              <div className="tdp-month-mode-intro">
-                <strong>Search the whole month</strong>
-                <span>No exact date required. Compare the cheapest available fares across the selected month.</span>
-              </div>
-              <MonthGrid
-                mode={mode}
-                selectedStart={wholeStart}
-                onMonthClick={handleWholeMonthClick}
-                monthSummaries={monthSummaries}
-                summaryLoading={summaryLoading}
-                formatPrice={formatPrice}
-                cheapestMonthKey={cheapestMonthKey}
-                routePriced={hasPriceRoute}
-              />
-              <div className="tdp-footer">
-                {mode === 'range' && wholeStart && (
-                  <span className="tdp-footer__nights">Departure: {format(wholeStart, 'MMMM yyyy')} - choose a return month</span>
-                )}
-                {hasPriceRoute && cheapestMonthKey && !wholeStart && (
-                  <span className="tdp-footer__nights">Cheapest currently found: {format(new Date(`${cheapestMonthKey}-01T00:00:00`), 'MMMM yyyy')}</span>
-                )}
-                <button className="tdp-btn tdp-btn--cancel" onClick={() => setOpen(false)}>Cancel</button>
-              </div>
-            </>
-          )}
-
-          {dateMode === 'flexible' && (
-            <>
-              {flexView === 'months' ? (
-                <MonthGrid mode="single" hintText="Choose a month to see daily prices. You can still search that entire month without choosing a day." onMonthClick={handleMonthClick} />
-              ) : (
+              {mode === 'single' && flexView === 'calendar' ? (
                 <PriceCalendar
                   month={flexMonth}
                   prices={monthPrices}
                   loading={pricesLoading}
                   minDate={minD}
                   maxDate={maxD}
-                  mode={mode}
+                  mode="single"
                   formatPrice={formatPrice}
                   onSelect={(s, e) => apply(s, e)}
-                  onWholeMonth={handleFlexibleWholeMonth}
+                  onWholeMonth={(month) => applyWholeMonth(month)}
                   onMonthChange={loadMonthlyPrices}
                   onBack={() => { setFlexView('months'); setFlexMonth(null); setMonthPrices({}); }}
                 />
+              ) : (
+                <>
+                  <div className="tdp-month-mode-intro">
+                    <strong>Search the whole month</strong>
+                    <span>No exact date required. Compare the cheapest available fares by month, then open a month to see daily prices or search all of it.</span>
+                  </div>
+                  <MonthGrid
+                    mode={mode}
+                    selectedStart={wholeStart}
+                    onMonthClick={handleWholeMonthClick}
+                    monthSummaries={monthSummaries}
+                    summaryLoading={summaryLoading}
+                    formatPrice={formatPrice}
+                    cheapestMonthKey={cheapestMonthKey}
+                    routePriced={hasPriceRoute}
+                  />
+                </>
               )}
               <div className="tdp-footer">
-                {flexView === 'calendar' && !pricesLoading && Object.keys(monthPrices).length > 0 && (
+                {mode === 'single' && flexView === 'calendar' && !pricesLoading && Object.keys(monthPrices).length > 0 && (
                   <span className="tdp-footer__nights"><span className="tdp-legend tdp-legend--cheap" /> Cheapest &nbsp;<span className="tdp-legend tdp-legend--pricey" /> More expensive</span>
+                )}
+                {mode === 'range' && wholeStart && (
+                  <span className="tdp-footer__nights">Departure: {format(wholeStart, 'MMMM yyyy')} - choose a return month</span>
+                )}
+                {flexView === 'months' && hasPriceRoute && cheapestMonthKey && !wholeStart && (
+                  <span className="tdp-footer__nights">Cheapest currently found: {format(new Date(`${cheapestMonthKey}-01T00:00:00`), 'MMMM yyyy')}</span>
                 )}
                 <button className="tdp-btn tdp-btn--cancel" onClick={() => setOpen(false)}>Cancel</button>
               </div>
