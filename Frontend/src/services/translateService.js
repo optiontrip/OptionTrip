@@ -1,4 +1,4 @@
-import { getCuratedTranslation } from './curatedTranslations';
+import { getCuratedTranslation } from './curatedTranslations.js';
 
 const GOOGLE_URL = 'https://translate.googleapis.com/translate_a/single';
 const LS_KEY = 'ot_translate_cache';
