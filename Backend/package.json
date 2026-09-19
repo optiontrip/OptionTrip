@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:locations": "node scripts/checkLocationResolver.mjs",
+    "test:cars": "node scripts/checkCarRentalRouting.mjs",
     "test:vi-marketplace": "node scripts/checkViMarketplaceRouting.mjs",
     "test:partner-routing": "node scripts/checkPartnerBookingRouting.mjs",
     "test:partner-links": "node scripts/checkTravelpayoutsPartnerLinks.mjs",
