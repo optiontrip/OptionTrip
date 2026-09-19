@@ -1,8 +1,51 @@
 const hasEnv = (...names) => names.every(name => Boolean(process.env[name]));
 
-const provider = ({ verticals, credentialEnv = [], access = 'credentials', notes = null, integration = 'api', liveByDefault = false }) => ({
-  verticals, credentialEnv, access, notes, integration, liveByDefault,
-  enabled: () => liveByDefault || (credentialEnv.length > 0 && hasEnv(...credentialEnv)),
+const normalizePublicBookingUrl = value => {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:') return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+};
+
+const provider = ({
+  verticals,
+  credentialEnv = [],
+  directUrlEnv = null,
+  access = 'credentials',
+  notes = null,
+  integration = 'api',
+  liveByDefault = false,
+}) => {
+  const bookingUrl = () => directUrlEnv
+    ? normalizePublicBookingUrl(process.env[directUrlEnv])
+    : null;
+
+  return {
+    verticals,
+    credentialEnv,
+    directUrlEnv,
+    access,
+    notes,
+    integration,
+    liveByDefault,
+    bookingUrl,
+    enabled: () => liveByDefault
+      || Boolean(bookingUrl())
+      || (credentialEnv.length > 0 && hasEnv(...credentialEnv)),
+  };
+};
+
+const affiliate = ({ verticals, directUrlEnv, notes = null }) => provider({
+  verticals,
+  directUrlEnv,
+  access: 'affiliate_link',
+  integration: 'affiliate',
+  notes,
 });
 
 // Only declare filters that OptionTrip can actually honor with normalized data from
@@ -31,38 +74,39 @@ export const TRAVEL_PROVIDER_REGISTRY = Object.freeze({
   hotelbeds: provider({ verticals: ['hotels'], credentialEnv: ['HOTELBEDS_API_KEY', 'HOTELBEDS_SECRET'], access: 'approval_and_credentials' }),
 
   // Travelpayouts programs confirmed from the OptionTrip account screenshots.
-  // Affiliate entries are catalog candidates until their concrete link/widget/feed adapter is wired.
-  aviasales: provider({ verticals: ['flights'], access: 'affiliate_link', integration: 'affiliate' }),
-  trip_com: provider({ verticals: ['hotels', 'flights', 'rail', 'activities'], access: 'affiliate_link', integration: 'affiliate' }),
-  twelve_go: provider({ verticals: ['rail', 'bus', 'ferries', 'transfers'], access: 'affiliate_link', integration: 'affiliate' }),
-  qeeq: provider({ verticals: ['cars'], access: 'affiliate_link', integration: 'affiliate' }),
-  economybookings: provider({ verticals: ['cars'], access: 'affiliate_link', integration: 'affiliate' }),
-  tiqets_affiliate: provider({ verticals: ['activities'], access: 'affiliate_link', integration: 'affiliate' }),
-  bikesbooking: provider({ verticals: ['cars', 'bikes', 'scooters'], access: 'affiliate_link', integration: 'affiliate' }),
-  supertravel: provider({ verticals: ['hotels'], access: 'affiliate_link', integration: 'affiliate' }),
-  yourtravel: provider({ verticals: ['activities', 'tours'], access: 'affiliate_link', integration: 'affiliate' }),
-  insubuy: provider({ verticals: ['insurance'], access: 'affiliate_link', integration: 'affiliate' }),
-  gettransfer_affiliate: provider({ verticals: ['transfers'], access: 'affiliate_link', integration: 'affiliate' }),
-  kiwitaxi: provider({ verticals: ['transfers'], access: 'affiliate_link', integration: 'affiliate' }),
-  klook: provider({ verticals: ['activities', 'tours', 'rail', 'cars', 'transfers'], access: 'affiliate_link', integration: 'affiliate' }),
-  yesim: provider({ verticals: ['esim'], access: 'affiliate_link', integration: 'affiliate' }),
-  localrent: provider({ verticals: ['cars'], access: 'affiliate_link', integration: 'affiliate' }),
-  welcome_pickups: provider({ verticals: ['transfers'], access: 'affiliate_link', integration: 'affiliate' }),
-  kiwi_com: provider({ verticals: ['flights'], access: 'affiliate_link', integration: 'affiliate' }),
-  gigsky: provider({ verticals: ['esim'], access: 'affiliate_link', integration: 'affiliate' }),
-  airalo_affiliate: provider({ verticals: ['esim'], access: 'affiliate_link', integration: 'affiliate' }),
-  drimsim: provider({ verticals: ['esim'], access: 'affiliate_link', integration: 'affiliate' }),
-  getrentacar: provider({ verticals: ['cars'], access: 'affiliate_link', integration: 'affiliate' }),
-  airhelp: provider({ verticals: ['flight_compensation'], access: 'affiliate_link', integration: 'affiliate' }),
-  go_city: provider({ verticals: ['activities', 'city_passes'], access: 'affiliate_link', integration: 'affiliate' }),
-  ekta: provider({ verticals: ['insurance'], access: 'affiliate_link', integration: 'affiliate' }),
-  wegotrip_affiliate: provider({ verticals: ['activities', 'tours'], access: 'affiliate_link', integration: 'affiliate' }),
-  autoeurope: provider({ verticals: ['cars'], access: 'affiliate_link', integration: 'affiliate' }),
-  radical_storage: provider({ verticals: ['luggage_storage'], access: 'affiliate_link', integration: 'affiliate' }),
-  intui_travel: provider({ verticals: ['transfers'], access: 'affiliate_link', integration: 'affiliate' }),
-  compensair: provider({ verticals: ['flight_compensation'], access: 'affiliate_link', integration: 'affiliate' }),
-  saily: provider({ verticals: ['esim'], access: 'affiliate_link', integration: 'affiliate' }),
-  kkday: provider({ verticals: ['activities', 'tours', 'food', 'esim', 'hotels'], access: 'affiliate_link', integration: 'affiliate' }),
+  // An affiliate provider becomes live only after its real HTTPS booking URL is
+  // configured in the deployment environment. This prevents dead partner buttons.
+  aviasales: affiliate({ verticals: ['flights'], directUrlEnv: 'TRAVELPAYOUTS_AVIASALES_AFFILIATE_URL' }),
+  trip_com: affiliate({ verticals: ['hotels', 'flights', 'rail', 'activities'], directUrlEnv: 'TRAVELPAYOUTS_TRIP_COM_AFFILIATE_URL' }),
+  twelve_go: affiliate({ verticals: ['rail', 'bus', 'ferries', 'transfers'], directUrlEnv: 'TRAVELPAYOUTS_12GO_AFFILIATE_URL' }),
+  qeeq: affiliate({ verticals: ['cars'], directUrlEnv: 'TRAVELPAYOUTS_QEEQ_AFFILIATE_URL' }),
+  economybookings: affiliate({ verticals: ['cars'], directUrlEnv: 'TRAVELPAYOUTS_ECONOMYBOOKINGS_AFFILIATE_URL' }),
+  tiqets_affiliate: affiliate({ verticals: ['activities'], directUrlEnv: 'TRAVELPAYOUTS_TIQETS_AFFILIATE_URL' }),
+  bikesbooking: affiliate({ verticals: ['cars', 'bikes', 'scooters'], directUrlEnv: 'TRAVELPAYOUTS_BIKESBOOKING_AFFILIATE_URL' }),
+  supertravel: affiliate({ verticals: ['hotels'], directUrlEnv: 'TRAVELPAYOUTS_SUPERTRAVEL_AFFILIATE_URL' }),
+  yourtravel: affiliate({ verticals: ['activities', 'tours'], directUrlEnv: 'TRAVELPAYOUTS_YOURTRAVEL_AFFILIATE_URL' }),
+  insubuy: affiliate({ verticals: ['insurance'], directUrlEnv: 'TRAVELPAYOUTS_INSUBUY_AFFILIATE_URL' }),
+  gettransfer_affiliate: affiliate({ verticals: ['transfers'], directUrlEnv: 'TRAVELPAYOUTS_GETTRANSFER_AFFILIATE_URL' }),
+  kiwitaxi: affiliate({ verticals: ['transfers'], directUrlEnv: 'TRAVELPAYOUTS_KIWITAXI_AFFILIATE_URL' }),
+  klook: affiliate({ verticals: ['activities', 'tours', 'rail', 'cars', 'transfers'], directUrlEnv: 'TRAVELPAYOUTS_KLOOK_AFFILIATE_URL' }),
+  yesim: affiliate({ verticals: ['esim'], directUrlEnv: 'TRAVELPAYOUTS_YESIM_AFFILIATE_URL' }),
+  localrent: affiliate({ verticals: ['cars'], directUrlEnv: 'TRAVELPAYOUTS_LOCALRENT_AFFILIATE_URL' }),
+  welcome_pickups: affiliate({ verticals: ['transfers'], directUrlEnv: 'TRAVELPAYOUTS_WELCOME_PICKUPS_AFFILIATE_URL' }),
+  kiwi_com: affiliate({ verticals: ['flights'], directUrlEnv: 'TRAVELPAYOUTS_KIWI_COM_AFFILIATE_URL' }),
+  gigsky: affiliate({ verticals: ['esim'], directUrlEnv: 'TRAVELPAYOUTS_GIGSKY_AFFILIATE_URL' }),
+  airalo_affiliate: affiliate({ verticals: ['esim'], directUrlEnv: 'TRAVELPAYOUTS_AIRALO_AFFILIATE_URL' }),
+  drimsim: affiliate({ verticals: ['esim'], directUrlEnv: 'TRAVELPAYOUTS_DRIMSIM_AFFILIATE_URL' }),
+  getrentacar: affiliate({ verticals: ['cars'], directUrlEnv: 'TRAVELPAYOUTS_GETRENTACAR_AFFILIATE_URL' }),
+  airhelp: affiliate({ verticals: ['flight_compensation'], directUrlEnv: 'TRAVELPAYOUTS_AIRHELP_AFFILIATE_URL' }),
+  go_city: affiliate({ verticals: ['activities', 'city_passes'], directUrlEnv: 'TRAVELPAYOUTS_GO_CITY_AFFILIATE_URL' }),
+  ekta: affiliate({ verticals: ['insurance'], directUrlEnv: 'TRAVELPAYOUTS_EKTA_AFFILIATE_URL' }),
+  wegotrip_affiliate: affiliate({ verticals: ['activities', 'tours'], directUrlEnv: 'TRAVELPAYOUTS_WEGOTRIP_AFFILIATE_URL' }),
+  autoeurope: affiliate({ verticals: ['cars'], directUrlEnv: 'TRAVELPAYOUTS_AUTOEUROPE_AFFILIATE_URL' }),
+  radical_storage: affiliate({ verticals: ['luggage_storage'], directUrlEnv: 'TRAVELPAYOUTS_RADICAL_STORAGE_AFFILIATE_URL' }),
+  intui_travel: affiliate({ verticals: ['transfers'], directUrlEnv: 'TRAVELPAYOUTS_INTUI_TRAVEL_AFFILIATE_URL' }),
+  compensair: affiliate({ verticals: ['flight_compensation'], directUrlEnv: 'TRAVELPAYOUTS_COMPENSAIR_AFFILIATE_URL' }),
+  saily: affiliate({ verticals: ['esim'], directUrlEnv: 'TRAVELPAYOUTS_SAILY_AFFILIATE_URL' }),
+  kkday: affiliate({ verticals: ['activities', 'tours', 'food', 'esim', 'hotels'], directUrlEnv: 'TRAVELPAYOUTS_KKDAY_AFFILIATE_URL' }),
 
   // Optional richer integrations. These do not make an affiliate program live by themselves.
   omio: provider({ verticals: ['rail', 'bus'], credentialEnv: ['TRAVELPAYOUTS_OMIO_FEED_URL'], access: 'feed', notes: 'Travelpayouts feed URL must be issued to OptionTrip before this adapter becomes live.' }),
@@ -75,16 +119,25 @@ export const TRAVEL_PROVIDER_REGISTRY = Object.freeze({
 
 const filtersForProvider = providerName => PROVIDER_FILTER_CAPABILITIES[providerName] || {};
 
-export const getProviderCapabilities = () => Object.entries(TRAVEL_PROVIDER_REGISTRY).map(([providerName, config]) => ({
-  provider: providerName,
-  verticals: [...config.verticals],
-  configured: config.enabled(),
-  available: true,
-  access: config.access,
-  integration: config.integration,
-  filters: filtersForProvider(providerName),
-  missingCredentials: config.credentialEnv.filter(name => !process.env[name]),
-}));
+const readinessFor = (providerName, config) => {
+  const bookingUrl = config.bookingUrl?.() || null;
+  return {
+    provider: providerName,
+    verticals: [...config.verticals],
+    configured: config.enabled(),
+    available: true,
+    access: config.access,
+    integration: config.integration,
+    filters: filtersForProvider(providerName),
+    bookingUrl,
+    missingCredentials: config.credentialEnv.filter(name => !process.env[name]),
+    missingDirectUrl: Boolean(config.directUrlEnv && !bookingUrl),
+    notes: config.notes,
+  };
+};
+
+export const getProviderCapabilities = () => Object.entries(TRAVEL_PROVIDER_REGISTRY)
+  .map(([providerName, config]) => readinessFor(providerName, config));
 
 export const getConfiguredProviders = vertical => getProviderCapabilities()
   .filter(item => item.configured && (!vertical || item.verticals.includes(vertical)))
@@ -100,19 +153,7 @@ export const getConfiguredFilterCapabilities = vertical => {
 
 export const getProviderReadiness = providerName => {
   const config = TRAVEL_PROVIDER_REGISTRY[providerName];
-  if (!config) return null;
-  const missingCredentials = config.credentialEnv.filter(name => !process.env[name]);
-  return {
-    provider: providerName,
-    verticals: [...config.verticals],
-    configured: config.enabled(),
-    available: true,
-    access: config.access,
-    integration: config.integration,
-    filters: filtersForProvider(providerName),
-    missingCredentials,
-    notes: config.notes,
-  };
+  return config ? readinessFor(providerName, config) : null;
 };
 
 export const isProviderConfigured = providerName => Boolean(TRAVEL_PROVIDER_REGISTRY[providerName]?.enabled());
