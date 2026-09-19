@@ -1,5 +1,6 @@
 import { buildMarketplaceSuggestion } from './viMarketplaceRouter.js';
 import { findAirportByCityName, getAirportInfo } from './nearbyAirportsService.js';
+import { buildViCountryMonthFlightConversion } from './viFlightDiscoveryConversion.js';
 
 const first = (...values) => values.find(value => value !== undefined && value !== null && value !== '');
 
@@ -68,7 +69,10 @@ export const buildViTripContext = context => {
 
 const compact = object => Object.fromEntries(Object.entries(object).filter(([, value]) => value !== undefined && value !== null && value !== ''));
 
-export const buildViConversion = ({ message, context }) => {
+export const buildViConversion = ({ message, context, now }) => {
+  const flightDiscovery = buildViCountryMonthFlightConversion({ message, context, now: now || new Date() });
+  if (flightDiscovery) return flightDiscovery;
+
   const service = buildMarketplaceSuggestion(message);
   if (!service) return null;
 

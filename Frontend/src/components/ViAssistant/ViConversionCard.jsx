@@ -4,12 +4,13 @@ import { useTranslation } from 'react-i18next';
 import './ViConversionCard.css';
 
 const COPY = {
-  en: { eyebrow: 'OptionTrip service', continue: 'Continue in OptionTrip', explore: 'Explore in OptionTrip' },
-  ru: { eyebrow: 'Сервис OptionTrip', continue: 'Продолжить в OptionTrip', explore: 'Открыть в OptionTrip' },
-  uk: { eyebrow: 'Сервіс OptionTrip', continue: 'Продовжити в OptionTrip', explore: 'Відкрити в OptionTrip' },
+  en: { eyebrow: 'OptionTrip service', flightEyebrow: 'OptionTrip flight search', continue: 'Continue in OptionTrip', explore: 'Explore in OptionTrip' },
+  ru: { eyebrow: 'Сервис OptionTrip', flightEyebrow: 'Поиск авиабилетов OptionTrip', continue: 'Продолжить в OptionTrip', explore: 'Открыть в OptionTrip' },
+  uk: { eyebrow: 'Сервіс OptionTrip', flightEyebrow: 'Пошук авіаквитків OptionTrip', continue: 'Продовжити в OptionTrip', explore: 'Відкрити в OptionTrip' },
 };
 
 const ICONS = Object.freeze({
+  flights: 'fa-plane-departure',
   rail: 'fa-train',
   bus: 'fa-bus',
   ferries: 'fa-ship',
@@ -34,8 +35,11 @@ const safeInternalHref = value => {
 const routeContext = conversion => {
   const origin = conversion?.context?.origin;
   const destination = conversion?.context?.destination;
-  if (origin && destination) return `${origin} → ${destination}`;
-  return destination || origin || '';
+  const route = origin && destination ? `${origin} → ${destination}` : (destination || origin || '');
+  const month = /^\d{4}-\d{2}$/.test(String(conversion?.context?.month || ''))
+    ? conversion.context.month
+    : '';
+  return [route, month].filter(Boolean).join(' · ');
 };
 
 export default function ViConversionCard({ conversion }) {
@@ -48,14 +52,15 @@ export default function ViConversionCard({ conversion }) {
   const context = routeContext(conversion);
   const icon = ICONS[conversion.vertical] || 'fa-compass';
   const buttonLabel = conversion.actionable ? copy.continue : copy.explore;
+  const eyebrow = conversion.type === 'flight_whole_month' ? copy.flightEyebrow : copy.eyebrow;
 
   return (
-    <aside className="vi-conversion-card" aria-label={conversion.label || copy.eyebrow}>
+    <aside className="vi-conversion-card" aria-label={conversion.label || eyebrow}>
       <div className="vi-conversion-card__icon" aria-hidden="true">
         <i className={`fas ${icon}`} />
       </div>
       <div className="vi-conversion-card__body">
-        <span className="vi-conversion-card__eyebrow">{copy.eyebrow}</span>
+        <span className="vi-conversion-card__eyebrow">{eyebrow}</span>
         <strong>{conversion.label || 'Travel service'}</strong>
         {context && <small>{context}</small>}
       </div>

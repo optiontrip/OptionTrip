@@ -51,12 +51,25 @@ const countryAliasEntries = [...countryAliasToCanonical.entries()];
 // need to map into the application's two-letter country contract.
 const COUNTRY_CODE_OVERRIDES = new Map([
   ['serbia', 'RS'],
+  ['srbija', 'RS'],
   ['kosovo', 'XK'],
   ['bosnia and herzegovina', 'BA'],
+  ['bosna i hercegovina', 'BA'],
   ['czech republic', 'CZ'],
   ['south korea', 'KR'],
   ['north korea', 'KP'],
   ['turkey', 'TR'],
+  ['turska', 'TR'],
+  ['grcka', 'GR'],
+  ['nemacka', 'DE'],
+  ['hrvatska', 'HR'],
+  ['slovenija', 'SI'],
+  ['austrija', 'AT'],
+  ['madjarska', 'HU'],
+  ['rumunija', 'RO'],
+  ['bugarska', 'BG'],
+  ['albanija', 'AL'],
+  ['makedonija', 'MK'],
 ]);
 
 const buildCountryCodeIndex = () => {
@@ -92,9 +105,11 @@ const canonicalCountryName = value => {
 };
 
 export const resolveCountryCode = (countryName) => {
-  const needle = normalize(countryName);
+  const raw = String(countryName || '').trim();
+  if (/^[A-Za-z]{2}$/.test(raw)) return raw.toUpperCase();
+  const needle = normalize(raw);
   if (!needle) return null;
-  const canonical = canonicalCountryName(countryName);
+  const canonical = canonicalCountryName(raw);
   const lookup = canonical ? normalize(canonical) : needle;
   return COUNTRY_CODE_OVERRIDES.get(lookup) || countryCodeIndex.get(lookup) || null;
 };
