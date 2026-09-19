@@ -12,6 +12,8 @@ import BookingServiceMenu from './BookingServiceMenu';
 import HeaderTravelPreferences from './HeaderTravelPreferences';
 import './Header.css';
 
+const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), select:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -29,6 +31,10 @@ const Header = () => {
 
   const closeTimeout = useRef(null);
   const bookingRef = useRef(null);
+  const hamburgerRef = useRef(null);
+  const drawerRef = useRef(null);
+  const drawerCloseRef = useRef(null);
+  const previousFocusRef = useRef(null);
 
   const navItems = PRIMARY_HEADER_NAV.map(item => ({
     ...item,
@@ -103,7 +109,22 @@ const Header = () => {
   }, [location.pathname, i18n.language]);
 
   useEffect(() => {
+    const drawer = drawerRef.current;
+    if (drawer) drawer.inert = !isMenuOpen;
+
     document.body.style.overflow = isMenuOpen ? 'hidden' : '';
+
+    if (isMenuOpen) {
+      previousFocusRef.current = document.activeElement;
+      requestAnimationFrame(() => drawerCloseRef.current?.focus());
+    } else if (previousFocusRef.current instanceof HTMLElement) {
+      const focusTarget = previousFocusRef.current;
+      requestAnimationFrame(() => {
+        if (document.contains(focusTarget)) focusTarget.focus();
+      });
+      previousFocusRef.current = null;
+    }
+
     return () => { document.body.style.overflow = ''; };
   }, [isMenuOpen]);
 
@@ -113,11 +134,27 @@ const Header = () => {
         setIsMenuOpen(false);
         setIsBookingOpen(false);
         setIsAuthDropdownOpen(false);
+        return;
+      }
+
+      if (event.key !== 'Tab' || !isMenuOpen || !drawerRef.current) return;
+      const focusable = [...drawerRef.current.querySelectorAll(FOCUSABLE_SELECTOR)]
+        .filter(element => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true');
+      if (!focusable.length) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
       }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, []);
+  }, [isMenuOpen]);
 
   const closeMenu = () => setIsMenuOpen(false);
   const isActive = path => location.pathname === path ? 'active' : '';
@@ -187,12 +224,20 @@ const Header = () => {
         </div>
         <Link to="/contact" className="nir-btn white">{uiLabels.contact}</Link>
       </div>
-      <button className={`hamburger ${isMenuOpen ? 'hamburger--open' : ''}`} onClick={() => setIsMenuOpen(open => !open)} aria-label={uiLabels.menu} aria-expanded={isMenuOpen}><span /><span /><span /></button>
+      <button ref={hamburgerRef} className={`hamburger ${isMenuOpen ? 'hamburger--open' : ''}`} onClick={() => setIsMenuOpen(open => !open)} aria-label={uiLabels.menu} aria-expanded={isMenuOpen} aria-controls="mobile-site-navigation"><span /><span /><span /></button>
     </div></div></nav></div>
 
     {isMenuOpen && <div className="mobile-overlay" onClick={closeMenu} />}
-    <aside className={`mobile-drawer ${isMenuOpen ? 'mobile-drawer--open' : ''}`} aria-hidden={!isMenuOpen}>
-      <div className="mobile-drawer__header"><Link to="/" onClick={closeMenu}><img src="/images/newLogo.png" alt="OptionTrip" /></Link><button className="mobile-drawer__close" onClick={closeMenu} aria-label={uiLabels.close}><i className="fa fa-times" /></button></div>
+    <aside
+      ref={drawerRef}
+      id="mobile-site-navigation"
+      className={`mobile-drawer ${isMenuOpen ? 'mobile-drawer--open' : ''}`}
+      aria-hidden={!isMenuOpen}
+      aria-modal={isMenuOpen ? 'true' : undefined}
+      aria-label={uiLabels.menu}
+      role="dialog"
+    >
+      <div className="mobile-drawer__header"><Link to="/" onClick={closeMenu}><img src="/images/newLogo.png" alt="OptionTrip" /></Link><button ref={drawerCloseRef} className="mobile-drawer__close" onClick={closeMenu} aria-label={uiLabels.close}><i className="fa fa-times" /></button></div>
       <nav className="mobile-drawer__nav"><ul>
         {renderNavItem(navItems[0], true)}
         <li className="mobile-drawer__search"><a href="#search1" onClick={closeMenu}><i className="fa fa-search" aria-hidden="true" /><span>{uiLabels.search}</span></a></li>
