@@ -3,6 +3,7 @@ import { runTravelNewsAutomation } from './travelNewsAutomation.js';
 const DEFAULT_DAILY_LIMIT = 5;
 const DEFAULT_WP_API = 'https://blog.optiontrip.com/wp-json/wp/v2';
 const DAY_MS = 24 * 60 * 60 * 1000;
+const NEWS_CATEGORY_SLUG = 'news';
 
 let activeRun = null;
 let lastRun = {
@@ -12,6 +13,7 @@ let lastRun = {
   status: 'idle',
   recentPublishedCount: null,
   remainingBudget: null,
+  budgetScope: null,
   result: null,
   error: null,
 };
@@ -56,21 +58,49 @@ export const getTravelNewsAutopublishReadiness = () => {
   };
 };
 
+const fetchWordPressNewsCategoryId = async () => {
+  const params = new URLSearchParams({
+    slug: NEWS_CATEGORY_SLUG,
+    per_page: '1',
+    _fields: 'id,slug',
+  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const response = await fetch(`${wpBase()}/categories?${params.toString()}`, {
+      headers: { 'user-agent': 'OptionTripNewsBudget/2.0 (+https://optiontrip.com)' },
+      signal: controller.signal,
+    });
+    if (!response.ok) return null;
+    const rows = await response.json();
+    const categoryId = Number(Array.isArray(rows) ? rows[0]?.id : null);
+    return Number.isFinite(categoryId) && categoryId > 0 ? categoryId : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 export const countRecentPublishedWordPressPosts = async ({ now = Date.now() } = {}) => {
   const after = new Date(now - DAY_MS).toISOString();
+  const newsCategoryId = await fetchWordPressNewsCategoryId();
   const params = new URLSearchParams({
     after,
     status: 'publish',
     per_page: '100',
-    _fields: 'id,date',
+    _fields: 'id,date,categories',
   });
+
+  if (newsCategoryId) params.set('categories', String(newsCategoryId));
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
 
   try {
     const response = await fetch(`${wpBase()}/posts?${params.toString()}`, {
-      headers: { 'user-agent': 'OptionTripNewsBudget/1.0 (+https://optiontrip.com)' },
+      headers: { 'user-agent': 'OptionTripNewsBudget/2.0 (+https://optiontrip.com)' },
       signal: controller.signal,
     });
 
@@ -83,7 +113,14 @@ export const countRecentPublishedWordPressPosts = async ({ now = Date.now() } = 
       throw new Error('WordPress recent-post budget check returned an invalid payload');
     }
 
-    return posts.length;
+    if (!newsCategoryId) {
+      console.warn('📰 WordPress News category was not resolved; using all recent posts as a conservative fallback');
+    }
+
+    return {
+      count: posts.length,
+      scope: newsCategoryId ? `category:${NEWS_CATEGORY_SLUG}` : 'all-posts-fallback',
+    };
   } finally {
     clearTimeout(timeout);
   }
@@ -126,25 +163,28 @@ export const runTravelNewsAutomationWithBudget = async ({ trigger = 'manual' } =
       status: 'checking-budget',
       recentPublishedCount: null,
       remainingBudget: null,
+      budgetScope: null,
       result: null,
       error: null,
     };
 
     try {
       const configuredLimit = normalizeNewsDailyLimit(process.env.NEWS_DAILY_LIMIT);
-      const recentPublishedCount = await countRecentPublishedWordPressPosts();
+      const recent = await countRecentPublishedWordPressPosts();
+      const recentPublishedCount = recent.count;
       const remainingBudget = calculateRemainingNewsBudget(recentPublishedCount, configuredLimit);
 
       lastRun = {
         ...lastRun,
         recentPublishedCount,
         remainingBudget,
+        budgetScope: recent.scope,
         status: remainingBudget > 0 ? 'running' : 'daily-limit-reached',
       };
 
       console.log(
-        `📰 Travel news budget (${trigger}): ${recentPublishedCount} posts in last 24h, ` +
-        `${remainingBudget}/${configuredLimit} automation slots available`
+        `📰 Travel news budget (${trigger}): ${recentPublishedCount} News posts in last 24h ` +
+        `[${recent.scope}], ${remainingBudget}/${configuredLimit} automation slots available`
       );
 
       if (remainingBudget <= 0) {
@@ -156,6 +196,7 @@ export const runTravelNewsAutomationWithBudget = async ({ trigger = 'manual' } =
           recentPublishedCount,
           dailyLimit: configuredLimit,
           remainingBudget: 0,
+          budgetScope: recent.scope,
         };
         lastRun = {
           ...lastRun,
@@ -188,6 +229,7 @@ export const runTravelNewsAutomationWithBudget = async ({ trigger = 'manual' } =
         recentPublishedCount,
         configuredDailyLimit: configuredLimit,
         allowedThisRun: remainingBudget,
+        budgetScope: recent.scope,
       };
 
       lastRun = {
