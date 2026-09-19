@@ -14,11 +14,11 @@ const groupRoute = group => `/services#${group.id}`;
 const BookingServiceMenu = ({ mobile = false, onNavigate }) => {
   const { i18n } = useTranslation();
   const labels = getTravelServiceLabels(i18n.language);
-  const [openGroup, setOpenGroup] = useState(TRAVEL_SERVICE_GROUPS[0]?.id || null);
+  const [openGroup, setOpenGroup] = useState(null);
 
   useEffect(() => {
     if (!mobile) return;
-    setOpenGroup(TRAVEL_SERVICE_GROUPS[0]?.id || null);
+    setOpenGroup(null);
   }, [mobile, i18n.language]);
 
   return (
