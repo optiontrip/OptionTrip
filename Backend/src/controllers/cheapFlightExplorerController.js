@@ -1,6 +1,8 @@
 import { searchCheapestRoutePairsForMonth, searchCheapestRoutesForMonth } from '../services/cheapFlightExplorerService.js';
+import { findAirportsForCountryCode } from '../services/nearbyAirportsService.js';
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+const COUNTRY_RE = /^[A-Z]{2}$/;
 
 const parseCodes = (value) => String(value || '')
   .split(',')
@@ -13,6 +15,16 @@ const validateMonthRange = (month, returnMonth) => {
   if (returnMonth && returnMonth < month) return 'returnMonth cannot be before departure month';
   return '';
 };
+
+const responseData = (result, { month, returnMonth, extra = {} }) => ({
+  ...result,
+  ...extra,
+  month,
+  returnMonth: returnMonth || null,
+  count: result.routes.length,
+  fareType: 'discovery',
+  requiresLiveRecheck: true,
+});
 
 export const getCheapRoutePairsByMonth = async (req, res) => {
   try {
@@ -42,18 +54,66 @@ export const getCheapRoutePairsByMonth = async (req, res) => {
 
     return res.json({
       success: true,
-      data: {
-        ...result,
-        month,
-        returnMonth: returnMonth || null,
-        count: result.routes.length,
-        fareType: 'discovery',
-        requiresLiveRecheck: true,
-      },
+      data: responseData(result, { month, returnMonth }),
     });
   } catch (error) {
     console.error('❌ Cheap route pair explorer error:', error?.message || error);
     return res.status(502).json({ success: false, message: 'Unable to load monthly route prices right now' });
+  }
+};
+
+export const getCheapCountryRoutesByMonth = async (req, res) => {
+  try {
+    const originCountry = String(req.query.originCountry || '').trim().toUpperCase();
+    const destinationCountry = String(req.query.destinationCountry || '').trim().toUpperCase();
+    const { month, returnMonth } = req.query;
+
+    if (!COUNTRY_RE.test(originCountry) || !COUNTRY_RE.test(destinationCountry)) {
+      return res.status(400).json({ success: false, message: 'originCountry and destinationCountry must be 2-letter country codes' });
+    }
+    if (originCountry === destinationCountry) {
+      return res.status(400).json({ success: false, message: 'Choose two different countries for country-to-country discovery' });
+    }
+
+    const monthError = validateMonthRange(month, returnMonth);
+    if (monthError) return res.status(400).json({ success: false, message: monthError });
+
+    const originRecords = findAirportsForCountryCode(originCountry, 60);
+    const destinationRecords = findAirportsForCountryCode(destinationCountry, 60);
+    const originAirports = originRecords.map(item => item.iataCode).filter(Boolean);
+    const destinationAirports = destinationRecords.map(item => item.iataCode).filter(Boolean);
+
+    if (!originAirports.length || !destinationAirports.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'OptionTrip does not yet have supported airports for one of these countries',
+      });
+    }
+
+    const result = await searchCheapestRoutesForMonth({
+      originAirports,
+      destinationAirports,
+      month,
+      returnMonth: returnMonth || null,
+    });
+
+    return res.json({
+      success: true,
+      data: responseData(result, {
+        month,
+        returnMonth,
+        extra: {
+          searchMode: 'country-to-country',
+          originCountry,
+          destinationCountry,
+          originCountryAirportCount: originAirports.length,
+          destinationCountryAirportCount: destinationAirports.length,
+        },
+      }),
+    });
+  } catch (error) {
+    console.error('❌ Country-to-country cheap flight explorer error:', error?.message || error);
+    return res.status(502).json({ success: false, message: 'Unable to load country-to-country monthly prices right now' });
   }
 };
 
@@ -86,14 +146,7 @@ export const getCheapRoutesByMonth = async (req, res) => {
 
     return res.json({
       success: true,
-      data: {
-        ...result,
-        month,
-        returnMonth: returnMonth || null,
-        count: result.routes.length,
-        fareType: 'discovery',
-        requiresLiveRecheck: true,
-      },
+      data: responseData(result, { month, returnMonth }),
     });
   } catch (error) {
     console.error('❌ Cheap route explorer error:', error?.message || error);
