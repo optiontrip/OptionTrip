@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { TRAVEL_SERVICES } from '../../config/travelServices';
+import { useTranslation } from 'react-i18next';
+import { TRAVEL_SERVICES, getTravelServiceDisplayLabel } from '../../config/travelServices';
+import { getTravelServiceLabels } from '../../config/travelServiceLabels';
+import { getHeaderUiLabels } from '../../config/headerUiLabels';
 import { fetchTravelInventoryStatus, getInventoryStateForService } from '../../services/travelInventoryService';
 import { useLocale } from '../../contexts/LocaleContext';
 import './TravelServiceRail.css';
@@ -14,8 +17,12 @@ const PRIORITY_IDS = [
 
 const TravelServiceRail = () => {
   const location = useLocation();
+  const { i18n } = useTranslation();
   const { currency, setCurrency, CURRENCIES } = useLocale();
   const [inventory, setInventory] = useState({});
+  const language = (i18n.language || 'en').split('-')[0];
+  const serviceLabels = getTravelServiceLabels(language);
+  const headerLabels = getHeaderUiLabels(language);
   const services = PRIORITY_IDS
     .map(id => TRAVEL_SERVICES.find(service => service.id === id))
     .filter(Boolean);
@@ -34,13 +41,13 @@ const TravelServiceRail = () => {
   };
 
   return (
-    <nav className="tsr" aria-label="Travel services">
+    <nav className="tsr" aria-label={serviceLabels.all || 'Travel services'}>
       <div className="container tsr__inner">
-        <Link to="/services" className="tsr__brand" aria-label="Open all travel services">
+        <Link to="/services" className="tsr__brand" aria-label={serviceLabels.all || 'Open all travel services'}>
           <span className="tsr__brand-mark"><i className="fa fa-compass" aria-hidden="true" /></span>
           <span className="tsr__brand-copy">
-            <strong>Trip Toolkit</strong>
-            <small>All services</small>
+            <strong>{serviceLabels.booking || 'Booking'}</strong>
+            <small>{serviceLabels.all || 'All services'}</small>
           </span>
         </Link>
 
@@ -50,16 +57,17 @@ const TravelServiceRail = () => {
             const to = state.direct ? service.route : viRoute(service);
             const isActive = service.route && location.pathname === service.route;
             const badge = state.direct ? null : state.status === 'partner-ready' ? 'Live' : 'Vi';
+            const label = getTravelServiceDisplayLabel(service, language, serviceLabels);
             return (
               <Link
                 role="listitem"
                 key={service.id}
                 to={to}
                 className={`tsr__item${isActive ? ' tsr__item--active' : ''}`}
-                title={state.direct ? `Open ${service.label}` : state.status === 'partner-ready' ? `Use a live partner for ${service.label} with Vi` : `Ask Vi about ${service.label}`}
+                title={label}
               >
                 <i className={`fa ${service.icon}`} aria-hidden="true" />
-                <span>{service.label}</span>
+                <span>{label}</span>
                 {badge && <em>{badge}</em>}
               </Link>
             );
@@ -67,14 +75,14 @@ const TravelServiceRail = () => {
         </div>
 
         <div className="tsr__actions">
-          <label className="tsr__currency" title="Display currency">
+          <label className="tsr__currency" title={headerLabels.currency}>
             <span className="tsr__currency-icon" aria-hidden="true">💱</span>
             <span className="tsr__currency-copy">
-              <small>Currency</small>
+              <small>{headerLabels.currency}</small>
               <strong>{currency.code}</strong>
             </span>
             <select
-              aria-label="Display currency"
+              aria-label={headerLabels.currency}
               value={currency.code}
               onChange={handleCurrencyChange}
             >
@@ -86,9 +94,9 @@ const TravelServiceRail = () => {
             </select>
           </label>
 
-          <Link to="/travel-buddy" className="tsr__vi">
+          <Link to="/travel-buddy" className="tsr__vi" aria-label={serviceLabels.ask || 'Ask Vi'}>
             <i className="fa fa-comments" aria-hidden="true" />
-            <span>Ask Vi</span>
+            <span>{serviceLabels.ask || 'Ask Vi'}</span>
           </Link>
         </div>
       </div>
