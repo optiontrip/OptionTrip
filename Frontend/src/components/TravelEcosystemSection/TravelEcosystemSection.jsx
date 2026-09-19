@@ -67,6 +67,7 @@ const TravelEcosystemSection = () => {
   const language = (i18n.language || 'en').split('-')[0];
   const labels = getTravelServiceLabels(language);
   const [inventory, setInventory] = useState({});
+  const [openMobileGroups, setOpenMobileGroups] = useState(() => new Set(['book']));
 
   useEffect(() => {
     let active = true;
@@ -77,6 +78,14 @@ const TravelEcosystemSection = () => {
   }, []);
 
   const serviceLabel = service => getTravelServiceDisplayLabel(service, language, labels);
+  const toggleMobileGroup = groupId => {
+    setOpenMobileGroups(current => {
+      const next = new Set(current);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
 
   return (
     <section className="tes" aria-labelledby="tes-title">
@@ -95,34 +104,57 @@ const TravelEcosystemSection = () => {
         </div>
 
         <div className="tes__groups">
-          {TRAVEL_SERVICE_GROUPS.map(group => (
-            <section className="tes__group" key={group.id} id={`home-services-${group.id}`}>
-              <div className="tes__group-head">
-                <div>
-                  <h3>{labels[group.id] || group.label}</h3>
-                  <p>{GROUP_COPY[group.id] || 'Useful services for your journey.'}</p>
-                </div>
-                <Link to={`/services#${group.id}`} className="tes__group-link" aria-label={`See all ${group.label} services`}>
-                  <i className="fa fa-arrow-right" aria-hidden="true" />
-                </Link>
-              </div>
+          {TRAVEL_SERVICE_GROUPS.map(group => {
+            const isOpenMobile = openMobileGroups.has(group.id);
+            return (
+              <section
+                className={`tes__group ${isOpenMobile ? 'tes__group--mobile-open' : 'tes__group--mobile-collapsed'}`}
+                key={group.id}
+                id={`home-services-${group.id}`}
+              >
+                <div className="tes__group-head">
+                  <button
+                    type="button"
+                    className="tes__group-toggle"
+                    aria-expanded={isOpenMobile}
+                    aria-controls={`tes-services-${group.id}`}
+                    onClick={() => toggleMobileGroup(group.id)}
+                  >
+                    <span className="tes__group-toggle-copy">
+                      <span className="tes__group-title">{labels[group.id] || group.label}</span>
+                      <span className="tes__group-summary">{GROUP_COPY[group.id] || 'Useful services for your journey.'}</span>
+                    </span>
+                    <i className={`fa fa-chevron-down ${isOpenMobile ? 'is-open' : ''}`} aria-hidden="true" />
+                  </button>
 
-              <div className="tes__service-grid">
-                {group.services.map(service => {
-                  const state = getInventoryStateForService(service, inventory);
-                  return (
-                    <ServiceCard
-                      key={service.id}
-                      service={service}
-                      state={state}
-                      groupId={group.id}
-                      label={serviceLabel(service)}
-                    />
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+                  <div className="tes__group-head-desktop">
+                    <div>
+                      <h3>{labels[group.id] || group.label}</h3>
+                      <p>{GROUP_COPY[group.id] || 'Useful services for your journey.'}</p>
+                    </div>
+                    <Link to={`/services#${group.id}`} className="tes__group-link" aria-label={`See all ${group.label} services`}>
+                      <i className="fa fa-arrow-right" aria-hidden="true" />
+                    </Link>
+                  </div>
+                </div>
+
+                <div id={`tes-services-${group.id}`} className="tes__service-grid">
+                  {group.services.map(service => {
+                    const state = getInventoryStateForService(service, inventory);
+                    return (
+                      <ServiceCard
+                        key={service.id}
+                        service={service}
+                        state={state}
+                        groupId={group.id}
+                        label={serviceLabel(service)}
+                      />
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
         </div>
 
         <div className="tes__vi-card">
