@@ -10,7 +10,7 @@ const tomorrowDate = new Date();
 tomorrowDate.setDate(tomorrowDate.getDate() + 1);
 const TOMORROW = toISO(tomorrowDate);
 const maxTravelDate = new Date();
-maxTravelDate.setFullYear(maxTravelDate.getFullYear() + 1);
+maxTravelDate.setDate(maxTravelDate.getDate() + 365);
 const MAX_TRAVEL_DATE = toISO(maxTravelDate);
 
 const TABS = [
@@ -30,6 +30,24 @@ const Stepper = ({ value, min = 1, max = 9, onChange }) => (
     <button type="button" onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max}>+</button>
   </div>
 );
+
+const buildLocationData = (item) => {
+  const isNearest = item.entityType === 'nearest-airport' || item.isNearest;
+  const isCity = item.entityType === 'city' || item.isCity;
+  return {
+    entityType: item.entityType || (item.isCountry ? 'country' : 'airport'),
+    isCountry: Boolean(item.isCountry),
+    isCity,
+    isNearest,
+    countryCode: item.countryCode || (item.isCountry ? item.iataCode : ''),
+    countryName: item.countryName || item.cityName || '',
+    countryAirports: item.countryAirports || [],
+    cityAirports: item.cityAirports || [],
+    requestedPlace: item.requestedPlace || '',
+    requestedAddress: item.requestedAddress || '',
+    distanceKm: item.distanceKm,
+  };
+};
 
 const HomeLocationInput = ({ label, placeholder, value, code, onChange, onSelect, error, onExploreAnywhere }) => {
   const [suggestions, setSuggestions] = useState([]);
@@ -74,19 +92,17 @@ const HomeLocationInput = ({ label, placeholder, value, code, onChange, onSelect
   }, []);
 
   const choose = (item) => {
+    const isNearest = item.entityType === 'nearest-airport' || item.isNearest;
     const display = item.isCountry
       ? `${item.cityName || item.countryName} (${item.iataCode})`
-      : `${item.cityName || item.name} (${item.iataCode})`;
-    const countryData = item.isCountry ? {
-      isCountry: true,
-      countryCode: item.iataCode,
-      countryName: item.cityName || item.countryName,
-      countryAirports: item.countryAirports || [],
-    } : null;
+      : isNearest && item.requestedPlace
+        ? `${item.requestedPlace} → ${item.cityName || item.name} (${item.iataCode})`
+        : `${item.cityName || item.name} (${item.iataCode})`;
+
     setSuggestions([]);
     setNoResults(false);
     setOpen(false);
-    onSelect(item.iataCode, display, countryData);
+    onSelect(item.iataCode, display, buildLocationData(item));
   };
 
   const chooseAnywhere = (event) => {
@@ -144,34 +160,41 @@ const HomeLocationInput = ({ label, placeholder, value, code, onChange, onSelect
             </button>
           )}
           {loading && suggestions.length === 0 && value.trim().length >= 2 && (
-            <div className="hbs-location__status">Searching cities, countries and airports…</div>
+            <div className="hbs-location__status">Searching cities, countries, airports and nearby airports…</div>
           )}
           {!loading && noResults && value.trim().length >= 2 && (
-            <div className="hbs-location__status">No matches yet. Try a city, country or airport code.</div>
+            <div className="hbs-location__status">No matches yet. Try a city, country, landmark or airport code.</div>
           )}
-          {suggestions.map((item) => (
-            <button
-              key={`${item.isCountry ? 'country' : 'place'}-${item.iataCode}-${item.cityName || item.name}`}
-              type="button"
-              className="hbs-location__option"
-              role="option"
-              aria-selected="false"
-              onPointerDown={(event) => {
-                event.preventDefault();
-                choose(item);
-              }}
-            >
-              <span className="hbs-location__option-main">
-                <strong>{item.isCountry ? (item.cityName || item.countryName) : (item.cityName || item.name)}</strong>
-                <small>
-                  {item.isCountry
-                    ? 'Country - all supported airports'
-                    : [item.name !== item.cityName ? item.name : null, item.countryName].filter(Boolean).join(' · ')}
-                </small>
-              </span>
-              <span className="hbs-location__option-code">{item.iataCode}</span>
-            </button>
-          ))}
+          {suggestions.map((item) => {
+            const isNearest = item.entityType === 'nearest-airport' || item.isNearest;
+            const isCity = item.entityType === 'city' || item.isCity;
+            const detail = item.isCountry
+              ? 'Country - all supported airports'
+              : isNearest
+                ? `${item.name || 'Nearest airport'}${Number.isFinite(item.distanceKm) ? ` · ${item.distanceKm} km away` : ''}`
+                : isCity
+                  ? `City - all airports${item.countryName ? ` · ${item.countryName}` : ''}`
+                  : [item.name !== item.cityName ? item.name : null, item.countryName].filter(Boolean).join(' · ');
+            return (
+              <button
+                key={`${item.entityType || (item.isCountry ? 'country' : 'place')}-${item.iataCode}-${item.requestedPlace || item.cityName || item.name}`}
+                type="button"
+                className="hbs-location__option"
+                role="option"
+                aria-selected="false"
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  choose(item);
+                }}
+              >
+                <span className="hbs-location__option-main">
+                  <strong>{item.isCountry ? (item.cityName || item.countryName) : (isNearest && item.requestedPlace ? item.requestedPlace : (item.cityName || item.name))}</strong>
+                  <small>{detail}</small>
+                </span>
+                <span className="hbs-location__option-code">{item.iataCode}</span>
+              </button>
+            );
+          })}
         </div>
       )}
       {error && <span className="hbs-location__error">{error}</span>}
@@ -179,12 +202,19 @@ const HomeLocationInput = ({ label, placeholder, value, code, onChange, onSelect
   );
 };
 
-const codesForSearch = (code, countryData) => {
-  if (countryData?.isCountry && Array.isArray(countryData.countryAirports)) {
-    return [...new Set(countryData.countryAirports
+const codesForSearch = (code, locationData) => {
+  const groupedAirports = locationData?.isCountry
+    ? locationData.countryAirports
+    : locationData?.isCity
+      ? locationData.cityAirports
+      : [];
+
+  if (Array.isArray(groupedAirports) && groupedAirports.length > 0) {
+    return [...new Set(groupedAirports
       .map((airport) => String(airport?.iataCode || '').trim().toUpperCase())
       .filter((iata) => /^[A-Z]{3}$/.test(iata)))];
   }
+
   const normalized = String(code || '').trim().toUpperCase();
   return /^[A-Z]{3}$/.test(normalized) ? [normalized] : [];
 };
@@ -411,10 +441,10 @@ const HomeBookingSection = () => {
                     setFFromCountryData(null);
                     clearFlightError('from');
                   }}
-                  onSelect={(code, display, countryData) => {
+                  onSelect={(code, display, locationData) => {
                     setFFrom(display);
                     setFFromCode(code);
-                    setFFromCountryData(countryData);
+                    setFFromCountryData(locationData);
                     clearFlightError('from');
                   }}
                 />
@@ -439,10 +469,10 @@ const HomeBookingSection = () => {
                     setFToCountryData(null);
                     clearFlightError('to');
                   }}
-                  onSelect={(code, display, countryData) => {
+                  onSelect={(code, display, locationData) => {
                     setFTo(display);
                     setFToCode(code);
-                    setFToCountryData(countryData);
+                    setFToCountryData(locationData);
                     clearFlightError('to');
                   }}
                   onExploreAnywhere={() => {

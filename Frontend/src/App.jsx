@@ -51,6 +51,55 @@ import CarRentalSearch from './pages/CarRentalSearch';
 import EsimSearch from './pages/EsimSearch';
 import TravelServicesPage from './pages/TravelServicesPage/TravelServicesPage';
 
+const toLocalISODate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getGlobalMaxTravelDate = () => {
+  const maxDate = new Date();
+  maxDate.setHours(0, 0, 0, 0);
+  maxDate.setDate(maxDate.getDate() + 365);
+  return toLocalISODate(maxDate);
+};
+
+function TravelDateBoundary() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const maxTravelDate = getGlobalMaxTravelDate();
+
+    const applyLimit = (root = document) => {
+      const inputs = root.matches?.('input[type="date"]')
+        ? [root]
+        : Array.from(root.querySelectorAll?.('input[type="date"]') || []);
+
+      inputs.forEach((input) => {
+        if (!input.max || input.max > maxTravelDate) {
+          input.max = maxTravelDate;
+        }
+      });
+    };
+
+    applyLimit(document);
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node instanceof Element) applyLimit(node);
+        });
+      });
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [pathname]);
+
+  return null;
+}
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -77,6 +126,7 @@ function App() {
       <AuthProvider>
         <Router>
           <ScrollToTop />
+          <TravelDateBoundary />
           <AutoTranslate />
           <div className="App">
             <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover theme="light" />
