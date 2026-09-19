@@ -21,23 +21,13 @@ const airports = [
 
 const normalize = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
+// Provider/source datasets still use a few legacy English country names.
+// Keep only the names that differ from current Intl.DisplayNames output.
 const COUNTRY_CODE_OVERRIDES = new Map([
-  ['bolivia', 'BO'],
-  ['brunei', 'BN'],
-  ['cape verde', 'CV'],
   ['czech republic', 'CZ'],
-  ['iran', 'IR'],
-  ['laos', 'LA'],
-  ['moldova', 'MD'],
-  ['north korea', 'KP'],
-  ['russia', 'RU'],
   ['south korea', 'KR'],
-  ['syria', 'SY'],
-  ['taiwan', 'TW'],
-  ['tanzania', 'TZ'],
+  ['north korea', 'KP'],
   ['turkey', 'TR'],
-  ['venezuela', 'VE'],
-  ['vietnam', 'VN'],
 ]);
 
 const buildCountryCodeIndex = () => {
@@ -50,7 +40,11 @@ const buildCountryCodeIndex = () => {
         const code = `${String.fromCharCode(first)}${String.fromCharCode(second)}`;
         const name = displayNames.of(code);
         if (!name || name === code || name === 'Unknown Region') continue;
-        index.set(normalize(name), code);
+        const normalizedName = normalize(name);
+        // Several obsolete region codes can resolve to the same modern display
+        // name. The alphabetical loop reaches canonical modern codes first for
+        // the collisions we care about, so never let a later legacy alias win.
+        if (!index.has(normalizedName)) index.set(normalizedName, code);
       }
     }
   } catch (error) {
@@ -156,7 +150,6 @@ export const findAirportsForCountryCode = (countryCode, limit = 20) => {
 
   return airports
     .filter(airport => resolveCountryCode(airport.country) === code)
-    .sort((a, b) => a.city.localeCompare(b.city) || a.iata.localeCompare(b.iata))
     .slice(0, Math.max(1, limit))
     .map(airport => toLocation(airport));
 };
