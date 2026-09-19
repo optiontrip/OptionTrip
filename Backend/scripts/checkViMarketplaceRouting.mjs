@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { buildMarketplaceSuggestion, detectMarketplaceIntent } from '../src/services/viMarketplaceRouter.js';
+import { inferConversationLanguage } from '../src/services/chatService.js';
 
 const russianBus = buildMarketplaceSuggestion('Мне нужен автобус из Белграда в Сараево');
 assert.equal(russianBus?.vertical, 'bus', 'Russian bus request must resolve the bus vertical');
@@ -24,4 +25,25 @@ const cityPass = buildMarketplaceSuggestion('Где купить туристи�
 assert.equal(cityPass?.vertical, 'city_passes', 'Russian city-pass request must resolve city passes');
 assert.equal(cityPass?.route, '/services?service=city_passes', 'City passes must use the existing service hub route');
 
-console.log('✅ Vi marketplace routing regression checks passed');
+assert.equal(
+  inferConversationLanguage('Найди мне билет из Москвы в Стамбул'),
+  'ru',
+  'Vi must identify Russian from the latest user message',
+);
+assert.equal(
+  inferConversationLanguage('Потрібен готель у Львові'),
+  'uk',
+  'Vi must identify Ukrainian from the latest user message',
+);
+assert.equal(
+  inferConversationLanguage('IST', [{ role: 'user', text: 'Найди мне рейс в Стамбул' }]),
+  'ru',
+  'Language-neutral airport codes must inherit the recent user conversation language',
+);
+assert.equal(
+  inferConversationLanguage('Find me a hotel in Paris'),
+  'en',
+  'English travel requests must remain English',
+);
+
+console.log('✅ Vi marketplace routing and conversation-language regression checks passed');
