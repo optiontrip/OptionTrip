@@ -25,6 +25,7 @@ const normalize = (value) => String(value || '').trim().toLowerCase().replace(/\
 const COUNTRY_CODE_OVERRIDES = new Map([
   ['serbia', 'RS'],
   ['kosovo', 'XK'],
+  ['bosnia and herzegovina', 'BA'],
   ['czech republic', 'CZ'],
   ['south korea', 'KR'],
   ['north korea', 'KP'],
