@@ -7,6 +7,10 @@ SEARCH='Frontend/src/pages/FlightSearch.jsx'
 PLANNED='Frontend/src/pages/PlannedTripPage/sections/PlannedTripFlightTabModern.jsx'
 LEGACY='Frontend/src/pages/PlannedTripPage/sections/FlightTab.jsx'
 PICKER='Frontend/src/components/TripDatePicker/TripDatePicker.jsx'
+CHEAP_SERVICE='Frontend/src/services/cheapFlightExplorerService.js'
+CHEAP_BACKEND='Backend/src/services/cheapFlightExplorerService.js'
+CHEAP_CONTROLLER='Backend/src/controllers/cheapFlightExplorerController.js'
+FLIGHT_ROUTES='Backend/src/routes/flights.js'
 APP='Frontend/src/App.jsx'
 
 fail() {
@@ -14,7 +18,7 @@ fail() {
   exit 1
 }
 
-for file in "$FORM" "$HOME" "$SEARCH" "$PLANNED" "$LEGACY" "$PICKER" "$APP"; do
+for file in "$FORM" "$HOME" "$SEARCH" "$PLANNED" "$LEGACY" "$PICKER" "$CHEAP_SERVICE" "$CHEAP_BACKEND" "$CHEAP_CONTROLLER" "$FLIGHT_ROUTES" "$APP"; do
   test -s "$file" || fail "missing required file $file"
 done
 
@@ -22,14 +26,28 @@ grep -q 'Whole month' "$FORM" || fail 'main flight form no longer exposes Whole 
 grep -q "dateSearchMode === 'month'" "$FORM" || fail 'main flight form no longer validates month mode'
 grep -q 'travelMonth' "$FORM" || fail 'main flight form lost whole-month state'
 grep -q '/flights/cheap' "$FORM" || fail 'whole-month search no longer routes to monthly fare explorer'
+grep -q 'countryAirports' "$FORM" || fail 'main flight form no longer expands country selections into supported airports'
+grep -q 'cityAirports' "$FORM" || fail 'main flight form no longer expands city selections into all supported airports'
 
 grep -q 'Whole month' "$HOME" || fail 'homepage flight search no longer exposes Whole month'
 grep -q 'fSearchMode' "$HOME" || fail 'homepage flight search lost month/exact mode state'
 grep -q '/flights/cheap' "$HOME" || fail 'homepage whole-month search no longer routes to monthly fare explorer'
+grep -q 'countryAirports' "$HOME" || fail 'homepage no longer preserves airport groups for country results'
 grep -q 'cityAirports' "$HOME" || fail 'homepage no longer preserves airport groups for city results'
 grep -q 'nearest-airport' "$HOME" || fail 'homepage no longer preserves nearest-airport results'
 grep -q 'requestedPlace' "$HOME" || fail 'homepage lost nearest-airport place context'
 grep -q 'getDate() + 365' "$HOME" || fail 'homepage native date fields are not capped to 365 days'
+
+# Country-to-country Whole Month must remain a first-class backend contract.
+grep -q 'searchCheapCountryRoutesByMonth' "$CHEAP_SERVICE" || fail 'frontend country-to-country monthly flight client is missing'
+grep -q '/api/flights/cheap-country-routes' "$CHEAP_SERVICE" || fail 'frontend country-to-country client lost its canonical API route'
+grep -q 'buildBalancedRoutePairs' "$CHEAP_BACKEND" || fail 'country matrix lost balanced route-pair generation'
+grep -q 'MAX_ROUTE_PAIRS = 240' "$CHEAP_BACKEND" || fail 'country matrix safety/coverage cap changed without updating the regression contract'
+grep -q 'coveragePercent' "$CHEAP_BACKEND" || fail 'monthly route matrix no longer reports coverage'
+grep -q 'matrixMode' "$CHEAP_BACKEND" || fail 'monthly route matrix no longer reports full vs sampled mode'
+grep -q 'getCheapCountryRoutesByMonth' "$CHEAP_CONTROLLER" || fail 'country-to-country controller is missing'
+grep -q "findAirportsForCountryCode(originCountry, 60)" "$CHEAP_CONTROLLER" || fail 'country-to-country search no longer uses the shared country airport resolver'
+grep -q "router.get('/cheap-country-routes'" "$FLIGHT_ROUTES" || fail 'country-to-country monthly API route is missing'
 
 # A provider returning one fare must never stop the entire search. Both the
 # public results page and Planned Trip query available providers as one batch
@@ -76,4 +94,4 @@ if grep -q 'type="date"' "$PLANNED"; then
   fail 'native date-only input returned to Planned Trip flight search'
 fi
 
-echo 'Flight Whole Month pricing, daily price drill-down, viewport positioning, location metadata, provider richness, and 365-day date guards passed.'
+echo 'Flight Whole Month pricing, country-to-country matrices, daily price drill-down, viewport positioning, location metadata, provider richness, and 365-day date guards passed.'

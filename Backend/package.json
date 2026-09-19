@@ -12,6 +12,7 @@
     "test:partner-links": "node scripts/checkTravelpayoutsPartnerLinks.mjs",
     "test:news-runner": "node scripts/checkTravelNewsRunner.mjs",
     "test:site-services": "node scripts/checkSiteServiceIntegrity.mjs",
+    "test:flight-country-matrix": "node scripts/checkCheapFlightCountryMatrix.mjs",
     "dev": "nodemon src/server.js",
     "start": "node src/server.js"
   },
