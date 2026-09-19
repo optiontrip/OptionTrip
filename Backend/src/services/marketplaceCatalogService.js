@@ -18,11 +18,12 @@ export const getMarketplaceCatalog = () => {
     const live = providers.filter(item => item.configured);
     const executable = getExecutionReadiness(vertical).filter(item => item.executable);
     const widget = live.find(item => item.integration === 'widget');
+    const directPartner = live.find(item => item.integration === 'affiliate' && item.bookingUrl);
 
     let mode = 'coming_soon';
     if (executable.length > 0 && SEARCHABLE.has(vertical)) mode = 'search';
-    else if (widget || WIDGET_FIRST.has(vertical) && live.length > 0) mode = 'widget';
-    else if (live.some(item => item.integration === 'affiliate')) mode = 'affiliate';
+    else if (widget || (WIDGET_FIRST.has(vertical) && live.length > 0)) mode = 'widget';
+    else if (directPartner) mode = 'affiliate';
     else if (live.length > 0) mode = 'available';
 
     return {
@@ -34,6 +35,8 @@ export const getMarketplaceCatalog = () => {
       liveProviderCount: live.length,
       executableProviders: executable.map(item => item.provider),
       primaryProvider: live[0]?.provider || null,
+      bookingProvider: directPartner?.provider || null,
+      bookingUrl: directPartner?.bookingUrl || null,
       integrations: [...new Set(live.map(item => item.integration))],
     };
   });
