@@ -89,18 +89,20 @@ const HeaderTravelPreferences = ({
         </select>
       </label>
 
-      <label className="header-prefs__field">
-        <span className="header-prefs__field-label">{labels.currency}</span>
-        <select
-          value={currency.code}
-          onChange={event => handleCurrency(event.target.value)}
-          aria-label={labels.currency}
-        >
-          {CURRENCIES.map(item => (
-            <option key={item.code} value={item.code}>{item.symbol} {item.code} - {localizedCurrency(item)}</option>
-          ))}
-        </select>
-      </label>
+      {!mobile && (
+        <label className="header-prefs__field">
+          <span className="header-prefs__field-label">{labels.currency}</span>
+          <select
+            value={currency.code}
+            onChange={event => handleCurrency(event.target.value)}
+            aria-label={labels.currency}
+          >
+            {CURRENCIES.map(item => (
+              <option key={item.code} value={item.code}>{item.symbol} {item.code} - {localizedCurrency(item)}</option>
+            ))}
+          </select>
+        </label>
+      )}
     </div>
   );
 
