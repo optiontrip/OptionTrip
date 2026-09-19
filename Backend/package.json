@@ -46,7 +46,7 @@
     "nodemailer": "^10.0.10",
     "openai": "^6.15.0",
     "passport": "^0.7.0",
-    "passport-facebook": "^3.2.0",
+    "passport-facebook": "^3.0.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
     "sharp": "^0.35.4"
