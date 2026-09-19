@@ -1,0 +1,14 @@
+/*
+ * Natural casing for translated OptionTrip copy.
+ *
+ * The legacy theme contains text-transform: capitalize/uppercase rules that are
+ * acceptable for some English template labels but make translated Russian,
+ * Serbian, French, Spanish and other languages look machine-generated.
+ *
+ * On non-English pages show authored/translated casing exactly as it exists in
+ * the content. This does not lowercase real strings such as LAX, USD, OptionTrip
+ * or Vi; it only disables CSS-generated casing transformations.
+ */
+html[data-ot-lang]:not([data-ot-lang="en"]) body * {
+  text-transform: none !important;
+}

@@ -47,6 +47,10 @@ jobs:
         working-directory: Backend
         run: npm run test:partner-routing
 
+      - name: Automatic Travelpayouts partner-link checks
+        working-directory: Backend
+        run: npm run test:partner-links
+
       - name: Travel news runner checks
         working-directory: Backend
         run: npm run test:news-runner
@@ -147,6 +151,7 @@ jobs:
             npm run test:locations
             npm run test:vi-marketplace
             npm run test:partner-routing
+            npm run test:partner-links
             npm run test:news-runner
 
             echo '🎨 Testing and building Frontend before touching production...'
@@ -169,7 +174,25 @@ jobs:
 
             echo '🩺 Checking Backend health and marketplace inventory...'
             curl -fsS --retry 12 --retry-delay 2 --retry-connrefused --max-time 5 http://127.0.0.1:5000/api/health | grep -q '"status":"healthy"'
-            curl -fsS --retry 8 --retry-delay 2 --retry-connrefused --max-time 5 http://127.0.0.1:5000/api/travel-inventory | grep -q '"verticals"'
+
+            # Give the startup partner-link warmup time to convert subscribed
+            # Travelpayouts brands. This is observational, not a deploy blocker:
+            # an unapproved brand must remain safely unavailable.
+            sleep 4
+            INVENTORY_JSON="$(curl -fsS --retry 8 --retry-delay 2 --retry-connrefused --max-time 5 http://127.0.0.1:5000/api/travel-inventory)"
+            printf '%s' "$INVENTORY_JSON" | grep -q '"verticals"'
+            printf '%s' "$INVENTORY_JSON" | node -e '
+              let input="";
+              process.stdin.on("data", chunk => input += chunk);
+              process.stdin.on("end", () => {
+                const data = JSON.parse(input);
+                const wanted = new Set(["rail", "bus", "ferries", "transfers", "city_passes", "activities"]);
+                for (const item of data.verticals || []) {
+                  if (!wanted.has(item.vertical)) continue;
+                  const options = (item.bookingOptions || []).map(option => option.provider).join(",") || "none";
+                  console.log(`affiliate-status ${item.vertical}: live=${item.live} bookingProviders=${options}`);
+                }
+              });'
 
             echo '📦 Publishing Frontend...'
             rm -rf /var/www/optiontrip/*
