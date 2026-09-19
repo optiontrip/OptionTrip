@@ -18,6 +18,12 @@ let lastRun = {
 
 const wpBase = () => String(process.env.WORDPRESS_API_BASE || DEFAULT_WP_API).replace(/\/$/, '');
 
+const REQUIRED_AUTOPUBLISH_VARS = [
+  'WORDPRESS_USERNAME',
+  'WORDPRESS_APP_PASSWORD',
+  'OPENAI_API_KEY',
+];
+
 export const normalizeNewsDailyLimit = (value) => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return DEFAULT_DAILY_LIMIT;
@@ -28,6 +34,26 @@ export const calculateRemainingNewsBudget = (recentPublishedCount, dailyLimit = 
   const count = Math.max(0, Number(recentPublishedCount) || 0);
   const limit = normalizeNewsDailyLimit(dailyLimit);
   return Math.max(0, limit - count);
+};
+
+export const getTravelNewsAutopublishReadiness = () => {
+  const missing = REQUIRED_AUTOPUBLISH_VARS.filter(name => !String(process.env[name] || '').trim());
+  const explicitFlag = String(process.env.NEWS_AUTOPUBLISH_ENABLED || '').trim().toLowerCase();
+  const explicitlyDisabled = explicitFlag === 'false' || explicitFlag === '0' || explicitFlag === 'off';
+  const configured = missing.length === 0;
+
+  // Owner policy: automatic news should run whenever the production prerequisites
+  // are present. NEWS_AUTOPUBLISH_ENABLED=false remains an emergency kill switch.
+  const enabled = configured && !explicitlyDisabled;
+
+  return {
+    enabled,
+    configured,
+    explicitlyDisabled,
+    mode: explicitFlag === 'true' ? 'explicit' : (explicitlyDisabled ? 'disabled' : 'auto'),
+    missing,
+    wordpressApiBase: wpBase(),
+  };
 };
 
 export const countRecentPublishedWordPressPosts = async ({ now = Date.now() } = {}) => {
@@ -63,16 +89,27 @@ export const countRecentPublishedWordPressPosts = async ({ now = Date.now() } = 
   }
 };
 
-export const getTravelNewsRunnerStatus = () => ({
-  enabled: process.env.NEWS_AUTOPUBLISH_ENABLED === 'true',
-  dailyLimit: normalizeNewsDailyLimit(process.env.NEWS_DAILY_LIMIT),
-  running: Boolean(activeRun),
-  ...lastRun,
-});
+export const getTravelNewsRunnerStatus = () => {
+  const readiness = getTravelNewsAutopublishReadiness();
+  return {
+    ...readiness,
+    dailyLimit: normalizeNewsDailyLimit(process.env.NEWS_DAILY_LIMIT),
+    running: Boolean(activeRun),
+    ...lastRun,
+  };
+};
 
 export const runTravelNewsAutomationWithBudget = async ({ trigger = 'manual' } = {}) => {
-  if (process.env.NEWS_AUTOPUBLISH_ENABLED !== 'true') {
-    return { enabled: false, trigger, skipped: true, reason: 'disabled' };
+  const readiness = getTravelNewsAutopublishReadiness();
+  if (!readiness.enabled) {
+    const reason = readiness.explicitlyDisabled ? 'disabled' : 'missing-configuration';
+    return {
+      enabled: false,
+      trigger,
+      skipped: true,
+      reason,
+      missing: readiness.missing,
+    };
   }
 
   if (activeRun) {
@@ -130,7 +167,9 @@ export const runTravelNewsAutomationWithBudget = async ({ trigger = 'manual' } =
       }
 
       const previousLimit = process.env.NEWS_DAILY_LIMIT;
+      const previousEnabled = process.env.NEWS_AUTOPUBLISH_ENABLED;
       process.env.NEWS_DAILY_LIMIT = String(remainingBudget);
+      process.env.NEWS_AUTOPUBLISH_ENABLED = 'true';
 
       let result;
       try {
@@ -138,6 +177,9 @@ export const runTravelNewsAutomationWithBudget = async ({ trigger = 'manual' } =
       } finally {
         if (previousLimit === undefined) delete process.env.NEWS_DAILY_LIMIT;
         else process.env.NEWS_DAILY_LIMIT = previousLimit;
+
+        if (previousEnabled === undefined) delete process.env.NEWS_AUTOPUBLISH_ENABLED;
+        else process.env.NEWS_AUTOPUBLISH_ENABLED = previousEnabled;
       }
 
       const normalizedResult = {
