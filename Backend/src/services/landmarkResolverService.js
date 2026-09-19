@@ -23,6 +23,10 @@ for (const landmark of landmarks) {
   }
 }
 
+const aliasesByLength = [...aliasIndex.entries()]
+  .filter(([alias]) => alias.length >= 4)
+  .sort((a, b) => b[0].length - a[0].length);
+
 export const findCuratedLandmark = query => {
   const key = normalize(query);
   if (!key) return null;
@@ -30,9 +34,27 @@ export const findCuratedLandmark = query => {
   return landmark ? { ...landmark, matchedQuery: String(query || '').trim(), source: 'curated-landmark' } : null;
 };
 
+export const findCuratedLandmarkInText = text => {
+  const normalizedText = normalize(text);
+  if (!normalizedText) return null;
+  const padded = ` ${normalizedText} `;
+
+  for (const [alias, landmark] of aliasesByLength) {
+    if (!padded.includes(` ${alias} `)) continue;
+    return {
+      ...landmark,
+      matchedQuery: String(text || '').trim(),
+      matchedAlias: alias,
+      source: 'curated-landmark-text',
+    };
+  }
+  return null;
+};
+
 export const listCuratedLandmarks = () => landmarks.map(landmark => ({ ...landmark }));
 
 export default {
   findCuratedLandmark,
+  findCuratedLandmarkInText,
   listCuratedLandmarks,
 };
