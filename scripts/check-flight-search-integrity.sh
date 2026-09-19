@@ -53,6 +53,11 @@ grep -q "export { default } from './PlannedTripFlightTabModern'" "$LEGACY" || fa
 
 grep -q "searchMode: 'month'" "$PICKER" || fail 'shared date picker no longer emits month searches'
 grep -q 'yyyy-MM' "$PICKER" || fail 'shared date picker no longer preserves month-only values'
+grep -q 'monthSummaries' "$PICKER" || fail 'whole-month picker lost month-level fare summaries'
+grep -q 'cheapestMonthKey' "$PICKER" || fail 'whole-month picker lost cheapest-month highlighting'
+grep -q 'fetchMonthlyPrices' "$PICKER" || fail 'whole-month picker no longer uses real monthly fare data'
+grep -q "window.addEventListener('scroll'" "$PICKER" || fail 'date picker no longer repositions during scrolling'
+grep -q 'visualViewport' "$PICKER" || fail 'date picker lost viewport-aware positioning'
 
 grep -q 'TravelDateBoundary' "$APP" || fail 'global native travel date boundary is missing'
 grep -q 'input\[type="date"\]' "$APP" || fail 'global date boundary no longer targets native date inputs'
@@ -65,4 +70,4 @@ if grep -q 'type="date"' "$PLANNED"; then
   fail 'native date-only input returned to Planned Trip flight search'
 fi
 
-echo 'Flight whole-month, location metadata, provider richness, and 365-day date guards passed.'
+echo 'Flight whole-month pricing, viewport positioning, location metadata, provider richness, and 365-day date guards passed.'
