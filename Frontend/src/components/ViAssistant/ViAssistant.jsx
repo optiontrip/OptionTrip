@@ -13,6 +13,7 @@ import { getActivityContext, logActivity } from '../../services/activityService'
 import { readCachedLocation, detectPreciseLocation, reverseGeocodeRobust } from '../../services/planMyDayService';
 import ChatFlightResults from './ChatFlightResults';
 import ChatHotelResults from './ChatHotelResults';
+import ViConversionCard from './ViConversionCard';
 import './ViAssistant.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -326,7 +327,8 @@ const ViAssistant = () => {
           quickReplies: m.quickReplies?.length > 0 ? m.quickReplies : undefined,
           results: m.results,
           resultsType: m.resultsType,
-          providerStatus: m.providerStatus
+          providerStatus: m.providerStatus,
+          conversion: m.conversion
         }));
         setMessages(msgs.length > 0 ? msgs : [makeWelcomeMessage()]);
         setActiveConversationId(convId);
@@ -536,6 +538,7 @@ const ViAssistant = () => {
                     resultsType: event.resultsType || undefined,
                     providerStatus: event.providerStatus || undefined,
                     pendingSearch: event.pendingSearch || undefined,
+                    conversion: event.conversion || undefined,
                     isStreaming: false
                   }
                 : m
@@ -1141,6 +1144,10 @@ const ViAssistant = () => {
                           providerStatus={message.providerStatus}
                           destination={message.results[0]?.location?.name}
                         />
+                      )}
+
+                      {message.sender === 'bot' && message.conversion && (
+                        <ViConversionCard conversion={message.conversion} />
                       )}
 
 

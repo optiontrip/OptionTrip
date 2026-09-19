@@ -24,6 +24,7 @@ import {
 import { computeServiceSignals } from '../services/serviceSignalsService.js';
 import { checkToolBudget } from '../middleware/chatToolLimiter.js';
 import { fetchWeather } from '../services/planMyDayService.js';
+import { buildViConversion } from '../services/viConversionService.js';
 
 const generateConversationId = () =>
   `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -237,6 +238,7 @@ export const sendMessage = async (req, res) => {
     const response = await generateViResponseWithTools(message, context, conversationHistory, {
       canUseTool: checkToolBudget(budgetKey)
     });
+    const conversion = buildViConversion({ message, context });
 
     logToolActivity(user, response);
 
@@ -250,7 +252,8 @@ export const sendMessage = async (req, res) => {
           results: response.results || undefined,
           resultsType: response.resultsType || undefined,
           providerStatus: response.providerStatus || undefined,
-          pendingSearch: response.pendingSearch || undefined
+          pendingSearch: response.pendingSearch || undefined,
+          conversion: conversion || undefined
         });
         conversation.last_message_at = new Date();
         await conversation.save();
@@ -275,6 +278,7 @@ export const sendMessage = async (req, res) => {
         resultsType: response.resultsType || null,
         providerStatus: response.providerStatus || null,
         pendingSearch: response.pendingSearch || null,
+        conversion: conversion || null,
         timestamp: new Date().toISOString(),
         conversationId: conversation?.conversation_id || null
       }
@@ -308,6 +312,7 @@ export const streamMessage = async (req, res) => {
   try {
     const { context, conversation, conversationHistory } =
       await prepareChat(user, { message, tripId, conversationId, location, history });
+    const conversion = buildViConversion({ message, context });
 
     const budgetKey = user?._id?.toString() || req.ip;
     const plan = await planTurn(message, context, conversationHistory, {
@@ -347,7 +352,7 @@ export const streamMessage = async (req, res) => {
       if (!aiStream) {
         const fallback = await generateViResponse(message, context, conversationHistory);
         send({ delta: JSON.stringify({ message: fallback.text, type: fallback.type, quickReplies: fallback.quickReplies }) });
-        send({ done: true, type: fallback.type, quickReplies: fallback.quickReplies, conversationId: conversation?.conversation_id || null });
+        send({ done: true, type: fallback.type, quickReplies: fallback.quickReplies, conversion: conversion || null, conversationId: conversation?.conversation_id || null });
         return res.end();
       }
 
@@ -379,7 +384,8 @@ export const streamMessage = async (req, res) => {
           results: results || undefined,
           resultsType: resultsType || undefined,
           providerStatus: providerStatus || undefined,
-          pendingSearch: pendingSearch || undefined
+          pendingSearch: pendingSearch || undefined,
+          conversion: conversion || undefined
         });
         conversation.last_message_at = new Date();
         await conversation.save();
@@ -393,7 +399,7 @@ export const streamMessage = async (req, res) => {
       markActivitiesAsFed(user._id, context.unfedActivityIds).catch(() => {});
     }
 
-    send({ done: true, type, quickReplies, results, resultsType, providerStatus, pendingSearch: pendingSearch || null, conversationId: savedConvId });
+    send({ done: true, type, quickReplies, results, resultsType, providerStatus, pendingSearch: pendingSearch || null, conversion: conversion || null, conversationId: savedConvId });
   } catch (err) {
     if (err?.name !== 'AbortError') console.error('Stream chat error:', err);
     send({ error: 'Stream failed' });

@@ -8,6 +8,7 @@
     "test:locations": "node scripts/checkLocationResolver.mjs",
     "test:cars": "node scripts/checkCarRentalRouting.mjs",
     "test:vi-marketplace": "node scripts/checkViMarketplaceRouting.mjs",
+    "test:vi-conversion": "node scripts/checkViLiveConversion.mjs",
     "test:partner-routing": "node scripts/checkPartnerBookingRouting.mjs",
     "test:partner-links": "node scripts/checkTravelpayoutsPartnerLinks.mjs",
     "test:news-runner": "node scripts/checkTravelNewsRunner.mjs",
