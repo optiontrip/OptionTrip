@@ -31,6 +31,10 @@ const messageSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,
     default: undefined
   },
+  conversion: {
+    type: mongoose.Schema.Types.Mixed,
+    default: undefined
+  },
   timestamp: {
     type: Date,
     default: Date.now
