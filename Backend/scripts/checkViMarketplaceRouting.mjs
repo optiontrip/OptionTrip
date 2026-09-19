@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { buildMarketplaceSuggestion, detectMarketplaceIntent } from '../src/services/viMarketplaceRouter.js';
+import { buildMarketplaceSuggestion, detectMarketplaceIntent, formatMarketplaceForViPrompt } from '../src/services/viMarketplaceRouter.js';
 import { inferConversationLanguage } from '../src/services/chatService.js';
 
 const russianBus = buildMarketplaceSuggestion('Мне нужен автобус из Белграда в Сараево');
@@ -25,6 +25,20 @@ const cityPass = buildMarketplaceSuggestion('Где купить туристи�
 assert.equal(cityPass?.vertical, 'city_passes', 'Russian city-pass request must resolve city passes');
 assert.equal(cityPass?.route, '/services?service=city_passes', 'City passes must use the existing service hub route');
 
+const germanRail = detectMarketplaceIntent('Ich brauche einen Zug von Berlin nach Prag');
+assert.equal(germanRail?.vertical, 'rail', 'German rail request must resolve the rail vertical');
+
+const spanishTransfer = detectMarketplaceIntent('Necesito un traslado del aeropuerto en Madrid');
+assert.equal(spanishTransfer?.vertical, 'transfers', 'Spanish transfer request must resolve transfers');
+
+const vietnameseInsurance = detectMarketplaceIntent('Tôi cần bảo hiểm du lịch');
+assert.equal(vietnameseInsurance?.vertical, 'insurance', 'Vietnamese insurance request must resolve insurance');
+
+const partnerPrompt = formatMarketplaceForViPrompt('I need travel insurance');
+assert.match(partnerPrompt, /keep the traveler inside OptionTrip/i, 'Partner services must stay OptionTrip-first');
+assert.match(partnerPrompt, /DO NOT expose or invent a direct partner URL/i, 'Vi must not bypass OptionTrip comparison with a raw affiliate link');
+assert.doesNotMatch(partnerPrompt, /https:\/\//i, 'Marketplace prompt must not expose a raw affiliate URL to Vi');
+
 assert.equal(
   inferConversationLanguage('Найди мне билет из Москвы в Стамбул'),
   'ru',
@@ -46,4 +60,4 @@ assert.equal(
   'English travel requests must remain English',
 );
 
-console.log('✅ Vi marketplace routing and conversation-language regression checks passed');
+console.log('✅ Vi marketplace routing, OptionTrip-first handoff and conversation-language regression checks passed');
