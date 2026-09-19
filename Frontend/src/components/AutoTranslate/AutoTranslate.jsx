@@ -110,7 +110,7 @@ const AutoTranslate = () => {
       Object.keys(attrMap).forEach(attr => {
         const orig = origMap[attr] || attrMap[attr];
         const key  = `${lang}:${orig}`;
-        let result = localCache.current.get(key) ?? getCached(orig, lang);
+        const result = localCache.current.get(key) ?? getCached(orig, lang);
         if (result) {
           localCache.current.set(key, result);
           if (el.getAttribute(attr) !== result) el.setAttribute(attr, result);
@@ -230,16 +230,49 @@ const AutoTranslate = () => {
     );
 
     observerRef.current = new MutationObserver((mutations) => {
-      if (currentLangRef.current === 'en') return;
-      const hasNew = mutations.some(m =>
-        [...m.addedNodes].some(n =>
-          n.nodeType === Node.ELEMENT_NODE || n.nodeType === Node.TEXT_NODE
-        )
-      );
-      if (hasNew) debouncedFnRef.current?.();
+      const lang = currentLangRef.current;
+      if (lang === 'en') return;
+
+      let shouldRetranslate = false;
+
+      mutations.forEach(mutation => {
+        if (mutation.type === 'characterData') {
+          const node = mutation.target;
+          if (!isTranslatableText(node.textContent) || shouldSkipNode(node)) return;
+
+          const original = nodeOriginals.current.get(node);
+          if (original) {
+            const key = `${lang}:${original}`;
+            const cached = localCache.current.get(key) ?? getCached(original, lang);
+            const expected = cached && ensureSafeTextBoundary(original, cached, node);
+
+            // Ignore the characterData mutation caused by our own translated
+            // write. If React reused this text node with genuinely new source
+            // text, promote that new value to the original before translating.
+            if (expected && node.textContent === expected) return;
+          }
+
+          nodeOriginals.current.set(node, node.textContent);
+          shouldRetranslate = true;
+          return;
+        }
+
+        if (mutation.type === 'childList') {
+          const hasNew = [...mutation.addedNodes].some(node =>
+            node.nodeType === Node.ELEMENT_NODE || node.nodeType === Node.TEXT_NODE
+          );
+          if (hasNew) shouldRetranslate = true;
+        }
+      });
+
+      if (shouldRetranslate) debouncedFnRef.current?.();
     });
 
-    observerRef.current.observe(document.body, { childList: true, subtree: true });
+    observerRef.current.observe(document.body, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
   }, [translateDOM]);
 
   const stopObserver = useCallback(() => {
