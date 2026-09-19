@@ -2,6 +2,18 @@
    Loaded after the app styles so legacy desktop theme rules cannot break
    touch layouts on narrow screens. */
 
+/* The legacy theme capitalized every word in every heading. That is wrong for
+   translated interfaces and changes natural casing in Russian, Ukrainian,
+   Serbian, German and other languages. Preserve the source/translation case. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  text-transform: none !important;
+}
+
 @media (max-width: 767px) {
   html,
   body,
@@ -19,6 +31,19 @@
 
   .container {
     max-width: 100% !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  a,
+  button,
+  label {
+    overflow-wrap: break-word;
   }
 
   /* Header: one compact navigation row instead of a tall desktop header. */
