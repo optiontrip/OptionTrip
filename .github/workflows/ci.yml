@@ -54,6 +54,10 @@ jobs:
         working-directory: Frontend
         run: npm ci
 
+      - name: Dynamic translation boundary checks
+        working-directory: Frontend
+        run: npm run test:translation-boundaries
+
       - name: Build frontend
         working-directory: Frontend
         run: npm run build
