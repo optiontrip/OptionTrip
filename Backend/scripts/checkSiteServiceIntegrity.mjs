@@ -91,23 +91,33 @@ if (!bookingMenu.includes('const [openGroup, setOpenGroup] = useState(null)')) {
   errors.push('Mobile Booking menu must start collapsed rather than dumping the service catalog into the drawer.');
 }
 if (!bookingMenu.includes('fetchTravelInventoryStatus') || !bookingMenu.includes('state.external && state.bookingUrl')) {
-  errors.push('Booking menu must route provider-ready services to live booking inventory.');
+  errors.push('Booking menu must know when provider-backed services are live.');
 }
-if (!bookingMenu.includes('rel="noopener noreferrer sponsored"')) {
-  errors.push('External booking menu links must be marked as safe sponsored partner links.');
+if (!bookingMenu.includes('/services?service=') || bookingMenu.includes('rel="noopener noreferrer sponsored"')) {
+  errors.push('Booking menu must keep partner selection inside OptionTrip before the final provider handoff.');
 }
 if (bookingMenu.includes('booking-service-menu__vi-link')) {
   errors.push('Booking menu must not duplicate the global Vi entry point.');
 }
 
-if (!serviceRail.includes('state.external && state.bookingUrl') || !serviceRail.includes('data-provider={state.primaryProvider')) {
-  errors.push('Travel service rail must open real provider booking options when inventory is live.');
+if (!serviceRail.includes('state.external && state.bookingUrl') || !serviceRail.includes('serviceHubRoute(service)')) {
+  errors.push('Travel service rail must send provider-ready services to the OptionTrip comparison hub.');
 }
-if (!serviceRail.includes('rel="noopener noreferrer sponsored"')) {
-  errors.push('Travel service rail external provider links must be safe sponsored links.');
+if (serviceRail.includes('rel="noopener noreferrer sponsored"')) {
+  errors.push('Travel service rail must not jump directly to an external provider before comparison.');
 }
 if (!serviceRail.includes('viRoute(service)')) {
   errors.push('Travel service rail must keep Vi as fallback only when direct or partner booking is unavailable.');
+}
+
+if (!servicesPage.includes('selectedBookingOptions') || !servicesPage.includes('safeBookingOptions')) {
+  errors.push('Travel services marketplace must expose all live booking options for the selected partner service.');
+}
+if (!servicesPage.includes('travel-services-provider-grid') || !servicesPage.includes('rel="noopener noreferrer sponsored"')) {
+  errors.push('Final provider handoff must happen from the OptionTrip comparison view using safe sponsored links.');
+}
+if (!servicesPage.includes('PROVIDER_LABELS') || !servicesPage.includes('providerLabel')) {
+  errors.push('Provider comparison must use readable partner names instead of raw registry IDs.');
 }
 
 if (!mainEntry.includes("./styles/mobile-first.css") || !mainEntry.includes("./styles/mobile-hardening.css")) {
@@ -169,6 +179,9 @@ if (!servicesPage.includes('openMobileGroups') || !servicesPage.includes('travel
 if (!servicesPageCss.includes('.travel-services-group--mobile-collapsed .travel-services-grid')) {
   errors.push('Travel services marketplace mobile collapse styling is missing.');
 }
+if (!servicesPageCss.includes('.travel-services-provider-grid') || !servicesPageCss.includes('.travel-services-provider')) {
+  errors.push('Provider comparison must remain readable and responsive in the service marketplace.');
+}
 if (!cheapFlightsCss.includes('.cheapx-filters{display:flex') || !cheapFlightsCss.includes('overflow-x:auto')) {
   errors.push('Monthly flight filters must use a compact horizontal mobile filter bar.');
 }
@@ -218,4 +231,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`✅ Site/service integrity passed: ${serviceRoutes.length} direct service routes, ${serviceVerticals.length} provider verticals, ${requiredCoreRoutes.length} required public routes, live marketplace routing and mobile UX guards active.`);
+console.log(`✅ Site/service integrity passed: ${serviceRoutes.length} direct service routes, ${serviceVerticals.length} provider verticals, ${requiredCoreRoutes.length} required public routes, OptionTrip-first partner comparison and mobile UX guards active.`);
