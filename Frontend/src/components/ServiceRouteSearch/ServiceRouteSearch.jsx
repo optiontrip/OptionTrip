@@ -3,13 +3,8 @@ import { searchAirports } from '../../services/flightService';
 import { createRouteAwarePartnerDeepLink } from '../../services/travelInventoryService';
 import './ServiceRouteSearch.css';
 
-const SERVICE_MODES = Object.freeze({
-  rail: 'route',
-  bus: 'route',
-  ferries: 'route',
-  transfers: 'destination',
-  city_passes: 'destination',
-});
+const ROUTE_ONLY_SERVICES = new Set(['rail', 'bus', 'ferries']);
+const DESTINATION_ONLY_SERVICES = new Set(['transfers', 'city_passes']);
 
 const BASE_COPY = {
   en: {
@@ -200,7 +195,11 @@ const LocationField = ({ label, placeholder, value, onValueChange, selection, on
 };
 
 export default function ServiceRouteSearch({ serviceId, language = 'en' }) {
-  const mode = SERVICE_MODES[serviceId] || null;
+  const mode = ROUTE_ONLY_SERVICES.has(serviceId)
+    ? 'route'
+    : DESTINATION_ONLY_SERVICES.has(serviceId)
+      ? 'destination'
+      : null;
   const base = BASE_COPY[language] || BASE_COPY.en;
   const languageCopy = SERVICE_COPY[language] || SERVICE_COPY.en;
   const copy = serviceId === 'transfers'
