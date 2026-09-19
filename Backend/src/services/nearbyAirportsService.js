@@ -21,6 +21,53 @@ const airports = [
 
 const normalize = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
+const COUNTRY_CODE_OVERRIDES = new Map([
+  ['bolivia', 'BO'],
+  ['brunei', 'BN'],
+  ['cape verde', 'CV'],
+  ['czech republic', 'CZ'],
+  ['iran', 'IR'],
+  ['laos', 'LA'],
+  ['moldova', 'MD'],
+  ['north korea', 'KP'],
+  ['russia', 'RU'],
+  ['south korea', 'KR'],
+  ['syria', 'SY'],
+  ['taiwan', 'TW'],
+  ['tanzania', 'TZ'],
+  ['turkey', 'TR'],
+  ['venezuela', 'VE'],
+  ['vietnam', 'VN'],
+]);
+
+const buildCountryCodeIndex = () => {
+  const index = new Map(COUNTRY_CODE_OVERRIDES);
+
+  try {
+    const displayNames = new Intl.DisplayNames(['en'], { type: 'region' });
+    for (let first = 65; first <= 90; first += 1) {
+      for (let second = 65; second <= 90; second += 1) {
+        const code = `${String.fromCharCode(first)}${String.fromCharCode(second)}`;
+        const name = displayNames.of(code);
+        if (!name || name === code || name === 'Unknown Region') continue;
+        index.set(normalize(name), code);
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ Intl region names unavailable; using country-code overrides only:', error?.message || error);
+  }
+
+  return index;
+};
+
+const countryCodeIndex = buildCountryCodeIndex();
+
+export const resolveCountryCode = (countryName) => {
+  const needle = normalize(countryName);
+  if (!needle) return null;
+  return COUNTRY_CODE_OVERRIDES.get(needle) || countryCodeIndex.get(needle) || null;
+};
+
 const airportIndex = new Map(airports.map(a => [a.iata.toUpperCase(), a]));
 const countries = [...new Set(airports.map(a => a.country).filter(Boolean))].sort();
 
@@ -52,6 +99,7 @@ const toLocation = (airport, extra = {}) => ({
   name: airport.name,
   cityName: airport.city,
   countryName: airport.country,
+  countryCode: resolveCountryCode(airport.country),
   latitude: airport.lat,
   longitude: airport.lng,
   entityType: 'airport',
@@ -118,12 +166,14 @@ export const findCountryDirectoryMatch = (query, limit = 12) => {
       cityName: airport.city,
       name: airport.name,
       countryName: airport.country,
+      countryCode: resolveCountryCode(airport.country),
       latitude: airport.lat,
       longitude: airport.lng,
     }));
 
   return {
     countryName: prefix,
+    countryCode: resolveCountryCode(prefix),
     countryAirports,
   };
 };
