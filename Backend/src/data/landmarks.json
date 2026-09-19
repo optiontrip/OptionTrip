@@ -1,0 +1,146 @@
+[
+  {
+    "id": "giza-pyramids",
+    "name": "Pyramids of Giza",
+    "city": "Cairo",
+    "country": "Egypt",
+    "lat": 29.9792,
+    "lng": 31.1342,
+    "aliases": ["pyramids", "pyramids of giza", "giza pyramids", "great pyramids", "пирамиды", "пирамиды гизы", "египетские пирамиды", "піраміди гізи", "piramide u gizi"]
+  },
+  {
+    "id": "red-square",
+    "name": "Red Square",
+    "city": "Moscow",
+    "country": "Russia",
+    "lat": 55.7539,
+    "lng": 37.6208,
+    "aliases": ["red square", "красная площадь", "червона площа", "crveni trg moskva"]
+  },
+  {
+    "id": "eiffel-tower",
+    "name": "Eiffel Tower",
+    "city": "Paris",
+    "country": "France",
+    "lat": 48.8584,
+    "lng": 2.2945,
+    "aliases": ["eiffel tower", "tour eiffel", "эйфелева башня", "ейфелева вежа", "ajfelov toranj"]
+  },
+  {
+    "id": "colosseum",
+    "name": "Colosseum",
+    "city": "Rome",
+    "country": "Italy",
+    "lat": 41.8902,
+    "lng": 12.4922,
+    "aliases": ["colosseum", "coliseum", "колизей", "колізей", "koloseum"]
+  },
+  {
+    "id": "sagrada-familia",
+    "name": "Sagrada Familia",
+    "city": "Barcelona",
+    "country": "Spain",
+    "lat": 41.4036,
+    "lng": 2.1744,
+    "aliases": ["sagrada familia", "саграда фамилия", "саграда фамілія"]
+  },
+  {
+    "id": "acropolis-athens",
+    "name": "Acropolis of Athens",
+    "city": "Athens",
+    "country": "Greece",
+    "lat": 37.9715,
+    "lng": 23.7257,
+    "aliases": ["acropolis", "acropolis of athens", "athens acropolis", "акрополь", "афинский акрополь", "афінський акрополь"]
+  },
+  {
+    "id": "burj-khalifa",
+    "name": "Burj Khalifa",
+    "city": "Dubai",
+    "country": "United Arab Emirates",
+    "lat": 25.1972,
+    "lng": 55.2744,
+    "aliases": ["burj khalifa", "бурдж халифа", "бурдж-халифа", "бурдж халіфа"]
+  },
+  {
+    "id": "golden-gate-bridge",
+    "name": "Golden Gate Bridge",
+    "city": "San Francisco",
+    "country": "United States",
+    "lat": 37.8199,
+    "lng": -122.4783,
+    "aliases": ["golden gate bridge", "golden gate", "мост золотые ворота", "золотые ворота сан франциско", "міст золоті ворота"]
+  },
+  {
+    "id": "statue-of-liberty",
+    "name": "Statue of Liberty",
+    "city": "New York",
+    "country": "United States",
+    "lat": 40.6892,
+    "lng": -74.0445,
+    "aliases": ["statue of liberty", "статуя свободы", "статуя свободи"]
+  },
+  {
+    "id": "sydney-opera-house",
+    "name": "Sydney Opera House",
+    "city": "Sydney",
+    "country": "Australia",
+    "lat": -33.8568,
+    "lng": 151.2153,
+    "aliases": ["sydney opera house", "sydney opera", "сиднейская опера", "сіднейська опера"]
+  },
+  {
+    "id": "taj-mahal",
+    "name": "Taj Mahal",
+    "city": "Agra",
+    "country": "India",
+    "lat": 27.1751,
+    "lng": 78.0421,
+    "aliases": ["taj mahal", "тадж махал", "тадж-махал"]
+  },
+  {
+    "id": "machu-picchu",
+    "name": "Machu Picchu",
+    "city": "Cusco",
+    "country": "Peru",
+    "lat": -13.1631,
+    "lng": -72.545,
+    "aliases": ["machu picchu", "мачу пикчу", "мачу-пикчу", "мачу пікчу"]
+  },
+  {
+    "id": "niagara-falls",
+    "name": "Niagara Falls",
+    "city": "Niagara Falls",
+    "country": "United States / Canada",
+    "lat": 43.0962,
+    "lng": -79.0377,
+    "aliases": ["niagara falls", "niagara waterfall", "ниагарский водопад", "ниагара водопад", "ніагарський водоспад"]
+  },
+  {
+    "id": "grand-canyon",
+    "name": "Grand Canyon",
+    "city": "Grand Canyon Village",
+    "country": "United States",
+    "lat": 36.0544,
+    "lng": -112.1401,
+    "aliases": ["grand canyon", "grand canyon national park", "гранд каньон", "гранд-каньон"]
+  },
+  {
+    "id": "petra-jordan",
+    "name": "Petra",
+    "city": "Wadi Musa",
+    "country": "Jordan",
+    "lat": 30.3285,
+    "lng": 35.4444,
+    "aliases": ["petra jordan", "petra", "петра иордания", "петра йорданія"]
+  },
+  {
+    "id": "mount-fuji",
+    "name": "Mount Fuji",
+    "city": "Fujiyoshida",
+    "country": "Japan",
+    "lat": 35.3606,
+    "lng": 138.7274,
+    "aliases": ["mount fuji", "mt fuji", "fuji mountain", "гора фудзи", "фудзи", "гора фудзі"]
+  }
+]
