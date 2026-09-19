@@ -27,18 +27,35 @@ export const fetchTravelInventoryStatus = async ({ force = false } = {}) => {
 
 export const getInventoryStateForService = (service, inventory = {}) => {
   if (service?.live && service?.route) {
-    return { operational: true, direct: true, status: 'live' };
+    return { operational: true, direct: true, external: false, status: 'live' };
   }
 
   if (!service?.inventoryVertical) {
-    return { operational: false, direct: false, status: 'vi' };
+    return { operational: false, direct: false, external: false, status: 'vi' };
   }
 
   const vertical = inventory[service.inventoryVertical];
+  const bookingOption = Array.isArray(vertical?.bookingOptions)
+    ? vertical.bookingOptions.find(option => /^https:\/\//i.test(String(option?.url || '')))
+    : null;
+
+  if (vertical?.live && bookingOption) {
+    return {
+      operational: true,
+      direct: false,
+      external: true,
+      status: 'partner-ready',
+      bookingUrl: bookingOption.url,
+      primaryProvider: bookingOption.provider || null,
+      providers: vertical.providers || [],
+    };
+  }
+
   if (vertical?.live) {
     return {
       operational: true,
       direct: false,
+      external: false,
       status: 'partner-ready',
       providers: vertical.providers || [],
     };
@@ -47,6 +64,7 @@ export const getInventoryStateForService = (service, inventory = {}) => {
   return {
     operational: false,
     direct: false,
+    external: false,
     status: vertical?.hasCandidates ? 'provider-pending' : 'vi',
     providers: [],
   };
