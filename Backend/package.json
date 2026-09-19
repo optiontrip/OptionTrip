@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:locations": "node scripts/checkLocationResolver.mjs",
+    "test:cars": "node scripts/checkCarRentalRouting.mjs",
     "test:vi-marketplace": "node scripts/checkViMarketplaceRouting.mjs",
     "test:partner-routing": "node scripts/checkPartnerBookingRouting.mjs",
     "test:partner-links": "node scripts/checkTravelpayoutsPartnerLinks.mjs",
@@ -41,7 +42,7 @@
     "passport": "^0.7.0",
     "passport-facebook": "^3.0.0",
     "passport-google-oauth20": "^2.0.0",
-    "passport-jwt": "^4.0.1",
+    "passport-jwt": "^9.0.2",
     "sharp": "^0.35.4"
   },
   "devDependencies": {
