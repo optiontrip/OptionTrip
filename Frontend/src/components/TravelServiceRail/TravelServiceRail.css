@@ -182,7 +182,10 @@
 
 .tsr__vi:hover { color: #fff; background: #074683; }
 
-@media (max-width: 767px) {
+/* Keep this breakpoint aligned with the actual Header hamburger breakpoint.
+   Wide phones, tablets and compact laptops must not fall into a half-mobile,
+   half-desktop navigation state. */
+@media (max-width: 1299px) {
   .tsr {
     box-shadow: none;
     background: rgba(255,255,255,.99);
@@ -193,26 +196,27 @@
     grid-template-columns: minmax(0,1fr) auto;
     align-items: center;
     gap: 8px;
-    min-height: 46px;
+    min-height: 52px;
     padding-top: 4px;
     padding-bottom: 4px;
   }
 
-  /* Mobile gets a compact quick-tools bar. The full service catalog remains
-     in the drawer and on /services instead of a clipped horizontal carousel. */
+  /* Compact navigation gets a quick-tools bar. The full service catalog
+     remains in the drawer and on /services instead of a clipped carousel. */
   .tsr__scroll { display: none; }
 
   .tsr__brand {
     min-width: 0;
+    min-height: 44px;
     gap: 8px;
     padding-right: 0;
     border-right: 0;
   }
 
   .tsr__brand-mark {
-    width: 34px;
-    height: 34px;
-    flex: 0 0 34px;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
     border-radius: 10px;
   }
 
@@ -226,19 +230,19 @@
 
   .tsr__actions { gap: 7px; }
   .tsr__currency {
-    min-width: 72px;
-    min-height: 38px;
+    min-width: 76px;
+    min-height: 44px;
     justify-content: center;
-    padding: 5px 9px;
+    padding: 5px 10px;
   }
   .tsr__currency-copy small { display: none; }
   .tsr__currency-copy strong { margin-top: 0; font-size: 12px; }
   .tsr__currency-icon { font-size: 14px; }
 
   .tsr__vi {
-    width: 38px;
-    height: 38px;
-    min-height: 38px;
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
     justify-content: center;
     padding: 0;
     border-radius: 50%;
@@ -249,7 +253,7 @@
 @media (max-width: 390px) {
   .tsr__inner { gap: 6px; }
   .tsr__brand-copy small { font-size: 11px; }
-  .tsr__currency { min-width: 66px; padding-inline: 7px; }
+  .tsr__currency { min-width: 70px; padding-inline: 7px; }
 }
 
 [data-theme="dark"] .tsr {
