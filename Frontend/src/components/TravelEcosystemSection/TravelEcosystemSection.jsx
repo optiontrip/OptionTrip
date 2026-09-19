@@ -20,6 +20,8 @@ const COPY = {
     },
     direct: 'Search & book',
     compare: 'Compare booking options',
+    compareCount: count => `Compare ${count} booking ${count === 1 ? 'partner' : 'partners'}`,
+    liveCount: count => `${count} live ${count === 1 ? 'provider' : 'providers'}`,
     guided: 'Continue in OptionTrip',
     viLead: 'Need help planning the whole trip?',
     viCopy: 'Use Vi for planning. For a specific booking, choose the service above and OptionTrip will keep you in that flow.',
@@ -38,6 +40,8 @@ const COPY = {
     },
     direct: 'Найти и забронировать',
     compare: 'Сравнить варианты бронирования',
+    compareCount: count => `Сравнить партнеров: ${count}`,
+    liveCount: count => `Доступно партнеров: ${count}`,
     guided: 'Продолжить в OptionTrip',
     viLead: 'Нужна помощь со всей поездкой?',
     viCopy: 'Используйте Vi для планирования. Для конкретного бронирования выберите сервис выше, и OptionTrip сохранит контекст поездки.',
@@ -56,6 +60,8 @@ const COPY = {
     },
     direct: 'Знайти й забронювати',
     compare: 'Порівняти варіанти бронювання',
+    compareCount: count => `Порівняти партнерів: ${count}`,
+    liveCount: count => `Доступно партнерів: ${count}`,
     guided: 'Продовжити в OptionTrip',
     viLead: 'Потрібна допомога з усією подорожжю?',
     viCopy: 'Використовуйте Vi для планування. Для конкретного бронювання оберіть сервіс вище, і OptionTrip збереже контекст подорожі.',
@@ -65,6 +71,8 @@ const COPY = {
 
 const statusCopy = (state, copy) => {
   if (state.direct) return copy.direct;
+  if (state.bookingOptionCount > 0) return copy.compareCount(state.bookingOptionCount);
+  if (state.liveProviderCount > 0) return copy.liveCount(state.liveProviderCount);
   if (state.external && state.bookingUrl) return copy.compare;
   return copy.guided;
 };
@@ -96,8 +104,9 @@ const ServiceCard = ({ service, state, groupId, label, copy }) => {
   return (
     <Link
       to={serviceHubRoute(service, groupId)}
-      className={`tes__service${state.external && state.bookingUrl ? ' tes__service--partner' : ''}`}
+      className={`tes__service${state.bookingOptionCount > 0 ? ' tes__service--partner' : ''}`}
       data-provider={state.primaryProvider || undefined}
+      data-provider-count={state.liveProviderCount || undefined}
     >
       {content}
     </Link>
