@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PageMeta from '../../hooks/usePageMeta';
+import ServiceRouteSearch from '../../components/ServiceRouteSearch/ServiceRouteSearch';
 import { TRAVEL_SERVICE_GROUPS, TRAVEL_SERVICES, getTravelServiceDisplayLabel, getTravelServiceRoute } from '../../config/travelServices';
 import { getTravelServiceLabels } from '../../config/travelServiceLabels';
 import { fetchTravelInventoryStatus, getInventoryStateForService } from '../../services/travelInventoryService';
@@ -185,6 +186,8 @@ export default function TravelServicesPage() {
               {copy.direct} <i className="fa fa-arrow-right" aria-hidden="true" />
             </Link>
           )}
+
+          <ServiceRouteSearch serviceId={selectedService.id} language={language} />
 
           {inventoryLoading && selectedNeedsInventory && (
             <div className="travel-services-selected__checking" role="status">
