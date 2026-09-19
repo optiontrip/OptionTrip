@@ -2,7 +2,8 @@ import express from 'express';
 import { getPublicTravelInventoryStatus } from '../services/travelInventoryService.js';
 import { primeTravelpayoutsPartnerLinks } from '../services/travelpayoutsPartnerLinks.js';
 import {
-  createRouteAwarePartnerDeepLink,
+  createPartnerDeepLink,
+  isDeepLinkAwareService,
   isRouteAwareService,
 } from '../services/travelPartnerDeepLinkService.js';
 
@@ -41,13 +42,21 @@ router.post('/deep-link', async (req, res) => {
   const originCode = String(req.body?.originCode || '').trim().toUpperCase();
   const destinationCode = String(req.body?.destinationCode || '').trim().toUpperCase();
 
-  if (!isRouteAwareService(serviceId)) {
+  if (!isDeepLinkAwareService(serviceId)) {
     return res.status(400).json({
       success: false,
-      message: 'This service does not support route-aware partner handoff yet.',
+      message: 'This service does not support a destination-aware partner handoff yet.',
     });
   }
-  if (!/^[A-Z]{3}$/.test(originCode) || !/^[A-Z]{3}$/.test(destinationCode) || originCode === destinationCode) {
+
+  if (!/^[A-Z]{3}$/.test(destinationCode)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Choose a supported destination city or airport.',
+    });
+  }
+
+  if (isRouteAwareService(serviceId) && (!/^[A-Z]{3}$/.test(originCode) || originCode === destinationCode)) {
     return res.status(400).json({
       success: false,
       message: 'Choose two different supported cities or airports.',
@@ -55,11 +64,11 @@ router.post('/deep-link', async (req, res) => {
   }
 
   try {
-    const result = await createRouteAwarePartnerDeepLink({ serviceId, originCode, destinationCode });
+    const result = await createPartnerDeepLink({ serviceId, originCode, destinationCode });
     if (!result) {
       return res.status(503).json({
         success: false,
-        message: 'A route-specific booking link is not available right now. Use the live partner comparison instead.',
+        message: 'A destination-specific booking link is not available right now. Use the live partner comparison instead.',
       });
     }
 
@@ -68,10 +77,10 @@ router.post('/deep-link', async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.warn(`Route-aware travel partner handoff failed: ${error?.message || error}`);
+    console.warn(`Travel partner deep-link handoff failed: ${error?.message || error}`);
     return res.status(503).json({
       success: false,
-      message: 'Route-specific booking is temporarily unavailable. Use the live partner comparison instead.',
+      message: 'Destination-specific booking is temporarily unavailable. Use the live partner comparison instead.',
     });
   }
 });

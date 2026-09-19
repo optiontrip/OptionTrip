@@ -3,7 +3,10 @@ import { getProviderReadiness } from '../src/config/travelProviderRegistry.js';
 import { getPublicTravelInventoryStatus } from '../src/services/travelInventoryService.js';
 import { buildMarketplaceSuggestion, formatMarketplaceForViPrompt } from '../src/services/viMarketplaceRouter.js';
 import {
+  buildDestinationAwarePartnerTarget,
   buildRouteAwarePartnerTarget,
+  isDeepLinkAwareService,
+  isDestinationAwareService,
   isRouteAwareService,
 } from '../src/services/travelPartnerDeepLinkService.js';
 import { isAllowedTravelpayoutsProviderTarget } from '../src/services/travelpayoutsPartnerLinks.js';
@@ -64,7 +67,11 @@ try {
   assert.equal(isRouteAwareService('rail'), true, 'Rail must support route-aware partner handoff');
   assert.equal(isRouteAwareService('bus'), true, 'Bus must support route-aware partner handoff');
   assert.equal(isRouteAwareService('ferries'), true, 'Ferries must support route-aware partner handoff');
-  assert.equal(isRouteAwareService('insurance'), false, 'Non-route marketplace services must not accept route deep-link requests');
+  assert.equal(isDestinationAwareService('transfers'), true, 'Transfers must support destination-aware partner handoff');
+  assert.equal(isDestinationAwareService('city_passes'), true, 'City passes must support destination-aware partner handoff');
+  assert.equal(isDeepLinkAwareService('transfers'), true, 'Transfers must be accepted by the shared deep-link endpoint');
+  assert.equal(isDeepLinkAwareService('city_passes'), true, 'City passes must be accepted by the shared deep-link endpoint');
+  assert.equal(isDeepLinkAwareService('insurance'), false, 'Unsupported marketplace services must not accept destination deep-link requests');
 
   const busRoute = buildRouteAwarePartnerTarget({ serviceId: 'bus', originCode: 'LAX', destinationCode: 'LAS' });
   assert.equal(busRoute?.provider, 'twelve_go', 'Bus route handoff must stay on the configured 12Go provider');
@@ -78,10 +85,33 @@ try {
   const sameCityRoute = buildRouteAwarePartnerTarget({ serviceId: 'rail', originCode: 'LHR', destinationCode: 'LGW' });
   assert.equal(sameCityRoute, null, 'Two airports in the same city must not create a meaningless city-to-same-city route');
 
+  const serbiaTransfer = buildDestinationAwarePartnerTarget({ serviceId: 'transfers', destinationCode: 'BEG' });
+  assert.equal(serbiaTransfer?.provider, 'kiwitaxi', 'Transfer handoff must use the verified Kiwitaxi program');
+  assert.equal(serbiaTransfer?.destination?.country, 'Serbia', 'Transfer handoff must resolve the trusted destination country');
+  assert.equal(serbiaTransfer?.sourceUrl, 'https://kiwitaxi.com/en/serbia', 'Transfer handoff must use Kiwitaxi destination-country deep links');
+
+  const londonPass = buildDestinationAwarePartnerTarget({ serviceId: 'city_passes', destinationCode: 'LHR' });
+  assert.equal(londonPass?.provider, 'go_city', 'City-pass handoff must use the verified Go City program');
+  assert.equal(londonPass?.destination?.city, 'London', 'City-pass handoff must resolve the trusted destination city');
+  assert.equal(londonPass?.sourceUrl, 'https://gocity.com/en/london', 'London city-pass handoff must use the exact Go City destination page');
+
+  const unsupportedCityPass = buildDestinationAwarePartnerTarget({ serviceId: 'city_passes', destinationCode: 'BEG' });
+  assert.equal(unsupportedCityPass, null, 'Unsupported Go City destinations must fall back instead of inventing a provider page');
+
   assert.equal(
     isAllowedTravelpayoutsProviderTarget('twelve_go', 'https://12go.asia/en/bus/los-angeles/las-vegas'),
     true,
     'Dynamic handoff must allow HTTPS route pages on the configured provider host',
+  );
+  assert.equal(
+    isAllowedTravelpayoutsProviderTarget('kiwitaxi', 'https://kiwitaxi.com/en/serbia'),
+    true,
+    'Transfer deep links must stay on the configured Kiwitaxi host',
+  );
+  assert.equal(
+    isAllowedTravelpayoutsProviderTarget('go_city', 'https://gocity.com/en/london'),
+    true,
+    'City-pass deep links must stay on the configured Go City host',
   );
   assert.equal(
     isAllowedTravelpayoutsProviderTarget('twelve_go', 'https://checkout.12go.asia/en/bus/los-angeles/las-vegas'),
@@ -94,12 +124,17 @@ try {
     'Dynamic handoff must reject an arbitrary external host even if the provider hostname appears in the path',
   );
   assert.equal(
+    isAllowedTravelpayoutsProviderTarget('kiwitaxi', 'https://evil.example/kiwitaxi.com/en/serbia'),
+    false,
+    'Transfer handoff must reject a malicious host containing the provider name only in the path',
+  );
+  assert.equal(
     isAllowedTravelpayoutsProviderTarget('twelve_go', 'http://12go.asia/en/bus/los-angeles/las-vegas'),
     false,
     'Dynamic handoff must reject non-HTTPS provider targets',
   );
 
-  console.log('✅ Partner booking registry, canonical comparison, route-aware deep links and Vi handoff regression checks passed');
+  console.log('✅ Partner registry, route/destination deep links, canonical comparison and Vi handoff regression checks passed');
 } finally {
   envKeys.forEach(key => {
     if (previous[key] === undefined) delete process.env[key];
