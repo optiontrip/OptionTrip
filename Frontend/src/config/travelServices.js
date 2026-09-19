@@ -56,3 +56,13 @@ export const getTravelServiceDisplayLabel = (service, language, labels = {}) => 
   const languageCode = (language || 'en').split('-')[0];
   return service.labels?.[languageCode] || service.labels?.en || service.label;
 };
+
+// Canonical routing contract for every travel surface. Direct OptionTrip products
+// keep their dedicated routes. Partner-backed and guided services get a stable,
+// crawlable OptionTrip marketplace URL instead of query-string-only navigation.
+export const getTravelServiceRoute = (service, groupId = service?.group || '') => {
+  if (!service) return '/services';
+  if (service.live && service.route) return service.route;
+  const base = `/services/${encodeURIComponent(service.id)}`;
+  return groupId ? `${base}#${encodeURIComponent(groupId)}` : base;
+};
