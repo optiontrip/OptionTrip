@@ -47,6 +47,10 @@ jobs:
         working-directory: Backend
         run: npm run test:partner-routing
 
+      - name: Travel news runner checks
+        working-directory: Backend
+        run: npm run test:news-runner
+
       - name: Flight whole-month regression guard
         run: bash scripts/check-flight-search-integrity.sh
 
