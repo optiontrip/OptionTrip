@@ -9,6 +9,7 @@ import { useLocale } from '../../contexts/LocaleContext';
 import './TravelServiceRail.css';
 
 const viRoute = service => `/travel-buddy?service=${encodeURIComponent(service.id)}&intent=find-service`;
+const serviceHubRoute = service => `/services?service=${encodeURIComponent(service.id)}#${service.group || ''}`;
 
 const PRIORITY_IDS = [
   'flights', 'stays', 'cars', 'activities', 'rail', 'bus', 'transfers',
@@ -42,7 +43,9 @@ const TravelServiceRail = () => {
 
   const renderServiceItem = (service) => {
     const state = getInventoryStateForService(service, inventory);
-    const isActive = service.route && location.pathname === service.route;
+    const isActive = service.route
+      ? location.pathname === service.route
+      : location.pathname === '/services' && new URLSearchParams(location.search).get('service') === service.id;
     const badge = state.direct ? null : state.external && state.bookingUrl ? 'Live' : 'Vi';
     const label = getTravelServiceDisplayLabel(service, language, serviceLabels);
     const content = (
@@ -64,18 +67,15 @@ const TravelServiceRail = () => {
 
     if (state.external && state.bookingUrl) {
       return (
-        <a
+        <Link
           role="listitem"
           key={service.id}
-          href={state.bookingUrl}
-          target="_blank"
-          rel="noopener noreferrer sponsored"
+          to={serviceHubRoute(service)}
           className={`${className} tsr__item--partner`}
-          title={`${label} - live booking`}
-          data-provider={state.primaryProvider || undefined}
+          title={`${label} - compare live booking partners`}
         >
           {content}
-        </a>
+        </Link>
       );
     }
 
