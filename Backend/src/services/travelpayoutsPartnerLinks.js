@@ -4,6 +4,7 @@ const DEFAULT_OPTIONTRIP_MARKER = 370056;
 const REQUEST_TIMEOUT_MS = 12000;
 const BATCH_SIZE = 10;
 const WARM_CACHE_MS = 5 * 60 * 1000;
+const DYNAMIC_LINK_CACHE_MS = 30 * 60 * 1000;
 
 // Canonical long brand URLs are converted server-side by the official
 // Travelpayouts Partner Links API. A provider only becomes live after the API
@@ -37,6 +38,7 @@ export const TRAVELPAYOUTS_LINK_TARGETS = Object.freeze({
 });
 
 const generatedLinks = new Map();
+const dynamicLinks = new Map();
 let primePromise = null;
 let lastPrimeCompletedAt = 0;
 let lastPrimeResult = null;
@@ -55,6 +57,32 @@ const normalizeHttpsUrl = value => {
     return null;
   }
 };
+
+const safeSubId = value => String(value || '')
+  .trim()
+  .replace(/[^a-zA-Z0-9_-]+/g, '_')
+  .replace(/^_+|_+$/g, '')
+  .slice(0, 64);
+
+const normalizeProviderTarget = (providerName, value) => {
+  const canonical = TRAVELPAYOUTS_LINK_TARGETS[providerName];
+  const normalized = normalizeHttpsUrl(value);
+  if (!canonical || !normalized) return null;
+
+  try {
+    const canonicalUrl = new URL(canonical);
+    const targetUrl = new URL(normalized);
+    const baseHost = canonicalUrl.hostname.toLowerCase();
+    const targetHost = targetUrl.hostname.toLowerCase();
+    const sameBrandHost = targetHost === baseHost || targetHost.endsWith(`.${baseHost}`);
+    return sameBrandHost ? targetUrl.toString() : null;
+  } catch {
+    return null;
+  }
+};
+
+export const isAllowedTravelpayoutsProviderTarget = (providerName, value) =>
+  Boolean(normalizeProviderTarget(String(providerName || '').trim(), value));
 
 export const getTravelpayoutsProjectIdentity = () => ({
   trs: positiveInteger(process.env.TRAVELPAYOUTS_TRS, DEFAULT_OPTIONTRIP_TRS),
@@ -75,6 +103,7 @@ export const getTravelpayoutsPartnerLinkWarmupState = () => ({
   lastCompletedAt: lastPrimeCompletedAt ? new Date(lastPrimeCompletedAt).toISOString() : null,
   cachedProviders: [...generatedLinks.keys()],
   cachedProviderCount: generatedLinks.size,
+  dynamicCachedCount: dynamicLinks.size,
   configured: Boolean(String(process.env.TRAVELPAYOUTS_TOKEN || '').trim()),
 });
 
@@ -84,7 +113,7 @@ export const buildTravelpayoutsLinkRequest = (entries, identity = getTravelpayou
   shorten: true,
   links: entries.slice(0, BATCH_SIZE).map(entry => ({
     url: entry.url,
-    sub_id: entry.subId || `optiontrip_${entry.provider}`,
+    sub_id: safeSubId(entry.subId) || `optiontrip_${entry.provider}`,
   })),
 });
 
@@ -134,6 +163,40 @@ const requestPartnerLinkBatch = async entries => {
   } finally {
     clearTimeout(timeout);
   }
+};
+
+// Creates a route/destination-specific affiliate link without accepting an
+// arbitrary external URL. The target must stay on the configured brand host.
+// This lets OptionTrip deepen a handoff (for example a specific 12Go route)
+// while keeping provider allowlisting and the real Travelpayouts API as the
+// source of truth.
+export const createTravelpayoutsPartnerLink = async ({ provider, url, subId } = {}) => {
+  const providerName = String(provider || '').trim();
+  const targetUrl = normalizeProviderTarget(providerName, url);
+  if (!providerName || !targetUrl) return null;
+  if (!String(process.env.TRAVELPAYOUTS_TOKEN || '').trim()) return null;
+
+  const cacheKey = `${providerName}:${targetUrl}:${safeSubId(subId)}`;
+  const cached = dynamicLinks.get(cacheKey);
+  if (cached && Date.now() - cached.cachedAt < DYNAMIC_LINK_CACHE_MS) {
+    return { ...cached.value, cached: true };
+  }
+
+  const [created] = await requestPartnerLinkBatch([{
+    provider: providerName,
+    url: targetUrl,
+    subId: safeSubId(subId) || `optiontrip_${providerName}_deeplink`,
+  }]);
+  if (!created?.partnerUrl) return null;
+
+  const value = {
+    provider: providerName,
+    sourceUrl: targetUrl,
+    partnerUrl: created.partnerUrl,
+    cached: false,
+  };
+  dynamicLinks.set(cacheKey, { cachedAt: Date.now(), value });
+  return value;
 };
 
 export const primeTravelpayoutsPartnerLinks = async ({ force = false, trigger = 'startup' } = {}) => {

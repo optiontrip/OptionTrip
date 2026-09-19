@@ -2,6 +2,11 @@ import assert from 'node:assert/strict';
 import { getProviderReadiness } from '../src/config/travelProviderRegistry.js';
 import { getPublicTravelInventoryStatus } from '../src/services/travelInventoryService.js';
 import { buildMarketplaceSuggestion, formatMarketplaceForViPrompt } from '../src/services/viMarketplaceRouter.js';
+import {
+  buildRouteAwarePartnerTarget,
+  isRouteAwareService,
+} from '../src/services/travelPartnerDeepLinkService.js';
+import { isAllowedTravelpayoutsProviderTarget } from '../src/services/travelpayoutsPartnerLinks.js';
 
 const envKeys = [
   'TRAVELPAYOUTS_12GO_AFFILIATE_URL',
@@ -56,7 +61,45 @@ try {
   assert.equal(cityPassSuggestion?.bookingUrl, undefined, 'Vi must not receive the verified Go City URL directly');
   assert.equal(cityPassSuggestion?.route, '/services/city_passes', 'City-pass suggestions must use the canonical OptionTrip service page');
 
-  console.log('✅ Partner booking registry, canonical OptionTrip comparison and Vi handoff regression checks passed');
+  assert.equal(isRouteAwareService('rail'), true, 'Rail must support route-aware partner handoff');
+  assert.equal(isRouteAwareService('bus'), true, 'Bus must support route-aware partner handoff');
+  assert.equal(isRouteAwareService('ferries'), true, 'Ferries must support route-aware partner handoff');
+  assert.equal(isRouteAwareService('insurance'), false, 'Non-route marketplace services must not accept route deep-link requests');
+
+  const busRoute = buildRouteAwarePartnerTarget({ serviceId: 'bus', originCode: 'LAX', destinationCode: 'LAS' });
+  assert.equal(busRoute?.provider, 'twelve_go', 'Bus route handoff must stay on the configured 12Go provider');
+  assert.equal(busRoute?.origin?.city, 'Los Angeles', 'Route handoff must resolve the canonical origin city from the trusted airport index');
+  assert.equal(busRoute?.destination?.city, 'Las Vegas', 'Route handoff must resolve the canonical destination city from the trusted airport index');
+  assert.equal(busRoute?.sourceUrl, 'https://12go.asia/en/bus/los-angeles/las-vegas', 'Bus handoff must build the route-specific 12Go page');
+
+  const railRoute = buildRouteAwarePartnerTarget({ serviceId: 'rail', originCode: 'LHR', destinationCode: 'MAN' });
+  assert.equal(railRoute?.sourceUrl, 'https://12go.asia/en/train/london/manchester', 'Rail handoff must build the route-specific 12Go page');
+
+  const sameCityRoute = buildRouteAwarePartnerTarget({ serviceId: 'rail', originCode: 'LHR', destinationCode: 'LGW' });
+  assert.equal(sameCityRoute, null, 'Two airports in the same city must not create a meaningless city-to-same-city route');
+
+  assert.equal(
+    isAllowedTravelpayoutsProviderTarget('twelve_go', 'https://12go.asia/en/bus/los-angeles/las-vegas'),
+    true,
+    'Dynamic handoff must allow HTTPS route pages on the configured provider host',
+  );
+  assert.equal(
+    isAllowedTravelpayoutsProviderTarget('twelve_go', 'https://checkout.12go.asia/en/bus/los-angeles/las-vegas'),
+    true,
+    'Dynamic handoff may use a legitimate subdomain of the configured provider host',
+  );
+  assert.equal(
+    isAllowedTravelpayoutsProviderTarget('twelve_go', 'https://evil.example/12go.asia/en/bus/los-angeles/las-vegas'),
+    false,
+    'Dynamic handoff must reject an arbitrary external host even if the provider hostname appears in the path',
+  );
+  assert.equal(
+    isAllowedTravelpayoutsProviderTarget('twelve_go', 'http://12go.asia/en/bus/los-angeles/las-vegas'),
+    false,
+    'Dynamic handoff must reject non-HTTPS provider targets',
+  );
+
+  console.log('✅ Partner booking registry, canonical comparison, route-aware deep links and Vi handoff regression checks passed');
 } finally {
   envKeys.forEach(key => {
     if (previous[key] === undefined) delete process.env[key];

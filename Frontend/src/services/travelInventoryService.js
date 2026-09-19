@@ -28,6 +28,26 @@ export const fetchTravelInventoryStatus = async ({ force = false, refreshPartner
   }
 };
 
+export const createRouteAwarePartnerDeepLink = async ({ serviceId, originCode, destinationCode } = {}) => {
+  const response = await fetch(`${API_BASE}/api/travel-inventory/deep-link`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({ serviceId, originCode, destinationCode }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload?.success || !payload?.data?.partnerUrl) {
+    const error = new Error(payload?.message || 'Route-specific booking is unavailable right now.');
+    error.status = response.status;
+    throw error;
+  }
+  return payload.data;
+};
+
 const safeBookingOptions = vertical => Array.isArray(vertical?.bookingOptions)
   ? vertical.bookingOptions.filter(option => /^https:\/\//i.test(String(option?.url || '')))
   : [];

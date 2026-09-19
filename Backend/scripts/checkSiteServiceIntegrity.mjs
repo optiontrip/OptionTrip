@@ -23,8 +23,13 @@ const ecosystem = read('Frontend/src/components/TravelEcosystemSection/TravelEco
 const ecosystemCss = read('Frontend/src/components/TravelEcosystemSection/TravelEcosystemSection.css');
 const servicesPage = read('Frontend/src/pages/TravelServicesPage/TravelServicesPage.jsx');
 const servicesPageCss = read('Frontend/src/pages/TravelServicesPage/TravelServicesPage.css');
+const serviceRouteSearch = read('Frontend/src/components/ServiceRouteSearch/ServiceRouteSearch.jsx');
+const serviceRouteSearchCss = read('Frontend/src/components/ServiceRouteSearch/ServiceRouteSearch.css');
 const searchPopup = read('Frontend/src/components/SearchPopup/SearchPopup.jsx');
 const viMarketplaceRouter = read('Backend/src/services/viMarketplaceRouter.js');
+const travelInventoryRoute = read('Backend/src/routes/travelInventory.js');
+const partnerDeepLinks = read('Backend/src/services/travelPartnerDeepLinkService.js');
+const travelpayoutsLinks = read('Backend/src/services/travelpayoutsPartnerLinks.js');
 const cheapFlightsCss = read('Frontend/src/pages/CheapFlightExplorerPage.css');
 const hotelCss = read('Frontend/src/pages/HotelSearch.css');
 const layout = read('Frontend/src/components/Layout/Layout.jsx');
@@ -142,6 +147,34 @@ if (!servicesPage.includes('viRoute(selectedService)')) {
 if (!servicesPage.includes('canonicalPath') || !servicesPage.includes('path={canonicalPath}')) {
   errors.push('Canonical service pages must publish service-specific metadata paths.');
 }
+if (!servicesPage.includes('ServiceRouteSearch') || !servicesPage.includes('serviceId={selectedService.id}')) {
+  errors.push('Canonical service pages must expose the reusable route-aware search flow where supported.');
+}
+
+if (!serviceRouteSearch.includes("new Set(['rail', 'bus', 'ferries'])")) {
+  errors.push('Route-aware marketplace search must stay scoped to rail, bus and ferries until additional deep-link contracts are verified.');
+}
+if (!serviceRouteSearch.includes('searchAirports') || !serviceRouteSearch.includes('createRouteAwarePartnerDeepLink')) {
+  errors.push('Route-aware service search must reuse the global location resolver and server-side deep-link endpoint.');
+}
+if (!serviceRouteSearch.includes('rel="noopener noreferrer sponsored"')) {
+  errors.push('Route-aware final provider handoff must use safe sponsored external-link attributes.');
+}
+if (!serviceRouteSearchCss.includes('@media(max-width:640px)') || !serviceRouteSearchCss.includes('font-size:16px')) {
+  errors.push('Route-aware service search must keep a mobile-first form and prevent phone browser zoom on inputs.');
+}
+if (!travelInventoryRoute.includes("router.post('/deep-link'") || !travelInventoryRoute.includes('isRouteAwareService')) {
+  errors.push('Travel inventory API must expose a guarded route-aware deep-link endpoint.');
+}
+if (!partnerDeepLinks.includes("rail: { provider: 'twelve_go', path: 'train'") || !partnerDeepLinks.includes("bus: { provider: 'twelve_go', path: 'bus'") || !partnerDeepLinks.includes("ferries: { provider: 'twelve_go', path: 'ferry'")) {
+  errors.push('Verified 12Go route-aware contracts for rail, bus and ferries are missing.');
+}
+if (!partnerDeepLinks.includes('getAirportInfo') || !partnerDeepLinks.includes('createTravelpayoutsPartnerLink')) {
+  errors.push('Route-aware partner links must resolve trusted local airport data and use the official server-side affiliate-link converter.');
+}
+if (!travelpayoutsLinks.includes('isAllowedTravelpayoutsProviderTarget') || !travelpayoutsLinks.includes('targetHost.endsWith(`.${baseHost}`)')) {
+  errors.push('Dynamic Travelpayouts deep links must enforce the configured provider hostname allowlist.');
+}
 
 if (!mainEntry.includes("./styles/mobile-first.css") || !mainEntry.includes("./styles/mobile-hardening.css")) {
   errors.push('Global mobile guardrail styles must be loaded by the frontend entrypoint.');
@@ -257,4 +290,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`✅ Site/service integrity passed: ${serviceRoutes.length} direct service routes, ${serviceVerticals.length} provider verticals, ${requiredCoreRoutes.length} required public routes, canonical OptionTrip marketplace routing and mobile UX guards active.`);
+console.log(`✅ Site/service integrity passed: ${serviceRoutes.length} direct service routes, ${serviceVerticals.length} provider verticals, ${requiredCoreRoutes.length} required public routes, canonical marketplace routing, route-aware partner handoffs and mobile UX guards active.`);
