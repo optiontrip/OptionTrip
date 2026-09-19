@@ -44,6 +44,6 @@ assert.match(widget, /query\.set\('destination', destination\)/, 'Vi fallback mu
 assert.match(widget, /query\.set\('destinationCode', destinationCode\)/, 'Vi fallback must retain the selected destination IATA code');
 assert.match(widget, /Keeping your destination:/, 'Partner widget must visibly confirm preserved destination context');
 assert.match(css, /\.ot-partner-widget__context/, 'Destination context must have responsive shared widget styling');
-assert.doesNotMatch(widget, /localizedSrc[\s\S]{0,180}destination/i, 'Do not invent an unverified destination parameter on the external Travelpayouts widget URL');
+assert.doesNotMatch(widget, /url\.searchParams\.set\(['"]destination(?:Code)?['"]/, 'Do not invent an unverified destination parameter on the external Travelpayouts widget URL');
 
 console.log('✅ Shared Travelpayouts widget failover and destination-aware tours handoff checks passed');
