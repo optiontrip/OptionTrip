@@ -1,9 +1,20 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import TravelpayoutsWidget from './TravelpayoutsWidget';
+import { prepareCarRentalSearch } from '../../../services/carRentalService';
 import './CarRentalTab.css';
 
 const CAR_RENTAL_WIDGET_SRC =
   'https://tpwdgt.com/content?trs=176202&shmarker=370056&locale=en&powered_by=true&border_radius=5&plain=true&show_logo=true&color_background=%23009E9D&color_button=%23FEC704&color_text=%23000000&color_input_text=%23000000&color_button_text=%23ffffff&promo_id=4480&campaign_id=10';
+
+const PROVIDER_LABELS = Object.freeze({
+  qeeq: 'QEEQ',
+  economybookings: 'EconomyBookings',
+  localrent: 'Localrent',
+  getrentacar: 'GetRentacar.com',
+  autoeurope: 'Auto Europe',
+  bikesbooking: 'BikesBooking.com',
+  klook: 'Klook',
+});
 
 const formatDate = value => {
   if (!value) return '';
@@ -40,14 +51,55 @@ const normalizeRentalContext = tripData => {
   return { pickupLocation, dropoffLocation, pickupDate, returnDate };
 };
 
+const safeHttpsUrl = value => {
+  try {
+    const url = new URL(String(value || ''));
+    return url.protocol === 'https:' ? url.toString() : null;
+  } catch {
+    return null;
+  }
+};
+
 const CarRentalTab = ({ tripData = null }) => {
   const searchContext = useMemo(() => normalizeRentalContext(tripData), [tripData]);
+  const [partnerOptions, setPartnerOptions] = useState([]);
+  const [partnerStatus, setPartnerStatus] = useState('idle');
   const hasContext = Boolean(
     searchContext.pickupLocation
     || searchContext.dropoffLocation
     || searchContext.pickupDate
     || searchContext.returnDate
   );
+
+  useEffect(() => {
+    if (!searchContext.pickupLocation) {
+      setPartnerOptions([]);
+      setPartnerStatus('idle');
+      return undefined;
+    }
+
+    let active = true;
+    setPartnerStatus('loading');
+    prepareCarRentalSearch({
+      ...searchContext,
+      locale: typeof navigator !== 'undefined' ? (navigator.language || 'en') : 'en',
+    }).then(payload => {
+      if (!active) return;
+      const options = Array.isArray(payload?.results?.bookingOptions)
+        ? payload.results.bookingOptions
+          .map(option => ({ ...option, bookingUrl: safeHttpsUrl(option.bookingUrl) }))
+          .filter(option => option.bookingUrl)
+        : [];
+      setPartnerOptions(options);
+      setPartnerStatus('ready');
+    }).catch(() => {
+      if (!active) return;
+      setPartnerOptions([]);
+      setPartnerStatus('error');
+    });
+
+    return () => { active = false; };
+  }, [searchContext]);
 
   return (
     <div className="cr-root">
@@ -93,6 +145,35 @@ const CarRentalTab = ({ tripData = null }) => {
           <p className="cr-search-context__note">
             OptionTrip keeps your route and dates visible while the live partner search loads below. Final availability and price are confirmed by the booking partner.
           </p>
+        </div>
+      )}
+
+      {partnerStatus === 'loading' && hasContext && (
+        <div className="cr-partners cr-partners--loading" role="status">
+          Checking additional connected car-rental partners…
+        </div>
+      )}
+
+      {partnerOptions.length > 0 && (
+        <div className="cr-partners">
+          <div className="cr-partners__heading">
+            <strong>More connected rental partners</strong>
+            <span>Compare another provider before you book.</span>
+          </div>
+          <div className="cr-partners__grid">
+            {partnerOptions.map(option => (
+              <a
+                key={option.provider}
+                className="cr-partners__link"
+                href={option.bookingUrl}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+              >
+                <span>{PROVIDER_LABELS[option.provider] || option.provider}</span>
+                <span aria-hidden="true">↗</span>
+              </a>
+            ))}
+          </div>
         </div>
       )}
 
