@@ -39,6 +39,14 @@ jobs:
         working-directory: Backend
         run: npm run test:locations
 
+      - name: Vi marketplace routing checks
+        working-directory: Backend
+        run: npm run test:vi-marketplace
+
+      - name: Direct partner booking routing checks
+        working-directory: Backend
+        run: npm run test:partner-routing
+
       - name: Flight whole-month regression guard
         run: bash scripts/check-flight-search-integrity.sh
 
@@ -56,6 +64,14 @@ jobs:
           grep -qi 'OptionTrip' Frontend/dist/index.html
           if grep -qE 'createRequire|_0x[0-9a-f]{4,}\(' Frontend/vite.config.js; then
             echo 'Unsafe injected code signature found in Frontend/vite.config.js'
+            exit 1
+          fi
+          if grep -RIn --exclude-dir=node_modules --exclude-dir=dist --include='*.js' --include='*.jsx' --include='*.html' 'optiontripcom@gmail.com' Frontend/src Frontend/index.html Backend/src; then
+            echo 'Legacy public Gmail address found. Use info@optiontrip.com.'
+            exit 1
+          fi
+          if grep -RIn --exclude-dir=node_modules --exclude-dir=dist --include='*.js' --include='*.jsx' -E '20 Years Experiences|530 Tour Packages|850 Happy Customers|320 Award Winning|Sarah Chen|Michael Rodriguez' Frontend/src; then
+            echo 'Fabricated template content found in production source.'
             exit 1
           fi
 
@@ -121,6 +137,8 @@ jobs:
             cd ~/OptionTrip/Backend
             npm ci
             npm run test:locations
+            npm run test:vi-marketplace
+            npm run test:partner-routing
 
             echo '🎨 Building Frontend before touching production...'
             cd ~/OptionTrip/Frontend
@@ -139,8 +157,9 @@ jobs:
             cd ~/OptionTrip/Backend
             pm2 restart optiontrip-backend --update-env
 
-            echo '🩺 Checking Backend health...'
+            echo '🩺 Checking Backend health and marketplace inventory...'
             curl -fsS --retry 12 --retry-delay 2 --retry-connrefused --max-time 5 http://127.0.0.1:5000/api/health | grep -q '"status":"healthy"'
+            curl -fsS --retry 8 --retry-delay 2 --retry-connrefused --max-time 5 http://127.0.0.1:5000/api/travel-inventory | grep -q '"verticals"'
 
             echo '📦 Publishing Frontend...'
             rm -rf /var/www/optiontrip/*
