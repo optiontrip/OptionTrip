@@ -7,6 +7,8 @@ SEARCH='Frontend/src/pages/FlightSearch.jsx'
 PLANNED='Frontend/src/pages/PlannedTripPage/sections/PlannedTripFlightTabModern.jsx'
 LEGACY='Frontend/src/pages/PlannedTripPage/sections/FlightTab.jsx'
 PICKER='Frontend/src/components/TripDatePicker/TripDatePicker.jsx'
+WHOLE_MONTH_UTIL='Frontend/src/utils/wholeMonthFlightSearch.js'
+CHEAP_PAGE='Frontend/src/pages/CheapFlightExplorerPage.jsx'
 CHEAP_SERVICE='Frontend/src/services/cheapFlightExplorerService.js'
 CHEAP_BACKEND='Backend/src/services/cheapFlightExplorerService.js'
 CHEAP_CONTROLLER='Backend/src/controllers/cheapFlightExplorerController.js'
@@ -18,25 +20,36 @@ fail() {
   exit 1
 }
 
-for file in "$FORM" "$HOME" "$SEARCH" "$PLANNED" "$LEGACY" "$PICKER" "$CHEAP_SERVICE" "$CHEAP_BACKEND" "$CHEAP_CONTROLLER" "$FLIGHT_ROUTES" "$APP"; do
+for file in "$FORM" "$HOME" "$SEARCH" "$PLANNED" "$LEGACY" "$PICKER" "$WHOLE_MONTH_UTIL" "$CHEAP_PAGE" "$CHEAP_SERVICE" "$CHEAP_BACKEND" "$CHEAP_CONTROLLER" "$FLIGHT_ROUTES" "$APP"; do
   test -s "$file" || fail "missing required file $file"
 done
 
 grep -q 'Whole month' "$FORM" || fail 'main flight form no longer exposes Whole month'
 grep -q "dateSearchMode === 'month'" "$FORM" || fail 'main flight form no longer validates month mode'
 grep -q 'travelMonth' "$FORM" || fail 'main flight form lost whole-month state'
-grep -q '/flights/cheap' "$FORM" || fail 'whole-month search no longer routes to monthly fare explorer'
-grep -q 'countryAirports' "$FORM" || fail 'main flight form no longer expands country selections into supported airports'
-grep -q 'cityAirports' "$FORM" || fail 'main flight form no longer expands city selections into all supported airports'
+grep -q 'buildWholeMonthExplorerUrl' "$FORM" || fail 'main flight form no longer uses the shared Whole Month URL contract'
+grep -q 'countryAirports' "$FORM" || fail 'main flight form no longer preserves country airport metadata'
+grep -q 'cityAirports' "$FORM" || fail 'main flight form no longer preserves city airport metadata'
 
 grep -q 'Whole month' "$HOME" || fail 'homepage flight search no longer exposes Whole month'
 grep -q 'fSearchMode' "$HOME" || fail 'homepage flight search lost month/exact mode state'
-grep -q '/flights/cheap' "$HOME" || fail 'homepage whole-month search no longer routes to monthly fare explorer'
+grep -q 'buildWholeMonthExplorerUrl' "$HOME" || fail 'homepage no longer uses the shared Whole Month URL contract'
 grep -q 'countryAirports' "$HOME" || fail 'homepage no longer preserves airport groups for country results'
 grep -q 'cityAirports' "$HOME" || fail 'homepage no longer preserves airport groups for city results'
 grep -q 'nearest-airport' "$HOME" || fail 'homepage no longer preserves nearest-airport results'
 grep -q 'requestedPlace' "$HOME" || fail 'homepage lost nearest-airport place context'
 grep -q 'getDate() + 365' "$HOME" || fail 'homepage native date fields are not capped to 365 days'
+
+# The shared builder is the only owner of canonical Whole Month explorer URLs.
+grep -q '/flights/cheap' "$WHOLE_MONTH_UTIL" || fail 'shared Whole Month builder lost the monthly explorer route'
+grep -q 'originCountry' "$WHOLE_MONTH_UTIL" || fail 'shared Whole Month builder lost country-to-country origin contract'
+grep -q 'destinationCountry' "$WHOLE_MONTH_UTIL" || fail 'shared Whole Month builder lost country-to-country destination contract'
+grep -q "mode: 'country-to-country'" "$WHOLE_MONTH_UTIL" || fail 'shared Whole Month builder no longer distinguishes country-to-country searches'
+grep -q "destinations', anywhere ? 'ANYWHERE'" "$WHOLE_MONTH_UTIL" || fail 'shared Whole Month builder lost Anywhere compatibility'
+
+grep -q 'originCountry' "$CHEAP_PAGE" || fail 'monthly explorer no longer reads canonical country URLs'
+grep -q 'searchCheapCountryRoutesByMonth' "$CHEAP_PAGE" || fail 'monthly explorer no longer routes country searches through the country API'
+grep -q 'coveragePercent' "$CHEAP_PAGE" || fail 'monthly explorer no longer displays matrix coverage'
 
 # Country-to-country Whole Month must remain a first-class backend contract.
 grep -q 'searchCheapCountryRoutesByMonth' "$CHEAP_SERVICE" || fail 'frontend country-to-country monthly flight client is missing'
@@ -94,4 +107,4 @@ if grep -q 'type="date"' "$PLANNED"; then
   fail 'native date-only input returned to Planned Trip flight search'
 fi
 
-echo 'Flight Whole Month pricing, country-to-country matrices, daily price drill-down, viewport positioning, location metadata, provider richness, and 365-day date guards passed.'
+echo 'Flight Whole Month pricing, canonical country URLs, country-to-country matrices, daily price drill-down, viewport positioning, location metadata, provider richness, and 365-day date guards passed.'
