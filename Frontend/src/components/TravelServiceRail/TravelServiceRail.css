@@ -184,28 +184,42 @@
 
 @media (max-width: 767px) {
   .tsr__inner {
-    grid-template-columns: minmax(0,1fr) auto;
-    gap: 7px;
-    min-height: 52px;
+    display: flex;
+    justify-content: flex-end;
+    min-height: 50px;
+    padding-top: 5px;
+    padding-bottom: 5px;
   }
-  .tsr__brand { display: none; }
-  .tsr__item { padding: 7px 9px; }
-  .tsr__actions { gap: 5px; }
+
+  /* The full service catalog already lives in the mobile drawer and on the
+     homepage. Repeating it as a clipped horizontal strip competes with the
+     menu, currency and Vi controls, so mobile keeps only the two quick actions. */
+  .tsr__brand,
+  .tsr__scroll {
+    display: none;
+  }
+
+  .tsr__actions {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
   .tsr__currency {
-    min-width: 58px;
+    min-width: 76px;
     min-height: 40px;
     justify-content: center;
-    padding: 5px 8px;
+    padding: 5px 10px;
   }
+
   .tsr__currency-copy small { display: none; }
-  .tsr__currency-copy strong { margin-top: 0; font-size: 10.5px; }
-  .tsr__currency-icon { font-size: 13px; }
-  .tsr__vi { min-height: 40px; padding: 8px 10px; }
+  .tsr__currency-copy strong { margin-top: 0; font-size: 12px; }
+  .tsr__currency-icon { font-size: 14px; }
+  .tsr__vi { min-height: 40px; padding: 8px 12px; }
 }
 
 @media (max-width: 420px) {
-  .tsr__item span { font-size: 10.5px; }
   .tsr__vi span { display: none; }
   .tsr__vi { width: 40px; height: 40px; justify-content: center; padding: 0; }
-  .tsr__currency { min-width: 56px; }
+  .tsr__currency { min-width: 70px; }
 }
