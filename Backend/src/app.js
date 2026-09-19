@@ -46,6 +46,7 @@ import providerExecutionRouter from "./routes/providerExecution.js";
 import unifiedTravelRouter from "./routes/unifiedTravel.js";
 import marketplaceCatalogRouter from "./routes/marketplaceCatalog.js";
 import viMarketplaceRouter from "./routes/viMarketplace.js";
+import { getTravelNewsRunnerStatus } from "./jobs/travelNewsRunner.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { corsOptions } from "./middleware/security.js";
 import "./config/passport.js";
@@ -104,9 +105,21 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/health", (req, res) => {
+  const news = getTravelNewsRunnerStatus();
   res.json({ success: true, status: "healthy", timestamp: new Date().toISOString(), services: {
-    database: "connected", openai: process.env.OPENAI_API_KEY ? "configured" : "missing",
-    googlePlaces: process.env.GOOGLE_PLACES_API_KEY ? "configured" : "missing"
+    database: "connected",
+    openai: process.env.OPENAI_API_KEY ? "configured" : "missing",
+    googlePlaces: process.env.GOOGLE_PLACES_API_KEY ? "configured" : "missing",
+    travelNews: {
+      enabled: news.enabled,
+      configured: news.configured,
+      mode: news.mode,
+      missing: news.missing,
+      running: news.running,
+      lastStatus: news.status,
+      lastCompletedAt: news.completedAt,
+      dailyLimit: news.dailyLimit
+    }
   }});
 });
 
