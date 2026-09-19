@@ -19,6 +19,8 @@ const mobileUx = read('Frontend/src/styles/mobile-first.css');
 const serviceRailCss = read('Frontend/src/components/TravelServiceRail/TravelServiceRail.css');
 const ecosystem = read('Frontend/src/components/TravelEcosystemSection/TravelEcosystemSection.jsx');
 const ecosystemCss = read('Frontend/src/components/TravelEcosystemSection/TravelEcosystemSection.css');
+const servicesPage = read('Frontend/src/pages/TravelServicesPage/TravelServicesPage.jsx');
+const servicesPageCss = read('Frontend/src/pages/TravelServicesPage/TravelServicesPage.css');
 const cheapFlightsCss = read('Frontend/src/pages/CheapFlightExplorerPage.css');
 const hotelCss = read('Frontend/src/pages/HotelSearch.css');
 const layout = read('Frontend/src/components/Layout/Layout.jsx');
@@ -117,6 +119,12 @@ if (!ecosystem.includes('openMobileGroups') || !ecosystem.includes('tes__group--
 }
 if (!ecosystemCss.includes('.tes__group--mobile-collapsed .tes__service-grid')) {
   errors.push('Homepage mobile service-group collapse styling is missing.');
+}
+if (!servicesPage.includes('openMobileGroups') || !servicesPage.includes('travel-services-group--mobile-collapsed')) {
+  errors.push('Travel services marketplace must progressively disclose service groups on mobile.');
+}
+if (!servicesPageCss.includes('.travel-services-group--mobile-collapsed .travel-services-grid')) {
+  errors.push('Travel services marketplace mobile collapse styling is missing.');
 }
 if (!cheapFlightsCss.includes('.cheapx-filters{display:flex') || !cheapFlightsCss.includes('overflow-x:auto')) {
   errors.push('Monthly flight filters must use a compact horizontal mobile filter bar.');
