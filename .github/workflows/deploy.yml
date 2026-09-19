@@ -54,6 +54,10 @@ jobs:
         working-directory: Frontend
         run: npm ci
 
+      - name: Dynamic translation boundary checks
+        working-directory: Frontend
+        run: npm run test:translation-boundaries
+
       - name: Build frontend
         working-directory: Frontend
         run: npm run build
@@ -140,9 +144,10 @@ jobs:
             npm run test:vi-marketplace
             npm run test:partner-routing
 
-            echo '🎨 Building Frontend before touching production...'
+            echo '🎨 Testing and building Frontend before touching production...'
             cd ~/OptionTrip/Frontend
             npm ci
+            npm run test:translation-boundaries
             npm run build
             test -s dist/index.html
             grep -qi 'OptionTrip' dist/index.html
