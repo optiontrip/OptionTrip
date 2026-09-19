@@ -1,0 +1,70 @@
+/* OptionTrip primary-navigation simplification.
+   The travel-service rail is the booking navigation. The legacy page-link row
+   remains available in the drawer/footer instead of competing with booking. */
+@media (min-width: 1300px) {
+  .main_header_area .header_menu .navbar-collapse1 {
+    display: none !important;
+  }
+
+  .main_header_area .header_menu .navbar-flex {
+    min-height: 62px;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    justify-content: space-between !important;
+  }
+
+  .main_header_area .header_menu .navbar-header {
+    margin-right: auto;
+  }
+
+  .main_header_area .header_menu .register-login {
+    display: flex !important;
+    margin-left: auto;
+    gap: 8px;
+  }
+
+  /* Contact/About/Blog and other secondary navigation live in the drawer and
+     footer. Keep the desktop header focused on account + travel search. */
+  .main_header_area .header_menu .register-login .nir-btn {
+    display: none !important;
+  }
+
+  .main_header_area .header_menu .hamburger {
+    display: flex !important;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 10px 7px;
+    margin-left: 4px;
+    border-radius: 10px;
+  }
+
+  .main_header_area .header_menu .hamburger span {
+    width: 28px;
+    height: 2px;
+    flex: 0 0 2px;
+  }
+
+  .main_header_area .header_menu .hamburger--open span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .main_header_area .header_menu .hamburger--open span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+}
+
+/* Keep the logo readable without allowing the utility row to become another
+   oversized hero on laptops. */
+@media (min-width: 1300px) and (max-height: 850px) {
+  .main_header_area .header_menu .navbar-brand img {
+    height: 48px !important;
+  }
+
+  .main_header_area .header_menu .navbar-flex {
+    min-height: 56px;
+  }
+}
