@@ -22,8 +22,9 @@ const airports = [
 const normalize = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
 // Provider/source datasets still use a few legacy English country names.
-// Keep only the names that differ from current Intl.DisplayNames output.
+// Explicit canonical overrides also win when historical codes share a modern name.
 const COUNTRY_CODE_OVERRIDES = new Map([
+  ['serbia', 'RS'],
   ['czech republic', 'CZ'],
   ['south korea', 'KR'],
   ['north korea', 'KP'],
@@ -41,14 +42,11 @@ const buildCountryCodeIndex = () => {
         const name = displayNames.of(code);
         if (!name || name === code || name === 'Unknown Region') continue;
         const normalizedName = normalize(name);
-        // Several obsolete region codes can resolve to the same modern display
-        // name. The alphabetical loop reaches canonical modern codes first for
-        // the collisions we care about, so never let a later legacy alias win.
         if (!index.has(normalizedName)) index.set(normalizedName, code);
       }
     }
   } catch (error) {
-    console.warn('⚠️ Intl region names unavailable; using country-code overrides only:', error?.message || error);
+    console.warn('Intl region names unavailable; using country-code overrides only:', error?.message || error);
   }
 
   return index;
@@ -241,4 +239,4 @@ export const findAirportByCityName = (name) => {
   return match || null;
 };
 
-console.log(`✅ Nearby airports service loaded: ${airports.length} airports indexed`);
+console.log(`Nearby airports service loaded: ${airports.length} airports indexed`);
