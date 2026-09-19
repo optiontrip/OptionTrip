@@ -10,6 +10,9 @@ const baseAirports = JSON.parse(
 const supplementalAirports = JSON.parse(
   readFileSync(join(__dirname, '../data/airports.supplemental.json'), 'utf-8')
 );
+const locationAliases = JSON.parse(
+  readFileSync(join(__dirname, '../data/locationAliases.json'), 'utf-8')
+);
 
 const existingCodes = new Set(baseAirports.map(a => a.iata?.toUpperCase()).filter(Boolean));
 const airports = [
@@ -17,7 +20,31 @@ const airports = [
   ...supplementalAirports.filter(a => !existingCodes.has(a.iata.toUpperCase())),
 ];
 
-const normalize = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+const normalize = (value) => String(value || '')
+  .normalize('NFKD')
+  .replace(/\p{M}+/gu, '')
+  .toLowerCase()
+  .replace(/[’'`]/g, '')
+  .replace(/[^\p{L}\p{N}]+/gu, ' ')
+  .trim()
+  .replace(/\s+/g, ' ');
+
+const cityAliasesByCode = new Map(
+  Object.entries(locationAliases?.cities || {}).map(([code, aliases]) => [
+    String(code).toUpperCase(),
+    [...new Set((Array.isArray(aliases) ? aliases : []).map(normalize).filter(Boolean))],
+  ])
+);
+
+const countryAliasToCanonical = new Map();
+for (const [canonical, aliases] of Object.entries(locationAliases?.countries || {})) {
+  countryAliasToCanonical.set(normalize(canonical), canonical);
+  for (const alias of Array.isArray(aliases) ? aliases : []) {
+    const normalized = normalize(alias);
+    if (normalized) countryAliasToCanonical.set(normalized, canonical);
+  }
+}
+const countryAliasEntries = [...countryAliasToCanonical.entries()];
 
 // Provider/source datasets still use a few legacy English country names.
 // Explicit canonical overrides also win when historical/non-ISO display names
@@ -55,14 +82,43 @@ const buildCountryCodeIndex = () => {
 
 const countryCodeIndex = buildCountryCodeIndex();
 
+const canonicalCountryName = value => {
+  const needle = normalize(value);
+  if (!needle) return null;
+  const exact = countryAliasToCanonical.get(needle);
+  if (exact) return exact;
+  const prefix = countryAliasEntries.find(([alias]) => alias.startsWith(needle));
+  return prefix?.[1] || null;
+};
+
 export const resolveCountryCode = (countryName) => {
   const needle = normalize(countryName);
   if (!needle) return null;
-  return COUNTRY_CODE_OVERRIDES.get(needle) || countryCodeIndex.get(needle) || null;
+  const canonical = canonicalCountryName(countryName);
+  const lookup = canonical ? normalize(canonical) : needle;
+  return COUNTRY_CODE_OVERRIDES.get(lookup) || countryCodeIndex.get(lookup) || null;
 };
 
 const airportIndex = new Map(airports.map(a => [a.iata.toUpperCase(), a]));
 const countries = [...new Set(airports.map(a => a.country).filter(Boolean))].sort();
+
+const canonicalCityForAlias = value => {
+  const needle = normalize(value);
+  if (!needle) return null;
+
+  for (const [code, aliases] of cityAliasesByCode.entries()) {
+    if (!aliases.includes(needle)) continue;
+    const airport = airportIndex.get(code);
+    if (airport?.city) return airport.city;
+  }
+  return null;
+};
+
+const airportMatchesCity = (airport, cityNeedle) => {
+  if (normalize(airport.city) === cityNeedle) return true;
+  const aliases = cityAliasesByCode.get(airport.iata.toUpperCase()) || [];
+  return aliases.includes(cityNeedle);
+};
 
 const _cache = new Map();
 const CACHE_TTL = 60 * 60 * 1000;
@@ -105,14 +161,16 @@ const scoreAirportMatch = (airport, query) => {
   const city = normalize(airport.city);
   const name = normalize(airport.name);
   const country = normalize(airport.country);
+  const aliases = cityAliasesByCode.get(airport.iata.toUpperCase()) || [];
+  const canonicalCountry = canonicalCountryName(query);
 
   if (iata === query) return 0;
-  if (city === query) return 1;
-  if (city.startsWith(query)) return 2;
+  if (city === query || aliases.includes(query)) return 1;
+  if (city.startsWith(query) || aliases.some(alias => alias.startsWith(query))) return 2;
   if (name.startsWith(query)) return 3;
-  if (country === query) return 4;
+  if (country === query || (canonicalCountry && normalize(airport.country) === normalize(canonicalCountry))) return 4;
   if (country.startsWith(query)) return 5;
-  if (city.includes(query)) return 6;
+  if (city.includes(query) || aliases.some(alias => alias.includes(query))) return 6;
   if (name.includes(query)) return 7;
   if (country.includes(query)) return 8;
   return Infinity;
@@ -131,12 +189,15 @@ export const searchAirportDirectory = (query, limit = 12) => {
 };
 
 export const findAirportsForCity = (cityName, countryName = '', limit = 20) => {
-  const cityNeedle = normalize(cityName);
-  const countryNeedle = normalize(countryName);
+  const rawCityNeedle = normalize(cityName);
+  const aliasCanonicalCity = canonicalCityForAlias(cityName);
+  const cityNeedle = normalize(aliasCanonicalCity || cityName);
+  const canonicalCountry = canonicalCountryName(countryName);
+  const countryNeedle = normalize(canonicalCountry || countryName);
   if (!cityNeedle) return [];
 
   return airports
-    .filter(airport => normalize(airport.city) === cityNeedle)
+    .filter(airport => normalize(airport.city) === cityNeedle || (!aliasCanonicalCity && airportMatchesCity(airport, rawCityNeedle)))
     .filter(airport => !countryNeedle || normalize(airport.country) === countryNeedle)
     .sort((a, b) => a.iata.localeCompare(b.iata))
     .slice(0, Math.max(1, limit))
@@ -157,7 +218,8 @@ export const findCountryDirectoryMatch = (query, limit = 12) => {
   const needle = normalize(query);
   if (needle.length < 2) return null;
 
-  const exact = countries.find(country => normalize(country) === needle);
+  const aliasedCanonical = canonicalCountryName(query);
+  const exact = aliasedCanonical || countries.find(country => normalize(country) === needle);
   const prefix = exact || countries.find(country => normalize(country).startsWith(needle));
   if (!prefix) return null;
 
@@ -235,9 +297,18 @@ export const findAirportByCityName = (name) => {
   if (!name || typeof name !== 'string') return null;
   const needle = normalize(name);
   if (!needle) return null;
+
+  const canonicalCity = canonicalCityForAlias(name);
+  if (canonicalCity) {
+    return airports.find(a => normalize(a.city) === normalize(canonicalCity)) || null;
+  }
+
+  const aliasMatch = airports.find(a => (cityAliasesByCode.get(a.iata.toUpperCase()) || []).includes(needle));
+  if (aliasMatch) return aliasMatch;
+
   const match = airports.find(a => normalize(a.city) === needle || normalize(a.name).includes(needle))
     || airports.find(a => normalize(a.city).includes(needle));
   return match || null;
 };
 
-console.log(`Nearby airports service loaded: ${airports.length} airports indexed`);
+console.log(`Nearby airports service loaded: ${airports.length} airports indexed; ${cityAliasesByCode.size} multilingual city alias groups`);
