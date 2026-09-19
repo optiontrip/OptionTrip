@@ -7,9 +7,7 @@
 }
 
 @media (max-width: 767px) {
-  .footer-subscribe-strip {
-    padding: 24px 0;
-  }
+  .footer-subscribe-strip { padding: 22px 0; }
 
   .footer-subscribe-strip .container,
   .footer-main .container {
@@ -17,9 +15,7 @@
     padding-right: 16px;
   }
 
-  .footer-subscribe-inner {
-    gap: 14px;
-  }
+  .footer-subscribe-inner { gap: 12px; }
 
   .footer-subscribe-title {
     font-size: 20px;
@@ -28,7 +24,7 @@
 
   .footer-subscribe-subtitle {
     font-size: 13px;
-    line-height: 1.55;
+    line-height: 1.5;
     max-width: 34rem;
   }
 
@@ -37,52 +33,44 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 10px 20px;
+    padding: 10px 18px;
   }
 
   .footer-main {
-    padding-top: 22px;
+    padding-top: 18px;
     background-color: #0f1e32;
   }
 
-  .footer-columns {
-    padding-bottom: 18px;
-  }
-
-  .footer-columns-grid {
-    gap: 10px;
-  }
-
-  .footer-col {
-    min-width: 0;
-  }
+  .footer-columns { padding-bottom: 14px; }
+  .footer-columns-grid { gap: 8px; }
+  .footer-col { min-width: 0; }
 
   .footer-col--about {
-    padding: 17px;
+    padding: 16px;
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
+    border-radius: 15px;
     background: linear-gradient(145deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018));
     box-shadow: 0 10px 26px rgba(0,0,0,0.10);
   }
 
   .footer-logo {
-    height: 36px;
-    margin-bottom: 12px;
+    height: 34px;
+    margin-bottom: 10px;
   }
 
   .footer-about-desc {
     font-size: 13px;
-    line-height: 1.6;
-    margin-bottom: 12px;
+    line-height: 1.55;
+    margin-bottom: 10px;
   }
 
   .footer-contact-list {
-    gap: 4px;
-    margin-bottom: 14px;
+    gap: 3px;
+    margin-bottom: 10px;
   }
 
   .footer-contact-list li {
-    min-height: 40px;
+    min-height: 38px;
     gap: 9px;
   }
 
@@ -104,78 +92,88 @@
     overflow-wrap: anywhere;
   }
 
-  .footer-trust-block {
-    padding-top: 10px;
-  }
-
-  .footer-trust-list {
-    gap: 2px;
-  }
+  .footer-trust-block { padding-top: 9px; }
+  .footer-trust-list { gap: 1px; }
 
   .footer-trust-list li {
-    min-height: 34px;
+    min-height: 32px;
     font-size: 12px;
-    line-height: 1.4;
+    line-height: 1.35;
   }
 
-  .footer-col:not(.footer-col--about) {
-    padding: 14px 16px 7px;
+  .footer-col--links {
+    padding: 0 !important;
+    overflow: hidden;
     border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 14px;
+    border-radius: 13px;
     background: rgba(255,255,255,0.025);
   }
 
+  .footer-col-toggle {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 15px;
+    cursor: pointer;
+  }
+
+  .footer-col-toggle > i {
+    display: inline-block;
+    color: rgba(255,255,255,.52);
+    font-size: 11px;
+    transition: transform .2s ease;
+  }
+
+  .footer-col-toggle > i.is-open { transform: rotate(180deg); }
+
   .footer-col-title {
+    margin: 0;
     font-size: 13px;
     line-height: 1.2;
-    margin-bottom: 5px;
     letter-spacing: 0.045em;
   }
 
   .footer-col-links {
+    display: none;
     gap: 0;
+    padding: 0 15px 6px;
   }
+
+  .footer-col--links.is-mobile-open .footer-col-links { display: flex; }
 
   .footer-col-links li {
     width: 100%;
     display: block;
-    border-bottom: 1px solid rgba(255,255,255,0.045);
-  }
-
-  .footer-col-links li:last-child {
-    border-bottom: 0;
+    border-top: 1px solid rgba(255,255,255,0.045);
   }
 
   .footer-col-links li a {
-    min-height: 38px;
+    min-height: 42px;
     width: 100%;
     display: flex;
     align-items: center;
     font-size: 13px;
     line-height: 1.4;
-    padding: 6px 0;
+    padding: 7px 0;
     overflow-wrap: anywhere;
   }
 
   /* Mobile has one preferences model: country/language in the drawer and
-     currency in the quick-tools bar. Repeating the same selectors in the
-     footer adds length without helping the traveler. */
-  .footer-locale-section {
-    display: none;
-  }
+     currency in the quick-tools bar. Footer selectors are redundant. */
+  .footer-locale-section { display: none; }
 
   .footer-bottom {
-    padding-top: 16px;
-    padding-bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+    padding-top: 14px;
+    padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
   }
 
-  .footer-bottom-inner {
-    gap: 12px;
-  }
+  .footer-bottom-inner { gap: 10px; }
 
   .footer-copyright-text {
     font-size: 12px;
-    line-height: 1.5;
+    line-height: 1.45;
   }
 
   .footer-social a {
@@ -190,20 +188,6 @@
 }
 
 @media (max-width: 480px) {
-  .footer-columns-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .footer-col--about,
-  .footer-col:not(.footer-col--about) {
-    border-radius: 13px;
-  }
-
-  .footer-col--about {
-    padding: 16px;
-  }
-
-  .footer-col:not(.footer-col--about) {
-    padding: 13px 14px 6px;
-  }
+  .footer-columns-grid { grid-template-columns: 1fr; }
+  .footer-col--about { padding: 15px; border-radius: 13px; }
 }

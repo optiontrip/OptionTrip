@@ -12,10 +12,17 @@ const registry = read('Backend/src/config/travelProviderRegistry.js');
 const footer = read('Frontend/src/components/Footer/Footer.jsx');
 const footerMobile = read('Frontend/src/components/Footer/Footer.mobile.css');
 const headerPrefs = read('Frontend/src/components/Header/HeaderTravelPreferences.jsx');
+const bookingMenu = read('Frontend/src/components/Header/BookingServiceMenu.jsx');
 const home = read('Frontend/src/pages/Home.jsx');
 const mainEntry = read('Frontend/src/main.jsx');
 const mobileUx = read('Frontend/src/styles/mobile-first.css');
 const serviceRailCss = read('Frontend/src/components/TravelServiceRail/TravelServiceRail.css');
+const ecosystem = read('Frontend/src/components/TravelEcosystemSection/TravelEcosystemSection.jsx');
+const ecosystemCss = read('Frontend/src/components/TravelEcosystemSection/TravelEcosystemSection.css');
+const servicesPage = read('Frontend/src/pages/TravelServicesPage/TravelServicesPage.jsx');
+const servicesPageCss = read('Frontend/src/pages/TravelServicesPage/TravelServicesPage.css');
+const cheapFlightsCss = read('Frontend/src/pages/CheapFlightExplorerPage.css');
+const hotelCss = read('Frontend/src/pages/HotelSearch.css');
 const layout = read('Frontend/src/components/Layout/Layout.jsx');
 
 const errors = [];
@@ -70,8 +77,18 @@ if (!hidesWholeMobileLocale && !hidesMobileCurrencyOnly) {
   errors.push('Mobile footer must not repeat the currency selector.');
 }
 
+if (!footer.includes('footer-col-toggle') || !footer.includes('openMobileGroup')) {
+  errors.push('Mobile footer link groups must use progressive disclosure instead of one long page.');
+}
+if (!footerMobile.includes('.footer-col--links.is-mobile-open .footer-col-links')) {
+  errors.push('Mobile footer accordion styles are missing.');
+}
+
 if (!headerPrefs.includes('{!mobile && (')) {
   errors.push('Mobile drawer must not render a duplicate currency selector.');
+}
+if (!bookingMenu.includes('const [openGroup, setOpenGroup] = useState(null)')) {
+  errors.push('Mobile Booking menu must start collapsed rather than dumping the service catalog into the drawer.');
 }
 
 if (!mainEntry.includes("./styles/mobile-first.css")) {
@@ -85,6 +102,35 @@ if (!layout.includes('MOBILE_SEARCH_SURFACES') || !layout.includes('vi-mobile-su
 }
 if (!/@media\s*\(max-width:\s*767px\)[\s\S]*?\.tsr__scroll\s*\{\s*display:\s*none/s.test(serviceRailCss)) {
   errors.push('Mobile travel-service rail must not render the clipped desktop carousel.');
+}
+
+if (!/h1,[\s\S]*h6\s*\{\s*text-transform:\s*none\s*!important/s.test(mobileUx)) {
+  errors.push('Legacy title capitalization must be disabled so translations keep natural casing.');
+}
+if (!mobileUx.includes('.hbs__date-help') || !/\.hbs__date-help\s*\{\s*display:\s*none\s*!important/s.test(mobileUx)) {
+  errors.push('Mobile primary booking form must not show the long Whole Month implementation note.');
+}
+if (!mobileUx.includes('.banner.pt-10.pb-0') || !mobileUx.includes('.flight-hero') || !mobileUx.includes('.hotel-search-hero')) {
+  errors.push('Oversized legacy and search heroes must have mobile-first overrides.');
+}
+
+if (!ecosystem.includes('openMobileGroups') || !ecosystem.includes('tes__group--mobile-collapsed')) {
+  errors.push('Homepage travel ecosystem must progressively disclose service groups on mobile.');
+}
+if (!ecosystemCss.includes('.tes__group--mobile-collapsed .tes__service-grid')) {
+  errors.push('Homepage mobile service-group collapse styling is missing.');
+}
+if (!servicesPage.includes('openMobileGroups') || !servicesPage.includes('travel-services-group--mobile-collapsed')) {
+  errors.push('Travel services marketplace must progressively disclose service groups on mobile.');
+}
+if (!servicesPageCss.includes('.travel-services-group--mobile-collapsed .travel-services-grid')) {
+  errors.push('Travel services marketplace mobile collapse styling is missing.');
+}
+if (!cheapFlightsCss.includes('.cheapx-filters{display:flex') || !cheapFlightsCss.includes('overflow-x:auto')) {
+  errors.push('Monthly flight filters must use a compact horizontal mobile filter bar.');
+}
+if (!/@media\s*\(max-width:\s*768px\)[\s\S]*?\.hs-form__row\s*\{[\s\S]*?flex-direction:\s*column/s.test(hotelCss)) {
+  errors.push('Hotel search form must stack into a true single-column mobile form.');
 }
 
 if (!home.includes('data-season={season}') || !home.includes('home-seasonal-hero--${season}')) {
