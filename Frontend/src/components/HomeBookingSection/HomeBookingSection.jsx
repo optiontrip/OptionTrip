@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { searchAirports } from '../../services/flightService';
+import { buildWholeMonthExplorerUrl, searchableAirportCodes } from '../../utils/wholeMonthFlightSearch';
 import TripDatePicker from '../TripDatePicker/TripDatePicker';
 import './HomeBookingSection.css';
 
@@ -202,23 +203,6 @@ const HomeLocationInput = ({ label, placeholder, value, code, onChange, onSelect
   );
 };
 
-const codesForSearch = (code, locationData) => {
-  const groupedAirports = locationData?.isCountry
-    ? locationData.countryAirports
-    : locationData?.isCity
-      ? locationData.cityAirports
-      : [];
-
-  if (Array.isArray(groupedAirports) && groupedAirports.length > 0) {
-    return [...new Set(groupedAirports
-      .map((airport) => String(airport?.iataCode || '').trim().toUpperCase())
-      .filter((iata) => /^[A-Z]{3}$/.test(iata)))];
-  }
-
-  const normalized = String(code || '').trim().toUpperCase();
-  return /^[A-Z]{3}$/.test(normalized) ? [normalized] : [];
-};
-
 const HomeBookingSection = () => {
   const navigate = useNavigate();
   const [tab, setTab] = useState('flights');
@@ -273,31 +257,32 @@ const HomeBookingSection = () => {
     }
 
     if (fSearchMode === 'month') {
-      const origins = codesForSearch(fFromCode, fFromCountryData);
-      const destinations = isAnywhere ? [] : codesForSearch(fToCode, fToCountryData);
+      const explorer = buildWholeMonthExplorerUrl({
+        originCode: fFromCode,
+        originDisplay: fFrom,
+        originLocationData: fFromCountryData,
+        destinationCode: fToCode,
+        destinationDisplay: fTo,
+        destinationLocationData: fToCountryData,
+        month: fMonth,
+        returnMonth: fTripType === 'round-trip' ? fReturnMonth : '',
+        anywhere: isAnywhere,
+      });
 
-      if (!origins.length || (!isAnywhere && !destinations.length)) {
+      if (!explorer.url) {
         setFlightErrors({
-          ...(origins.length ? {} : { from: 'Choose a departure place with supported airports.' }),
-          ...((isAnywhere || destinations.length) ? {} : { to: 'Choose a destination with supported airports.' }),
+          ...(explorer.origins.length ? {} : { from: 'Choose a departure place with supported airports.' }),
+          ...((isAnywhere || explorer.destinations.length) ? {} : { to: 'Choose a destination with supported airports.' }),
         });
         return;
       }
 
-      const query = new URLSearchParams({
-        origins: origins.join(','),
-        destinations: isAnywhere ? 'ANYWHERE' : destinations.join(','),
-        month: fMonth,
-        originLabel: fFrom,
-        destinationLabel: isAnywhere ? 'Anywhere' : fTo,
-      });
-      if (fTripType === 'round-trip' && fReturnMonth) query.set('returnMonth', fReturnMonth);
-      navigate(`/flights/cheap?${query.toString()}`);
+      navigate(explorer.url);
       return;
     }
 
     if (isAnywhere) {
-      const origins = codesForSearch(fFromCode, fFromCountryData);
+      const origins = searchableAirportCodes(fFromCode, fFromCountryData);
       if (origins.length !== 1) {
         setFlightErrors({ from: 'For exact-date Anywhere search, choose one departure city or airport. Use Whole month for country-wide discovery.' });
         return;
