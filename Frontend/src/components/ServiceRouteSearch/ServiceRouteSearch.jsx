@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { searchAirports } from '../../services/flightService';
 import { createRouteAwarePartnerDeepLink } from '../../services/travelInventoryService';
 import './ServiceRouteSearch.css';
@@ -195,6 +196,7 @@ const LocationField = ({ label, placeholder, value, onValueChange, selection, on
 };
 
 export default function ServiceRouteSearch({ serviceId, language = 'en' }) {
+  const location = useLocation();
   const mode = ROUTE_ONLY_SERVICES.has(serviceId)
     ? 'route'
     : DESTINATION_ONLY_SERVICES.has(serviceId)
@@ -215,6 +217,36 @@ export default function ServiceRouteSearch({ serviceId, language = 'en' }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
+
+  useEffect(() => {
+    if (!mode) return;
+    const params = new URLSearchParams(location.search);
+    const destinationCode = String(params.get('destinationCode') || '').toUpperCase();
+    const originCode = String(params.get('originCode') || '').toUpperCase();
+    const destinationLabel = params.get('destination') || destinationCode;
+    const originLabel = params.get('origin') || originCode;
+
+    setResult(null);
+    setError('');
+
+    if (/^[A-Z]{3}$/.test(destinationCode)) {
+      setDestination({
+        resolvedCode: destinationCode,
+        displayLabel: destinationLabel,
+        cityName: destinationLabel,
+      });
+      setDestinationText(destinationLabel);
+    }
+
+    if (mode === 'route' && /^[A-Z]{3}$/.test(originCode)) {
+      setOrigin({
+        resolvedCode: originCode,
+        displayLabel: originLabel,
+        cityName: originLabel,
+      });
+      setOriginText(originLabel);
+    }
+  }, [location.search, mode, serviceId]);
 
   const sameRoute = mode === 'route' && origin?.resolvedCode && destination?.resolvedCode && origin.resolvedCode === destination.resolvedCode;
   const canSearch = mode === 'route'
