@@ -48,13 +48,24 @@ export const getHotelLocations = async (req, res) => {
 };
 
 export const searchHotels = async (req, res) => {
-  const { destId, checkIn, checkOut, adults = 1, rooms = 1, cityName = '' } = req.query;
+  const { destId = '', checkIn, checkOut, adults = 1, rooms = 1, cityName = '' } = req.query;
+  const normalizedCityName = String(cityName || '').trim();
+  const normalizedDestId = String(destId || '').trim();
 
-  if (!destId || !checkIn || !checkOut)
-    return res.status(400).json({ success: false, message: 'destId, checkIn and checkOut are required' });
+  // The home page and Vi can hand off a human-readable city even when the
+  // provider-specific destination code has not been resolved yet. The hotel
+  // search service already knows how to resolve Booking.com destinations by
+  // city name, so do not dead-end the request just because destId is empty.
+  if ((!normalizedDestId && !normalizedCityName) || !checkIn || !checkOut)
+    return res.status(400).json({ success: false, message: 'destination, checkIn and checkOut are required' });
 
   const { hotels, source } = await searchHotelsWithFallback({
-    destId, cityName, checkIn, checkOut, adults: Number(adults), rooms: Number(rooms)
+    destId: normalizedDestId,
+    cityName: normalizedCityName,
+    checkIn,
+    checkOut,
+    adults: Number(adults),
+    rooms: Number(rooms)
   });
 
   return res.json({ success: true, data: { hotels, count: hotels.length, source: source || undefined } });
