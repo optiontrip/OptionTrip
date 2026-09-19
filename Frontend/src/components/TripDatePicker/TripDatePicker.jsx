@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { DateRange, Calendar } from 'react-date-range';
 import {
@@ -43,6 +43,16 @@ const buildMonths = (count = 12) => {
 
 const MONTHS = buildMonths(12);
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const routeSupportsPriceCalendar = (origin, destination) => (
+  /^[A-Z]{3}$/i.test(String(origin || '')) && /^[A-Z]{3}$/i.test(String(destination || ''))
+);
+
+const minimumPrice = (prices) => {
+  const values = Object.values(prices || {})
+    .map(Number)
+    .filter(value => Number.isFinite(value) && value > 0);
+  return values.length ? Math.min(...values) : null;
+};
 
 const PriceCalendar = ({
   month,
@@ -67,7 +77,7 @@ const PriceCalendar = ({
     setRangeStart(null);
   }, [month]);
 
-  const priceVals = Object.values(prices).filter(Boolean);
+  const priceVals = Object.values(prices).map(Number).filter(value => Number.isFinite(value) && value > 0);
   const minPrice = priceVals.length ? Math.min(...priceVals) : 0;
   const maxPrice = priceVals.length ? Math.max(...priceVals) : 0;
   const band = (maxPrice - minPrice) / 3 || 1;
@@ -153,7 +163,7 @@ const PriceCalendar = ({
             {cells.map((day, i) => {
               if (!day) return <div key={i} className="pc-day pc-day--empty" />;
               const dateStr = toStr(day);
-              const price = prices[dateStr];
+              const price = Number(prices[dateStr]) || 0;
               const disabled = disabledDay(day);
               const selected = rangeStart && isSameDay(day, rangeStart);
               return (
@@ -161,7 +171,7 @@ const PriceCalendar = ({
                   className={['pc-day', disabled ? 'pc-day--past' : '', selected ? 'pc-day--selected' : '', !disabled && price ? priceClass(price) : ''].filter(Boolean).join(' ')}
                   onClick={() => handleDayClick(day)} disabled={disabled}>
                   <span className="pc-day__num">{day.getDate()}</span>
-                  {price && !disabled && <span className="pc-day__price">{formatPrice ? formatPrice(price) : `$${price.toLocaleString()}`}</span>}
+                  {price > 0 && !disabled && <span className="pc-day__price">{formatPrice ? formatPrice(price) : `$${price.toLocaleString()}`}</span>}
                 </button>
               );
             })}
@@ -172,21 +182,48 @@ const PriceCalendar = ({
   );
 };
 
-const MonthGrid = ({ mode, onMonthClick, selectedStart = null, hintText = '' }) => (
+const MonthGrid = ({
+  mode,
+  onMonthClick,
+  selectedStart = null,
+  hintText = '',
+  monthSummaries = {},
+  summaryLoading = {},
+  formatPrice,
+  cheapestMonthKey = '',
+  routePriced = false,
+}) => (
   <div className="tdp-flex-wrap">
     <p className="tdp-flex-hint">
       {hintText || (mode === 'range'
         ? (selectedStart ? `Departure: ${format(selectedStart, 'MMMM yyyy')} - now choose a return month` : 'Select a departure month')
         : 'Select a travel month')}
     </p>
+    {routePriced && (
+      <p className="tdp-month-price-note">Indicative fares from current partner data. Live price is rechecked before booking.</p>
+    )}
     <div className="tdp-month-grid">
       {MONTHS.map((month) => {
-        const selected = selectedStart && format(month, 'yyyy-MM') === format(selectedStart, 'yyyy-MM');
+        const monthKey = format(month, 'yyyy-MM');
+        const selected = selectedStart && monthKey === format(selectedStart, 'yyyy-MM');
+        const price = monthSummaries[monthKey];
+        const loading = Boolean(summaryLoading[monthKey]);
+        const cheapest = Boolean(price && cheapestMonthKey === monthKey);
         return (
-          <button key={month.toISOString()} className={`tdp-month-card${selected ? ' tdp-month-card--selected' : ''}`}
-            onClick={() => onMonthClick(month)} type="button">
+          <button
+            key={month.toISOString()}
+            className={`tdp-month-card${selected ? ' tdp-month-card--selected' : ''}${cheapest ? ' tdp-month-card--cheapest' : ''}`}
+            onClick={() => onMonthClick(month)}
+            type="button"
+          >
+            {cheapest && <span className="tdp-month-card__badge">Cheapest</span>}
             <span className="tdp-month-card__year">{format(month, 'yyyy')}</span>
             <span className="tdp-month-card__name">{format(month, 'MMMM')}</span>
+            {routePriced && (
+              <span className={`tdp-month-card__price${price ? '' : ' tdp-month-card__price--muted'}`}>
+                {loading ? 'Checking…' : (price ? `from ${formatPrice ? formatPrice(price) : `$${Number(price).toLocaleString()}`}` : 'Check prices')}
+              </span>
+            )}
           </button>
         );
       })}
@@ -230,10 +267,24 @@ const TripDatePicker = ({
   const [wholeStart, setWholeStart] = useState(null);
   const [monthPrices, setMonthPrices] = useState({});
   const [pricesLoading, setPricesLoading] = useState(false);
-  const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
+  const [monthSummaries, setMonthSummaries] = useState({});
+  const [summaryLoading, setSummaryLoading] = useState({});
+  const [popupPos, setPopupPos] = useState({ top: 16, left: 16 });
   const wrapRef = useRef(null);
   const triggerRef = useRef(null);
   const popupRef = useRef(null);
+  const positionFrameRef = useRef(null);
+  const summaryRequestRef = useRef(0);
+
+  const hasPriceRoute = routeSupportsPriceCalendar(origin, destination);
+
+  const cheapestMonthKey = useMemo(() => {
+    const entries = Object.entries(monthSummaries)
+      .filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0);
+    if (!entries.length) return '';
+    entries.sort((a, b) => Number(a[1]) - Number(b[1]));
+    return entries[0][0];
+  }, [monthSummaries]);
 
   useEffect(() => { setRange(buildRange()); }, [startDate, endDate, buildRange]);
 
@@ -300,8 +351,7 @@ const TripDatePicker = ({
   const loadMonthlyPrices = async (month) => {
     setFlexMonth(month);
     setMonthPrices({});
-    const hasRoute = origin && destination && /^[A-Z]{3}$/i.test(origin) && /^[A-Z]{3}$/i.test(destination);
-    if (!hasRoute) return;
+    if (!hasPriceRoute) return;
     setPricesLoading(true);
     try {
       const prices = await fetchMonthlyPrices({
@@ -314,6 +364,51 @@ const TripDatePicker = ({
       setPricesLoading(false);
     }
   };
+
+  const loadMonthSummaries = useCallback(async () => {
+    const requestId = ++summaryRequestRef.current;
+    setMonthSummaries({});
+    setSummaryLoading({});
+    if (!routeSupportsPriceCalendar(origin, destination)) return;
+
+    const initialLoading = {};
+    MONTHS.forEach(month => { initialLoading[format(month, 'yyyy-MM')] = true; });
+    setSummaryLoading(initialLoading);
+
+    // Use small batches so the UI becomes useful quickly without hammering the
+    // monthly-price provider with twelve simultaneous calls.
+    for (let offset = 0; offset < MONTHS.length; offset += 3) {
+      const batch = MONTHS.slice(offset, offset + 3);
+      const rows = await Promise.all(batch.map(async month => {
+        const key = format(month, 'yyyy-MM');
+        const prices = await fetchMonthlyPrices({
+          origin: String(origin).toUpperCase(),
+          destination: String(destination).toUpperCase(),
+          month: key,
+        });
+        return { key, price: minimumPrice(prices) };
+      }));
+
+      if (summaryRequestRef.current !== requestId) return;
+      setMonthSummaries(previous => {
+        const next = { ...previous };
+        rows.forEach(({ key, price }) => {
+          if (price) next[key] = price;
+        });
+        return next;
+      });
+      setSummaryLoading(previous => {
+        const next = { ...previous };
+        rows.forEach(({ key }) => { next[key] = false; });
+        return next;
+      });
+    }
+  }, [origin, destination]);
+
+  useEffect(() => {
+    if (open && dateMode === 'whole-month') loadMonthSummaries();
+    return () => { summaryRequestRef.current += 1; };
+  }, [open, dateMode, loadMonthSummaries]);
 
   const handleMonthClick = async (month) => {
     setFlexView('calendar');
@@ -332,22 +427,68 @@ const TripDatePicker = ({
     setMonthPrices({});
   };
 
+  const repositionPopup = useCallback(() => {
+    if (!open || !triggerRef.current || typeof window === 'undefined') return;
+    if (positionFrameRef.current) cancelAnimationFrame(positionFrameRef.current);
+    positionFrameRef.current = requestAnimationFrame(() => {
+      const rect = triggerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const visualViewport = window.visualViewport;
+      const viewportWidth = visualViewport?.width || window.innerWidth;
+      const viewportHeight = visualViewport?.height || window.innerHeight;
+      const mobile = viewportWidth <= 720;
+      if (mobile) {
+        setPopupPos({ top: 8, left: 12 });
+        return;
+      }
+
+      const popupWidth = Math.min(660, Math.max(320, viewportWidth - 32));
+      const popupHeight = Math.min(
+        popupRef.current?.offsetHeight || 560,
+        Math.max(240, viewportHeight - 32),
+      );
+      const left = Math.max(16, Math.min(rect.left, viewportWidth - popupWidth - 16));
+      const belowTop = rect.bottom + 10;
+      const aboveTop = rect.top - popupHeight - 10;
+      const roomBelow = viewportHeight - rect.bottom - 16;
+      const roomAbove = rect.top - 16;
+      const preferredTop = roomBelow >= popupHeight || roomBelow >= roomAbove ? belowTop : aboveTop;
+      const maxTop = Math.max(16, viewportHeight - popupHeight - 16);
+      const top = Math.max(16, Math.min(preferredTop, maxTop));
+      setPopupPos({ top, left });
+    });
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    repositionPopup();
+    const onViewportChange = () => repositionPopup();
+    window.addEventListener('resize', onViewportChange);
+    window.addEventListener('scroll', onViewportChange, true);
+    window.visualViewport?.addEventListener('resize', onViewportChange);
+    window.visualViewport?.addEventListener('scroll', onViewportChange);
+    const secondPass = requestAnimationFrame(repositionPopup);
+    return () => {
+      cancelAnimationFrame(secondPass);
+      if (positionFrameRef.current) cancelAnimationFrame(positionFrameRef.current);
+      window.removeEventListener('resize', onViewportChange);
+      window.removeEventListener('scroll', onViewportChange, true);
+      window.visualViewport?.removeEventListener('resize', onViewportChange);
+      window.visualViewport?.removeEventListener('scroll', onViewportChange);
+    };
+  }, [open, dateMode, flexView, repositionPopup]);
+
   const nights = mode === 'range' && range[0].startDate && range[0].endDate
     ? Math.max(0, Math.round((range[0].endDate - range[0].startDate) / 86400000)) : 0;
 
-  const POPUP_WIDTH = 660;
   const handleOpen = () => {
-    if (triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      const left = Math.max(16, Math.min(rect.left, window.innerWidth - POPUP_WIDTH - 16));
-      setPopupPos({ top: rect.bottom + 10, left });
-    }
     setOpen(true);
     setDateMode(searchMode === 'month' ? 'whole-month' : 'specific');
     setFlexView('months');
     setFlexMonth(null);
     setWholeStart(null);
     setMonthPrices({});
+    requestAnimationFrame(repositionPopup);
   };
 
   const startText = searchMode === 'month' && selectedMonth
@@ -421,12 +562,24 @@ const TripDatePicker = ({
             <>
               <div className="tdp-month-mode-intro">
                 <strong>Search the whole month</strong>
-                <span>No exact date required. OptionTrip will compare the available days and routes across the selected month.</span>
+                <span>No exact date required. Compare the cheapest available fares across the selected month.</span>
               </div>
-              <MonthGrid mode={mode} selectedStart={wholeStart} onMonthClick={handleWholeMonthClick} />
+              <MonthGrid
+                mode={mode}
+                selectedStart={wholeStart}
+                onMonthClick={handleWholeMonthClick}
+                monthSummaries={monthSummaries}
+                summaryLoading={summaryLoading}
+                formatPrice={formatPrice}
+                cheapestMonthKey={cheapestMonthKey}
+                routePriced={hasPriceRoute}
+              />
               <div className="tdp-footer">
                 {mode === 'range' && wholeStart && (
                   <span className="tdp-footer__nights">Departure: {format(wholeStart, 'MMMM yyyy')} - choose a return month</span>
+                )}
+                {hasPriceRoute && cheapestMonthKey && !wholeStart && (
+                  <span className="tdp-footer__nights">Cheapest currently found: {format(new Date(`${cheapestMonthKey}-01T00:00:00`), 'MMMM yyyy')}</span>
                 )}
                 <button className="tdp-btn tdp-btn--cancel" onClick={() => setOpen(false)}>Cancel</button>
               </div>
