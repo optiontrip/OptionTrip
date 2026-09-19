@@ -1,10 +1,10 @@
 import { searchFlights as searchTravelpayoutsFlights } from './travelpayoutsFlightService.js';
 
-const MAX_ORIGINS = 16;
-const MAX_DESTINATIONS = 48;
-const MAX_ROUTE_PAIRS = 96;
-const MAX_EXPLICIT_PAIRS = 120;
-const CONCURRENCY = 6;
+const MAX_ORIGINS = 24;
+const MAX_DESTINATIONS = 60;
+const MAX_ROUTE_PAIRS = 240;
+const MAX_EXPLICIT_PAIRS = 180;
+const CONCURRENCY = 8;
 
 const normalizeCodes = (values, limit) => {
   const input = Array.isArray(values) ? values : String(values || '').split(',');
@@ -20,24 +20,76 @@ const normalizeCodes = (values, limit) => {
   return result;
 };
 
-const buildPairs = (origins, destinations) => {
-  const pairs = [];
-  // Destination-first ordering avoids exhausting the cap on one origin when
-  // the departure side represents an entire country.
+const matrixSize = (origins, destinations) => {
+  let total = 0;
   for (const destination of destinations) {
     for (const origin of origins) {
-      if (origin === destination) continue;
-      pairs.push({ origin, destination });
-      if (pairs.length >= MAX_ROUTE_PAIRS) return pairs;
+      if (origin !== destination) total += 1;
     }
   }
-  return pairs;
+  return total;
+};
+
+// Build a deterministic, balanced country/city airport matrix. When the full
+// matrix fits under the safety cap every valid pair is searched. For very large
+// matrices, each destination receives one origin before any destination gets a
+// second origin, with the origin index rotated each round. This prevents the
+// request cap from being consumed by the first origin/city in the list.
+export const buildBalancedRoutePairs = (originValues, destinationValues, maxPairs = MAX_ROUTE_PAIRS) => {
+  const origins = normalizeCodes(originValues, MAX_ORIGINS);
+  const destinations = normalizeCodes(destinationValues, MAX_DESTINATIONS);
+  const totalPairs = matrixSize(origins, destinations);
+  const limit = Math.max(1, Number(maxPairs) || MAX_ROUTE_PAIRS);
+
+  if (!origins.length || !destinations.length || totalPairs === 0) {
+    return { origins, destinations, pairs: [], totalPairs, capped: false, coveragePercent: 0 };
+  }
+
+  const pairs = [];
+  if (totalPairs <= limit) {
+    for (const destination of destinations) {
+      for (const origin of origins) {
+        if (origin === destination) continue;
+        pairs.push({ origin, destination });
+      }
+    }
+  } else {
+    const seen = new Set();
+    let round = 0;
+    while (pairs.length < limit && seen.size < totalPairs) {
+      for (let destinationIndex = 0; destinationIndex < destinations.length && pairs.length < limit; destinationIndex += 1) {
+        const destination = destinations[destinationIndex];
+        for (let attempt = 0; attempt < origins.length; attempt += 1) {
+          const originIndex = (destinationIndex + round + attempt) % origins.length;
+          const origin = origins[originIndex];
+          if (origin === destination) continue;
+          const key = `${origin}-${destination}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          pairs.push({ origin, destination });
+          break;
+        }
+      }
+      round += 1;
+      if (round > origins.length + destinations.length) break;
+    }
+  }
+
+  return {
+    origins,
+    destinations,
+    pairs,
+    totalPairs,
+    capped: pairs.length < totalPairs,
+    coveragePercent: totalPairs > 0 ? Math.round((pairs.length / totalPairs) * 1000) / 10 : 0,
+  };
 };
 
 const normalizeExplicitPairs = (values) => {
   const input = Array.isArray(values) ? values : String(values || '').split(',');
   const seen = new Set();
   const result = [];
+  let validUniquePairs = 0;
 
   for (const value of input) {
     let origin = '';
@@ -55,11 +107,11 @@ const normalizeExplicitPairs = (values) => {
     const key = `${origin}-${destination}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    result.push({ origin, destination });
-    if (result.length >= MAX_EXPLICIT_PAIRS) break;
+    validUniquePairs += 1;
+    if (result.length < MAX_EXPLICIT_PAIRS) result.push({ origin, destination });
   }
 
-  return result;
+  return { pairs: result, totalPairs: validUniquePairs };
 };
 
 const chooseCheapest = (flights = []) => flights
@@ -114,26 +166,31 @@ const searchPairs = async ({ pairs, month, returnMonth }) => {
 };
 
 export const searchCheapestRoutePairsForMonth = async ({ pairs, month, returnMonth = null }) => {
-  const normalizedPairs = normalizeExplicitPairs(pairs);
-  const routes = await searchPairs({ pairs: normalizedPairs, month, returnMonth });
+  const normalized = normalizeExplicitPairs(pairs);
+  const routes = await searchPairs({ pairs: normalized.pairs, month, returnMonth });
   return {
     routes,
-    searchedPairs: normalizedPairs.length,
-    capped: normalizedPairs.length >= MAX_EXPLICIT_PAIRS,
+    searchedPairs: normalized.pairs.length,
+    totalPairs: normalized.totalPairs,
+    capped: normalized.pairs.length < normalized.totalPairs,
+    coveragePercent: normalized.totalPairs > 0
+      ? Math.round((normalized.pairs.length / normalized.totalPairs) * 1000) / 10
+      : 0,
   };
 };
 
 export const searchCheapestRoutesForMonth = async ({ originAirports, destinationAirports, month, returnMonth = null }) => {
-  const origins = normalizeCodes(originAirports, MAX_ORIGINS);
-  const destinations = normalizeCodes(destinationAirports, MAX_DESTINATIONS);
-  const pairs = buildPairs(origins, destinations);
-  const routes = await searchPairs({ pairs, month, returnMonth });
+  const matrix = buildBalancedRoutePairs(originAirports, destinationAirports);
+  const routes = await searchPairs({ pairs: matrix.pairs, month, returnMonth });
 
   return {
     routes,
-    searchedPairs: pairs.length,
-    originAirports: origins,
-    destinationAirports: destinations,
-    capped: pairs.length >= MAX_ROUTE_PAIRS,
+    searchedPairs: matrix.pairs.length,
+    totalPairs: matrix.totalPairs,
+    originAirports: matrix.origins,
+    destinationAirports: matrix.destinations,
+    capped: matrix.capped,
+    coveragePercent: matrix.coveragePercent,
+    matrixMode: matrix.capped ? 'balanced-sample' : 'full',
   };
 };
