@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import PageMeta from '../hooks/usePageMeta';
 import { searchHotelLocations, searchHotels } from '../services/hotelService';
 import { logActivity } from '../services/activityService';
@@ -29,21 +30,25 @@ const SkeletonCard = () => (
 );
 
 const HotelSearch = () => {
+  const location = useLocation();
+  const handoff = location.state?.autoFill ? location.state : null;
   const today = new Date().toISOString().split('T')[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
-  const [cityQuery, setCityQuery] = useState('');
-  const [destId, setDestId] = useState('');
-  const [searchType, setSearchType] = useState('CITY');
+  const [cityQuery, setCityQuery] = useState(handoff?.cityQuery || '');
+  const [destId, setDestId] = useState(handoff?.destId || '');
+  const [searchType, setSearchType] = useState(handoff?.searchType || 'CITY');
   const [suggestions, setSuggestions] = useState([]);
   const [cityLoading, setCityLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const cityRef = useRef(null);
+  const autoSearchRef = useRef(false);
   const debouncedQuery = useDebounce(cityQuery, 350);
 
-  const [checkIn, setCheckIn] = useState(today);
-  const [checkOut, setCheckOut] = useState(tomorrow);
-  const [adults, setAdults] = useState(1);
+  const [checkIn, setCheckIn] = useState(handoff?.checkIn || today);
+  const [checkOut, setCheckOut] = useState(handoff?.checkOut || tomorrow);
+  const [adults, setAdults] = useState(Number(handoff?.adults) || 1);
+  const [rooms, setRooms] = useState(Number(handoff?.rooms) || 1);
   const [errors, setErrors] = useState({});
 
   const [isLoading, setIsLoading] = useState(false);
@@ -75,43 +80,56 @@ const HotelSearch = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const validate = () => {
+  const validate = useCallback((values = {}) => {
+    const nextCity = String(values.cityQuery ?? cityQuery).trim();
+    const nextCheckIn = values.checkIn ?? checkIn;
+    const nextCheckOut = values.checkOut ?? checkOut;
     const errs = {};
-    if (!cityQuery.trim()) errs.city = 'Enter a destination';
-    if (!destId) errs.city = 'Select a destination from the list';
-    if (!checkIn) errs.checkIn = 'Select check-in date';
-    if (!checkOut) errs.checkOut = 'Select check-out date';
-    if (checkIn && checkOut && checkOut <= checkIn) errs.checkOut = 'Check-out must be after check-in';
+    if (!nextCity) errs.city = 'Enter a destination';
+    if (!nextCheckIn) errs.checkIn = 'Select check-in date';
+    if (!nextCheckOut) errs.checkOut = 'Select check-out date';
+    if (nextCheckIn && nextCheckOut && nextCheckOut <= nextCheckIn) errs.checkOut = 'Check-out must be after check-in';
     return errs;
-  };
+  }, [cityQuery, checkIn, checkOut]);
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length) {
-      setErrors(errs);
-      return;
-    }
-
+  const runSearch = useCallback(async ({
+    city = cityQuery,
+    destinationId = destId,
+    type = searchType,
+    start = checkIn,
+    end = checkOut,
+    adultCount = adults,
+    roomCount = rooms,
+  } = {}) => {
     setIsLoading(true);
     setSearchError(null);
     setHotels([]);
     setFilters({ ...DEFAULT_HOTEL_FILTERS });
     setSearched(false);
-    setLastCityName(cityQuery);
+    setShowDropdown(false);
+    setLastCityName(city);
 
     try {
-      const result = await searchHotels({ destId, searchType, checkIn, checkOut, adults, cityName: cityQuery });
+      const result = await searchHotels({
+        destId: destinationId,
+        searchType: type,
+        checkIn: start,
+        checkOut: end,
+        adults: adultCount,
+        rooms: roomCount,
+        cityName: city,
+      });
       setHotels(result.hotels || []);
       setSearched(true);
       logActivity({
         type: 'hotel',
         action: 'searched',
-        title: `Searched stays in ${cityQuery}`,
+        title: `Searched stays in ${city}`,
         metadata: {
-          destination: cityQuery,
-          dates: { start_date: checkIn, end_date: checkOut },
-          partySize: adults,
+          destination: city,
+          dates: { start_date: start, end_date: end },
+          partySize: adultCount,
+          rooms: roomCount,
           resultsCount: result?.hotels?.length || 0,
         },
       });
@@ -122,6 +140,41 @@ const HotelSearch = () => {
     } finally {
       setIsLoading(false);
     }
+  }, [cityQuery, destId, searchType, checkIn, checkOut, adults, rooms]);
+
+  useEffect(() => {
+    if (!handoff || autoSearchRef.current) return;
+    const handoffValues = {
+      cityQuery: handoff.cityQuery || '',
+      checkIn: handoff.checkIn || today,
+      checkOut: handoff.checkOut || tomorrow,
+    };
+    const errs = validate(handoffValues);
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
+    }
+
+    autoSearchRef.current = true;
+    runSearch({
+      city: handoff.cityQuery,
+      destinationId: handoff.destId || '',
+      type: handoff.searchType || 'CITY',
+      start: handoff.checkIn || today,
+      end: handoff.checkOut || tomorrow,
+      adultCount: Number(handoff.adults) || 1,
+      roomCount: Number(handoff.rooms) || 1,
+    });
+  }, [handoff, runSearch, validate, today, tomorrow]);
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
+    await runSearch();
   };
 
   const nights = checkIn && checkOut
@@ -140,7 +193,7 @@ const HotelSearch = () => {
             <h4 className="mb-2 theme1">Search & Compare</h4>
             <h1 className="mb-3">Find Your <span className="theme">Perfect Stay</span></h1>
             <p className="hotel-search-hero__sub">
-              Real-time availability from Hotelbeds. Compare and book via our trusted partners.
+              Real-time availability from connected stay providers. Compare and book via our trusted partners.
             </p>
           </div>
         </div>
@@ -222,12 +275,14 @@ const HotelSearch = () => {
                 <PassengerSelector
                   passengers={[
                     { key: 'adults', label: 'Adults', subtitle: 'Aged 18+', value: adults, min: 1, max: 9 },
+                    { key: 'rooms', label: 'Rooms', subtitle: 'Number of rooms', value: rooms, min: 1, max: 8 },
                   ]}
-                  onChange={(key, val) => setAdults(val)}
+                  onChange={(key, val) => key === 'rooms' ? setRooms(val) : setAdults(val)}
                   onApply={() => {}}
                   label={p => {
-                    const a = p[0]?.value || 1;
-                    return `${a} Adult${a > 1 ? 's' : ''}`;
+                    const a = p.find(item => item.key === 'adults')?.value || 1;
+                    const r = p.find(item => item.key === 'rooms')?.value || 1;
+                    return `${a} Adult${a > 1 ? 's' : ''}, ${r} Room${r > 1 ? 's' : ''}`;
                   }}
                 />
               </div>
@@ -286,6 +341,7 @@ const HotelSearch = () => {
                       : `${filteredHotels.length} of ${hotels.length} results`}
                     {nights > 0 ? ` · ${nights} night${nights !== 1 ? 's' : ''}` : ''}
                     {' · '}{adults} adult{adults !== 1 ? 's' : ''}
+                    {' · '}{rooms} room{rooms !== 1 ? 's' : ''}
                     {' · '}Prices in provider currency
                   </p>
                 </div>
