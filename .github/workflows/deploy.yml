@@ -33,7 +33,9 @@ jobs:
         run: npm ci
 
       - name: Check backend JavaScript syntax
-        run: find Backend/src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+        run: |
+          find Backend/src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+          node --check Backend/scripts/printTravelNewsStatus.mjs
 
       - name: Location resolver regression checks
         working-directory: Backend
@@ -177,8 +179,10 @@ jobs:
             cd ~/OptionTrip/Backend
             pm2 restart optiontrip-backend --update-env
 
-            echo '🩺 Checking Backend health and marketplace inventory...'
-            curl -fsS --retry 12 --retry-delay 2 --retry-connrefused --max-time 5 http://127.0.0.1:5000/api/health | grep -q '"status":"healthy"'
+            echo '🩺 Checking Backend health, travel news and marketplace inventory...'
+            HEALTH_JSON="$(curl -fsS --retry 12 --retry-delay 2 --retry-connrefused --max-time 5 http://127.0.0.1:5000/api/health)"
+            printf '%s' "$HEALTH_JSON" | grep -q '"status":"healthy"'
+            printf '%s' "$HEALTH_JSON" | node ~/OptionTrip/Backend/scripts/printTravelNewsStatus.mjs
 
             # Give the startup partner-link warmup time to convert subscribed
             # Travelpayouts brands. This is observational, not a deploy blocker:
