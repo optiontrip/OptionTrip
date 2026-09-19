@@ -78,7 +78,12 @@ const localLocationFallback = (keyword) => {
   }).slice(0, 10);
 };
 
-const getBrowserLocale = () => {
+const getPreferredLocale = () => {
+  if (typeof window !== 'undefined') {
+    const selected = String(window.localStorage?.getItem('i18nextLng') || '').trim().replace('_', '-');
+    const selectedBase = selected.split('-')[0].toLowerCase();
+    if (/^[a-z]{2}$/.test(selectedBase)) return selectedBase;
+  }
   if (typeof navigator === 'undefined') return 'en';
   const value = String(navigator.language || navigator.languages?.[0] || 'en').split(/[-_]/)[0].toLowerCase();
   return /^[a-z]{2}$/.test(value) ? value : 'en';
@@ -90,7 +95,7 @@ export const searchAirports = async (keyword) => {
   try {
     const params = new URLSearchParams({
       keyword: keyword.trim(),
-      locale: getBrowserLocale(),
+      locale: getPreferredLocale(),
     });
     const res = await fetch(`${API_URL}/api/flights/airports?${params.toString()}`);
     if (!res.ok) return fallback;

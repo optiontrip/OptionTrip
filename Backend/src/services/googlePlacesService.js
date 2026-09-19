@@ -21,6 +21,21 @@ const normalizePlaceName = (name) => {
     .replace(/\s+/g, ' ');
 };
 
+const normalizeGoogleLanguageCode = (value) => {
+  const raw = String(value || 'en').trim().replace('_', '-');
+  if (!raw) return 'en';
+  const parts = raw.split('-').filter(Boolean);
+  const language = String(parts[0] || '').toLowerCase();
+  if (!/^[a-z]{2,3}$/.test(language)) return 'en';
+  if (parts.length === 1) return language;
+  const suffix = parts.slice(1).map(part => {
+    if (/^[a-z]{4}$/i.test(part)) return `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`;
+    if (/^[a-z]{2}$/i.test(part)) return part.toUpperCase();
+    return part;
+  });
+  return [language, ...suffix].join('-');
+};
+
 const createPlaceId = (placeName) => {
   return `place_${normalizePlaceName(placeName).replace(/\s+/g, '_')}`;
 };
@@ -35,7 +50,7 @@ const getFallbackImage = (placeName = '') => {
   return FALLBACK_IMAGES[Math.abs(hash) % FALLBACK_IMAGES.length];
 };
 
-export const searchGooglePlace = async (placeName) => {
+export const searchGooglePlace = async (placeName, languageCode = 'en') => {
   try {
     if (!placeName || placeName.trim().length < 2) {
       console.warn('⚠️ Invalid place name provided to Google Places API');
@@ -47,7 +62,8 @@ export const searchGooglePlace = async (placeName) => {
       return null;
     }
 
-    console.log(`🔍 Searching Google Places for: ${placeName}`);
+    const preferredLanguage = normalizeGoogleLanguageCode(languageCode);
+    console.log(`🔍 Searching Google Places for: ${placeName} (${preferredLanguage})`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -55,7 +71,7 @@ export const searchGooglePlace = async (placeName) => {
     const requestBody = {
       textQuery: placeName,
       maxResultCount: 1,
-      languageCode: 'en'
+      languageCode: preferredLanguage
     };
 
     const fieldMask = 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.websiteUri,places.internationalPhoneNumber,places.photos';
