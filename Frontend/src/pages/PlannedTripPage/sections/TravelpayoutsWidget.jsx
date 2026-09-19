@@ -50,6 +50,17 @@ const safePartnerUrl = value => {
   }
 };
 
+const safeContextText = (value, maxLength = 120) => String(value || '')
+  .replace(/[\r\n\t]+/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .slice(0, maxLength);
+
+const safeIata = value => {
+  const code = String(value || '').trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(code) ? code : '';
+};
+
 const hasRenderedWidget = container => {
   if (!container) return false;
   if (container.querySelector('iframe')) return true;
@@ -59,7 +70,7 @@ const hasRenderedWidget = container => {
   });
 };
 
-const TravelpayoutsWidget = ({ src, title, vertical }) => {
+const TravelpayoutsWidget = ({ src, title, vertical, context = null }) => {
   const { i18n } = useTranslation();
   const containerRef = useRef(null);
   const [status, setStatus] = useState('loading');
@@ -67,7 +78,22 @@ const TravelpayoutsWidget = ({ src, title, vertical }) => {
   const [inventory, setInventory] = useState(null);
   const [fallbackRefreshing, setFallbackRefreshing] = useState(false);
   const localizedSrc = useMemo(() => localizeWidgetUrl(src, i18n.language), [src, i18n.language]);
-  const viFallback = `/travel-buddy?service=${encodeURIComponent(vertical || 'travel')}&intent=find-service`;
+
+  const destination = safeContextText(context?.destination);
+  const destinationCode = safeIata(context?.destinationCode);
+  const contextLabel = destination
+    ? `${destination}${destinationCode && !destination.includes(destinationCode) ? ` (${destinationCode})` : ''}`
+    : destinationCode;
+
+  const viFallback = useMemo(() => {
+    const query = new URLSearchParams({
+      service: vertical || 'travel',
+      intent: 'find-service',
+    });
+    if (destination) query.set('destination', destination);
+    if (destinationCode) query.set('destinationCode', destinationCode);
+    return `/travel-buddy?${query.toString()}`;
+  }, [vertical, destination, destinationCode]);
 
   useEffect(() => {
     if (!vertical) return undefined;
@@ -166,6 +192,13 @@ const TravelpayoutsWidget = ({ src, title, vertical }) => {
     <div className="cr-tp-widget ot-partner-widget" data-widget-status={status}>
       {title && <h3 className="cr-tp-widget__title">{title}</h3>}
 
+      {contextLabel && (
+        <div className="ot-partner-widget__context" aria-label="Selected destination">
+          <i className="fas fa-location-dot" aria-hidden="true" />
+          <span>Keeping your destination: <strong>{contextLabel}</strong></span>
+        </div>
+      )}
+
       <div className="ot-partner-widget__trust" aria-label="Live booking source status">
         <span className={`ot-partner-widget__live${status === 'error' ? ' ot-partner-widget__live--error' : ''}`}>
           <span className="ot-partner-widget__dot" />
@@ -222,7 +255,7 @@ const TravelpayoutsWidget = ({ src, title, vertical }) => {
 
           <div className="ot-partner-widget__error-actions">
             <button type="button" onClick={() => setAttempt(value => value + 1)}>Try again</button>
-            <Link to={viFallback}>Ask Vi</Link>
+            <Link to={viFallback}>Ask Vi{contextLabel ? ` about ${contextLabel}` : ''}</Link>
           </div>
         </div>
       )}
