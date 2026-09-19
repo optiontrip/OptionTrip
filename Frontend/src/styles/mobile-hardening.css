@@ -72,6 +72,7 @@ html:lang(ar) body {
   .auth-button,
   .auth-modal__submit,
   .footer-subscribe-btn,
+  .hbs__search-btn,
   .mtp__plan-btn,
   .vt__add-btn,
   .pmd-loc-edit__cancel,
@@ -82,6 +83,16 @@ html:lang(ar) body {
     overflow-wrap: anywhere;
     min-height: 44px;
     line-height: 1.25;
+  }
+
+  /* OTP remains visually scannable without becoming wider than a 320px phone.
+     mobile-first.css normalizes input font size to prevent browser zoom, so the
+     OTP control explicitly restores a safe larger size here. */
+  .otp-input {
+    font-size: 28px !important;
+    letter-spacing: 8px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
   }
 
   /* Four budget labels in one phone row become unreadable after translation. */
