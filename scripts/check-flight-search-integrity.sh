@@ -31,9 +31,9 @@ grep -q 'nearest-airport' "$HOME" || fail 'homepage no longer preserves nearest-
 grep -q 'requestedPlace' "$HOME" || fail 'homepage lost nearest-airport place context'
 grep -q 'getDate() + 365' "$HOME" || fail 'homepage native date fields are not capped to 365 days'
 
-# A provider returning one fare must never stop the entire search. The main
-# results page queries all available providers and chooses the richest usable
-# result set so a single Duffel offer cannot hide dozens of other fares.
+# A provider returning one fare must never stop the entire search. Both the
+# public results page and Planned Trip query available providers as one batch
+# and choose the richest usable result set.
 grep -q 'pickRichestProvider' "$SEARCH" || fail 'main flight results lost richest-provider selection'
 grep -q 'Promise.all' "$SEARCH" || fail 'main flight results no longer query providers as one search batch'
 grep -q 'limit: 50' "$SEARCH" || fail 'Travelpayouts result request was reduced below the rich search target'
@@ -42,6 +42,13 @@ if perl -0ne 'exit 0 if /if\s*\(duffelResult\?\.flights\?\.length[^)]*\)\s*\{[^}
 fi
 
 grep -q 'FlightSearchForm' "$PLANNED" || fail 'Planned Trip flights no longer reuse shared flight search'
+grep -q 'pickRichestProvider' "$PLANNED" || fail 'Planned Trip lost richest-provider selection'
+grep -q 'Promise.all' "$PLANNED" || fail 'Planned Trip no longer queries flight providers as one search batch'
+grep -q 'limit: 50' "$PLANNED" || fail 'Planned Trip Travelpayouts request was reduced below the rich search target'
+if perl -0ne 'exit 0 if /if\s*\(duffelResult\?\.flights\?\.length[^)]*\)\s*\{[^}]*return;/s; exit 1' "$PLANNED"; then
+  fail 'Duffel can again short-circuit Planned Trip after one result'
+fi
+
 grep -q "export { default } from './PlannedTripFlightTabModern'" "$LEGACY" || fail 'legacy Planned Trip date-only flight form returned'
 
 grep -q "searchMode: 'month'" "$PICKER" || fail 'shared date picker no longer emits month searches'
