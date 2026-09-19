@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:locations": "node scripts/checkLocationResolver.mjs",
     "test:landmarks": "node scripts/checkLandmarkResolver.mjs",
+    "test:localized-locations": "node scripts/checkLocalizedLocationSearch.mjs",
     "test:cars": "node scripts/checkCarRentalRouting.mjs",
     "test:vi-marketplace": "node scripts/checkViMarketplaceRouting.mjs",
     "test:vi-conversion": "node scripts/checkViLiveConversion.mjs",
