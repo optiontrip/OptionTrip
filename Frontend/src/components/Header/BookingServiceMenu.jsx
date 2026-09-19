@@ -6,9 +6,9 @@ import { getTravelServiceLabels } from '../../config/travelServiceLabels';
 import { fetchTravelInventoryStatus, getInventoryStateForService } from '../../services/travelInventoryService';
 import './BookingServiceMenu.css';
 
-const serviceRoute = service => service.live && service.route
+const serviceRoute = (service, groupId = service.group || '') => service.live && service.route
   ? service.route
-  : `/services?service=${encodeURIComponent(service.id)}#${service.group || ''}`;
+  : `/services?service=${encodeURIComponent(service.id)}#${groupId}`;
 
 const groupRoute = group => `/services#${group.id}`;
 
@@ -50,25 +50,14 @@ const BookingServiceMenu = ({ mobile = false, onNavigate }) => {
       );
     }
 
-    if (state.external && state.bookingUrl) {
-      return (
-        <a
-          href={state.bookingUrl}
-          target="_blank"
-          rel="noopener noreferrer sponsored"
-          onClick={onNavigate}
-          className="booking-service-menu__link booking-service-menu__link--partner"
-          title={`${serviceLabel} - live booking`}
-          data-provider={state.primaryProvider || undefined}
-        >
-          {content}
-        </a>
-      );
-    }
-
-    const route = serviceRoute({ ...service, group: groupId });
+    const route = serviceRoute(service, groupId);
     return (
-      <Link to={route} onClick={onNavigate} className="booking-service-menu__link" title={serviceLabel}>
+      <Link
+        to={route}
+        onClick={onNavigate}
+        className={`booking-service-menu__link${state.external && state.bookingUrl ? ' booking-service-menu__link--partner' : ''}`}
+        title={state.external && state.bookingUrl ? `${serviceLabel} - compare live booking partners` : serviceLabel}
+      >
         {content}
       </Link>
     );
