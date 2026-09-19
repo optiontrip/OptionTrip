@@ -54,7 +54,7 @@ export const detectMarketplaceIntent = message => {
 
 const routeForService = service => {
   if (DIRECT_ROUTES[service.vertical]) return DIRECT_ROUTES[service.vertical];
-  return `/services?service=${encodeURIComponent(service.vertical)}`;
+  return `/services/${encodeURIComponent(service.vertical)}`;
 };
 
 export const buildMarketplaceSuggestion = message => {
