@@ -67,6 +67,10 @@ jobs:
         working-directory: Backend
         run: npm run test:partner-links
 
+      - name: Resilient live widget fallback checks
+        working-directory: Backend
+        run: npm run test:widget-fallbacks
+
       - name: Country-to-country flight matrix checks
         working-directory: Backend
         run: npm run test:flight-country-matrix
