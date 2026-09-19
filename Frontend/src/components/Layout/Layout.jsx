@@ -6,6 +6,7 @@ import Preloader from '../Preloader/Preloader';
 import SearchPopup from '../SearchPopup/SearchPopup';
 import TravelServiceRail from '../TravelServiceRail/TravelServiceRail';
 import ViAssistant from '../ViAssistant/ViAssistant';
+import ViRouteIntentBridge from '../ViAssistant/ViRouteIntentBridge';
 
 const MOBILE_SEARCH_SURFACES = [
   '/',
@@ -37,6 +38,7 @@ const Layout = ({ children }) => {
       </main>
       <Footer />
       <SearchPopup />
+      <ViRouteIntentBridge />
       <div className={suppressFloatingVi ? 'vi-mobile-suppressed' : ''}>
         <ViAssistant />
       </div>
