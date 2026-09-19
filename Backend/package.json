@@ -8,6 +8,7 @@
     "test:locations": "node scripts/checkLocationResolver.mjs",
     "test:vi-marketplace": "node scripts/checkViMarketplaceRouting.mjs",
     "test:partner-routing": "node scripts/checkPartnerBookingRouting.mjs",
+    "test:news-runner": "node scripts/checkTravelNewsRunner.mjs",
     "dev": "nodemon src/server.js",
     "start": "node src/server.js"
   },
