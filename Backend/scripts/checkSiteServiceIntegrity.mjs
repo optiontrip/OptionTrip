@@ -23,6 +23,8 @@ const ecosystem = read('Frontend/src/components/TravelEcosystemSection/TravelEco
 const ecosystemCss = read('Frontend/src/components/TravelEcosystemSection/TravelEcosystemSection.css');
 const servicesPage = read('Frontend/src/pages/TravelServicesPage/TravelServicesPage.jsx');
 const servicesPageCss = read('Frontend/src/pages/TravelServicesPage/TravelServicesPage.css');
+const searchPopup = read('Frontend/src/components/SearchPopup/SearchPopup.jsx');
+const viMarketplaceRouter = read('Backend/src/services/viMarketplaceRouter.js');
 const cheapFlightsCss = read('Frontend/src/pages/CheapFlightExplorerPage.css');
 const hotelCss = read('Frontend/src/pages/HotelSearch.css');
 const layout = read('Frontend/src/components/Layout/Layout.jsx');
@@ -56,15 +58,30 @@ const scanFiles = (directory, output = []) => {
   return output;
 };
 
-const deadServiceRouteLiteral = /(['"`])\/services\/[a-z0-9_-]+\1/i;
+// Query-string service routing was the old hidden-state implementation. Public
+// navigation must now use stable /services/:serviceId URLs. TravelServicesPage
+// may still parse an incoming legacy query for backward compatibility, but no
+// source should generate a new /services?service= link.
 for (const base of ['Frontend/src', 'Backend/src']) {
   for (const file of scanFiles(path.join(root, base))) {
     const source = fs.readFileSync(file, 'utf8');
-    const deadServicePath = source.match(deadServiceRouteLiteral);
-    if (deadServicePath) {
-      errors.push(`Dead legacy service route ${deadServicePath[0]} found in ${path.relative(root, file)}`);
+    if (source.includes('/services?service=')) {
+      errors.push(`Legacy query-string service route found in ${path.relative(root, file)}`);
     }
   }
+}
+
+if (!services.includes('getTravelServiceRoute') || !services.includes('`/services/${encodeURIComponent(service.id)}`')) {
+  errors.push('Travel service catalog must own the canonical /services/:serviceId routing contract.');
+}
+if (!appRoutes.has('/services/:serviceId')) {
+  errors.push('Canonical service marketplace route /services/:serviceId is missing from App.jsx.');
+}
+if (!searchPopup.includes('getTravelServiceRoute(service, service.group)')) {
+  errors.push('Global search must use the canonical travel service route contract.');
+}
+if (!viMarketplaceRouter.includes('`/services/${encodeURIComponent(service.vertical)}`')) {
+  errors.push('Vi marketplace routing must use canonical OptionTrip service URLs.');
 }
 
 if (!footer.includes('footer-locale-item--currency')) {
@@ -93,21 +110,18 @@ if (!bookingMenu.includes('const [openGroup, setOpenGroup] = useState(null)')) {
 if (!bookingMenu.includes('fetchTravelInventoryStatus') || !bookingMenu.includes('state.external && state.bookingUrl')) {
   errors.push('Booking menu must know when provider-backed services are live.');
 }
-if (!bookingMenu.includes('/services?service=') || bookingMenu.includes('rel="noopener noreferrer sponsored"')) {
-  errors.push('Booking menu must keep partner selection inside OptionTrip before the final provider handoff.');
+if (!bookingMenu.includes('getTravelServiceRoute') || bookingMenu.includes('rel="noopener noreferrer sponsored"')) {
+  errors.push('Booking menu must keep partner selection on canonical OptionTrip pages before final provider handoff.');
 }
 if (bookingMenu.includes('booking-service-menu__vi-link')) {
   errors.push('Booking menu must not duplicate the global Vi entry point.');
 }
 
-if (!serviceRail.includes('state.external && state.bookingUrl') || !serviceRail.includes('serviceHubRoute(service)')) {
-  errors.push('Travel service rail must send provider-ready services to the OptionTrip comparison hub.');
+if (!serviceRail.includes('state.external && state.bookingUrl') || !serviceRail.includes('getTravelServiceRoute(service)')) {
+  errors.push('Travel service rail must send services to canonical OptionTrip marketplace pages.');
 }
 if (serviceRail.includes('rel="noopener noreferrer sponsored"')) {
   errors.push('Travel service rail must not jump directly to an external provider before comparison.');
-}
-if (!serviceRail.includes('viRoute(service)')) {
-  errors.push('Travel service rail must keep Vi as fallback only when direct or partner booking is unavailable.');
 }
 
 if (!servicesPage.includes('selectedBookingOptions') || !servicesPage.includes('safeBookingOptions')) {
@@ -118,6 +132,15 @@ if (!servicesPage.includes('travel-services-provider-grid') || !servicesPage.inc
 }
 if (!servicesPage.includes('PROVIDER_LABELS') || !servicesPage.includes('providerLabel')) {
   errors.push('Provider comparison must use readable partner names instead of raw registry IDs.');
+}
+if (!servicesPage.includes('useParams') || !servicesPage.includes('routeServiceId')) {
+  errors.push('Travel services marketplace must resolve the selected service from /services/:serviceId.');
+}
+if (!servicesPage.includes('viRoute(selectedService)')) {
+  errors.push('Canonical service pages must own the Vi fallback when no live booking provider is available.');
+}
+if (!servicesPage.includes('canonicalPath') || !servicesPage.includes('path={canonicalPath}')) {
+  errors.push('Canonical service pages must publish service-specific metadata paths.');
 }
 
 if (!mainEntry.includes("./styles/mobile-first.css") || !mainEntry.includes("./styles/mobile-hardening.css")) {
@@ -170,6 +193,9 @@ if (!mobileHardening.includes('.main_header_area .hamburger') || !mobileHardenin
 if (!ecosystem.includes('openMobileGroups') || !ecosystem.includes('tes__group--mobile-collapsed')) {
   errors.push('Homepage travel ecosystem must progressively disclose service groups on mobile.');
 }
+if (!ecosystem.includes('getTravelServiceRoute(service, groupId)')) {
+  errors.push('Homepage ecosystem must use canonical OptionTrip service routes.');
+}
 if (!ecosystemCss.includes('.tes__group--mobile-collapsed .tes__service-grid')) {
   errors.push('Homepage mobile service-group collapse styling is missing.');
 }
@@ -205,7 +231,7 @@ if (!home.includes('data-season={season}') || !home.includes('home-seasonal-hero
 
 const requiredCoreRoutes = [
   '/', '/flights', '/flights/cheap', '/flights/explore', '/hotels', '/car-rental', '/tours', '/esim',
-  '/services', '/destinations', '/travel-buddy', '/plan-my-day', '/where-can-i-go', '/travel-map',
+  '/services', '/services/:serviceId', '/destinations', '/travel-buddy', '/plan-my-day', '/where-can-i-go', '/travel-map',
   '/trip-ideas', '/popular-routes', '/travel-tips', '/help-center', '/contact',
 ];
 for (const route of requiredCoreRoutes) {
@@ -231,4 +257,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`✅ Site/service integrity passed: ${serviceRoutes.length} direct service routes, ${serviceVerticals.length} provider verticals, ${requiredCoreRoutes.length} required public routes, OptionTrip-first partner comparison and mobile UX guards active.`);
+console.log(`✅ Site/service integrity passed: ${serviceRoutes.length} direct service routes, ${serviceVerticals.length} provider verticals, ${requiredCoreRoutes.length} required public routes, canonical OptionTrip marketplace routing and mobile UX guards active.`);
