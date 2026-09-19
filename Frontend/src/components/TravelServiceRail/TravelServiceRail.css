@@ -182,10 +182,10 @@
 
 .tsr__vi:hover { color: #fff; background: #074683; }
 
-/* Keep this breakpoint aligned with the Header hamburger breakpoint. Wide
-   phones in landscape and small tablets must not fall into a half-mobile,
+/* Keep this breakpoint aligned with the actual Header hamburger breakpoint.
+   Wide phones, tablets and compact laptops must not fall into a half-mobile,
    half-desktop navigation state. */
-@media (max-width: 991px) {
+@media (max-width: 1299px) {
   .tsr {
     box-shadow: none;
     background: rgba(255,255,255,.99);
