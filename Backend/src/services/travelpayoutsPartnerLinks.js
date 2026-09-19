@@ -3,6 +3,7 @@ const DEFAULT_OPTIONTRIP_TRS = 176202;
 const DEFAULT_OPTIONTRIP_MARKER = 370056;
 const REQUEST_TIMEOUT_MS = 12000;
 const BATCH_SIZE = 10;
+const WARM_CACHE_MS = 5 * 60 * 1000;
 
 // Canonical long brand URLs are converted server-side by the official
 // Travelpayouts Partner Links API. A provider only becomes live after the API
@@ -37,6 +38,8 @@ export const TRAVELPAYOUTS_LINK_TARGETS = Object.freeze({
 
 const generatedLinks = new Map();
 let primePromise = null;
+let lastPrimeCompletedAt = 0;
+let lastPrimeResult = null;
 
 const positiveInteger = (value, fallback) => {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -66,6 +69,14 @@ export const getCachedTravelpayoutsPartnerLink = providerName =>
 
 export const getTravelpayoutsPartnerLinkSnapshot = () =>
   Object.fromEntries([...generatedLinks.entries()].map(([provider, value]) => [provider, { ...value }]));
+
+export const getTravelpayoutsPartnerLinkWarmupState = () => ({
+  running: Boolean(primePromise),
+  lastCompletedAt: lastPrimeCompletedAt ? new Date(lastPrimeCompletedAt).toISOString() : null,
+  cachedProviders: [...generatedLinks.keys()],
+  cachedProviderCount: generatedLinks.size,
+  configured: Boolean(String(process.env.TRAVELPAYOUTS_TOKEN || '').trim()),
+});
 
 export const buildTravelpayoutsLinkRequest = (entries, identity = getTravelpayoutsProjectIdentity()) => ({
   trs: positiveInteger(identity?.trs, DEFAULT_OPTIONTRIP_TRS),
@@ -126,12 +137,25 @@ const requestPartnerLinkBatch = async entries => {
 };
 
 export const primeTravelpayoutsPartnerLinks = async ({ force = false, trigger = 'startup' } = {}) => {
-  if (primePromise && !force) return primePromise;
+  if (primePromise) return primePromise;
+
+  const now = Date.now();
+  if (!force && lastPrimeCompletedAt && now - lastPrimeCompletedAt < WARM_CACHE_MS && lastPrimeResult) {
+    return {
+      ...lastPrimeResult,
+      trigger,
+      cached: true,
+      activeProviders: [...generatedLinks.keys()],
+    };
+  }
 
   const run = async () => {
     if (!String(process.env.TRAVELPAYOUTS_TOKEN || '').trim()) {
+      const result = { trigger, attempted: 0, activated: 0, configured: false, activeProviders: [] };
+      lastPrimeCompletedAt = Date.now();
+      lastPrimeResult = result;
       console.log('🔗 Travelpayouts partner-link warmup skipped: TRAVELPAYOUTS_TOKEN is not configured');
-      return { trigger, attempted: 0, activated: 0, configured: false };
+      return result;
     }
 
     const entries = Object.entries(TRAVELPAYOUTS_LINK_TARGETS).map(([provider, url]) => ({
@@ -160,14 +184,17 @@ export const primeTravelpayoutsPartnerLinks = async ({ force = false, trigger = 
       }
     }
 
-    console.log(`🔗 Travelpayouts partner links refreshed (${trigger}): ${activated}/${attempted} active`);
-    return {
+    const result = {
       trigger,
       attempted,
       activated,
       configured: true,
       activeProviders: [...generatedLinks.keys()],
     };
+    lastPrimeCompletedAt = Date.now();
+    lastPrimeResult = result;
+    console.log(`🔗 Travelpayouts partner links refreshed (${trigger}): ${activated}/${attempted} active`);
+    return result;
   };
 
   primePromise = run();
