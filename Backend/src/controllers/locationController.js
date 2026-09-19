@@ -2,33 +2,10 @@ import { searchGooglePlace } from '../services/googlePlacesService.js';
 import {
   searchAirportDirectory,
   findAirportsForCity,
+  findAirportsForCountryCode,
   findCountryDirectoryMatch,
   findAirportsNearCoordinates,
 } from '../services/nearbyAirportsService.js';
-
-const COUNTRY_ISO = {
-  'pakistan': 'PK', 'india': 'IN', 'bangladesh': 'BD',
-  'united arab emirates': 'AE', 'saudi arabia': 'SA',
-  'united kingdom': 'GB', 'united states': 'US', 'canada': 'CA',
-  'australia': 'AU', 'germany': 'DE', 'france': 'FR', 'turkey': 'TR',
-  'serbia': 'RS', 'china': 'CN', 'japan': 'JP', 'malaysia': 'MY',
-  'indonesia': 'ID', 'thailand': 'TH', 'iran': 'IR', 'afghanistan': 'AF',
-  'egypt': 'EG', 'italy': 'IT', 'spain': 'ES', 'netherlands': 'NL',
-  'russia': 'RU', 'brazil': 'BR', 'south africa': 'ZA', 'nigeria': 'NG',
-  'kenya': 'KE', 'morocco': 'MA', 'sri lanka': 'LK', 'nepal': 'NP',
-  'oman': 'OM', 'qatar': 'QA', 'kuwait': 'KW', 'bahrain': 'BH',
-  'iraq': 'IQ', 'singapore': 'SG', 'philippines': 'PH', 'vietnam': 'VN',
-  'south korea': 'KR', 'portugal': 'PT', 'greece': 'GR', 'switzerland': 'CH',
-  'austria': 'AT', 'belgium': 'BE', 'croatia': 'HR', 'slovenia': 'SI',
-  'bosnia and herzegovina': 'BA', 'montenegro': 'ME', 'north macedonia': 'MK',
-  'albania': 'AL', 'hungary': 'HU', 'romania': 'RO', 'bulgaria': 'BG',
-  'poland': 'PL', 'czech republic': 'CZ', 'czechia': 'CZ', 'slovakia': 'SK',
-  'ukraine': 'UA', 'ireland': 'IE', 'denmark': 'DK', 'sweden': 'SE',
-  'norway': 'NO', 'finland': 'FI', 'iceland': 'IS', 'mexico': 'MX',
-  'argentina': 'AR', 'chile': 'CL', 'colombia': 'CO', 'peru': 'PE',
-  'new zealand': 'NZ', 'israel': 'IL', 'jordan': 'JO', 'georgia': 'GE',
-  'armenia': 'AM', 'azerbaijan': 'AZ', 'kazakhstan': 'KZ',
-};
 
 const COUNTRY_ALIASES = {
   usa: 'united states', america: 'united states', us: 'united states',
@@ -38,7 +15,11 @@ const COUNTRY_ALIASES = {
 
 const normalize = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
 const normalizeLocale = (value) => {
-  const code = String(value || 'en').trim().toLowerCase().split(/[-_]/)[0];
+  const raw = String(value || 'en').trim().replace('_', '-');
+  const lower = raw.toLowerCase();
+  if (lower === 'zh-hans') return 'zh-Hans';
+  if (lower === 'zh-hant') return 'zh-Hant';
+  const code = lower.split('-')[0];
   return /^[a-z]{2}$/.test(code) ? code : 'en';
 };
 
@@ -47,12 +28,12 @@ const dedupeLocations = (locations, limit = 12) => {
   const result = [];
   for (const item of locations) {
     if (!item) continue;
-    const key = item.isCountry
-      ? `country:${normalize(item.countryName || item.cityName)}`
+    const key = item.isCountry || item.entityType === 'country'
+      ? `country:${String(item.countryCode || item.iataCode || item.countryName || item.cityName).toUpperCase()}`
       : item.entityType === 'city'
-        ? `city:${String(item.iataCode || '').toUpperCase()}:${normalize(item.countryName)}`
+        ? `city:${String(item.iataCode || '').toUpperCase()}:${String(item.countryCode || '').toUpperCase() || normalize(item.countryName)}`
         : `airport:${String(item.iataCode || '').toUpperCase()}`;
-    if (!item.isCountry && !item.iataCode) continue;
+    if (!item.isCountry && item.entityType !== 'country' && !item.iataCode) continue;
     if (seen.has(key)) continue;
     seen.add(key);
     result.push(item);
@@ -65,14 +46,11 @@ const buildCountryEntry = (keyword) => {
   const normalizedKeyword = normalize(keyword);
   const canonicalKeyword = COUNTRY_ALIASES[normalizedKeyword] || normalizedKeyword;
   const match = findCountryDirectoryMatch(canonicalKeyword, 20);
-  if (!match) return null;
-
-  const code = COUNTRY_ISO[normalize(match.countryName)] || null;
-  if (!code) return null;
+  if (!match?.countryCode) return null;
 
   return {
-    iataCode: code,
-    countryCode: code,
+    iataCode: match.countryCode,
+    countryCode: match.countryCode,
     cityName: match.countryName,
     countryName: match.countryName,
     name: `${match.countryName} - all supported airports`,
@@ -87,7 +65,7 @@ const searchTravelpayoutsLocations = async (keyword, locale = 'en') => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 1800);
   try {
-    const qs = `term=${encodeURIComponent(keyword)}&locale=${encodeURIComponent(locale)}&types[]=airport&types[]=city`;
+    const qs = `term=${encodeURIComponent(keyword)}&locale=${encodeURIComponent(locale)}&types[]=country&types[]=airport&types[]=city`;
     const response = await fetch(`https://autocomplete.travelpayouts.com/places2?${qs}`, {
       signal: controller.signal,
     });
@@ -96,18 +74,36 @@ const searchTravelpayoutsLocations = async (keyword, locale = 'en') => {
     if (!Array.isArray(raw)) return [];
 
     return raw
-      .filter(item => item?.code)
+      .filter(item => item?.code || item?.country_code)
       .map(item => {
+        if (item.type === 'country') {
+          const countryCode = String(item.country_code || item.code || '').toUpperCase();
+          const countryName = item.country_name || item.name || countryCode;
+          return {
+            iataCode: countryCode,
+            countryCode,
+            cityName: countryName,
+            countryName,
+            name: `${countryName} - all supported airports`,
+            entityType: 'country',
+            isCountry: true,
+            countryAirports: findAirportsForCountryCode(countryCode, 20),
+            source: 'travelpayouts',
+          };
+        }
+
         const entityType = item.type === 'city' ? 'city' : 'airport';
         const cityName = item.city_name || item.name || item.code;
+        const countryCode = String(item.country_code || '').toUpperCase();
         const localCityAirports = entityType === 'city'
-          ? findAirportsForCity(cityName, item.country_name || '', 20)
+          ? findAirportsForCity(cityName, '', 20)
           : [];
         return {
           iataCode: item.code,
           name: entityType === 'city' ? `${cityName} - all airports` : (item.name || cityName || item.code),
           cityName,
           countryName: item.country_name || '',
+          countryCode,
           entityType,
           isCity: entityType === 'city',
           cityAirports: localCityAirports,
@@ -130,8 +126,10 @@ const rankLiveMatches = (matches, keyword) => {
   return [...matches].sort((a, b) => {
     const score = (item) => {
       if (normalize(item.iataCode) === needle) return 0;
+      if (item.entityType === 'country' && normalize(item.countryName || item.cityName) === needle) return 1;
       if (item.entityType === 'city' && normalize(item.cityName) === needle) return 1;
       if (item.entityType === 'airport' && normalize(item.cityName) === needle) return 2;
+      if (item.entityType === 'country' && normalize(item.countryName || item.cityName).startsWith(needle)) return 3;
       if (item.entityType === 'city' && normalize(item.cityName).startsWith(needle)) return 3;
       if (item.entityType === 'airport' && normalize(item.cityName).startsWith(needle)) return 4;
       return 5;
@@ -179,16 +177,15 @@ export const getLocations = async (req, res) => {
     const localMatches = searchAirportDirectory(keyword, 14);
     const exactLocalIata = localMatches.find(item => normalize(item.iataCode) === needle);
     const exactLocalCityAirports = findAirportsForCity(keyword, '', 20);
-
-    const liveMatches = !countryEntry
-      ? rankLiveMatches(await searchTravelpayoutsLocations(keyword, locale), keyword)
-      : [];
+    const liveMatches = rankLiveMatches(await searchTravelpayoutsLocations(keyword, locale), keyword);
+    const liveCountryMatches = liveMatches.filter(item => item.entityType === 'country');
 
     const exactCityMatches = liveMatches.filter(item => item.entityType === 'city' && normalize(item.cityName) === needle);
     const exactCityWithAirports = exactCityMatches.filter(item => item.cityAirports?.length > 0);
     const exactCityWithoutAirport = exactCityMatches.find(item => !item.cityAirports?.length) || null;
 
     const shouldResolveNearest = !countryEntry
+      && liveCountryMatches.length === 0
       && keyword.length >= 3
       && !exactLocalIata
       && exactLocalCityAirports.length === 0
@@ -204,8 +201,9 @@ export const getLocations = async (req, res) => {
       return item.cityAirports?.length > 0;
     });
 
-    let locations = dedupeLocations([
+    const locations = dedupeLocations([
       countryEntry,
+      ...liveCountryMatches,
       exactLocalIata,
       ...exactCityWithAirports,
       ...nearest,
@@ -222,12 +220,14 @@ export const getLocations = async (req, res) => {
         locations,
         count: locations.length,
         resolvedBy: locations[0]?.source || 'none',
+        includesCountries: locations.some(item => item.entityType === 'country' || item.isCountry),
         includesCityAllAirports: locations.some(item => item.entityType === 'city'),
         includesNearestAirports: nearest.length > 0,
         matchedCityWithoutAirport: exactCityWithoutAirport
           ? {
             cityName: exactCityWithoutAirport.cityName,
             countryName: exactCityWithoutAirport.countryName,
+            countryCode: exactCityWithoutAirport.countryCode || '',
             providerCode: exactCityWithoutAirport.iataCode,
           }
           : null,
