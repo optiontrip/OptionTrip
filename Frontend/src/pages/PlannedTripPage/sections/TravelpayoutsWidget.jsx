@@ -164,7 +164,7 @@ const TravelpayoutsWidget = ({ src, title, vertical }) => {
 
       {status === 'ready' && (
         <div className="ot-partner-widget__footnote">
-          Search and refine inside the live provider results. OptionTrip only adds its own filters when the integration returns filterable data we can honor.
+          Prices and availability come from the live booking partner and can change before checkout.
         </div>
       )}
     </div>
