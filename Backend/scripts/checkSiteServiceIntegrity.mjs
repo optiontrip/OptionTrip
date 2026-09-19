@@ -17,6 +17,7 @@ const home = read('Frontend/src/pages/Home.jsx');
 const mainEntry = read('Frontend/src/main.jsx');
 const mobileUx = read('Frontend/src/styles/mobile-first.css');
 const mobileHardening = read('Frontend/src/styles/mobile-hardening.css');
+const serviceRail = read('Frontend/src/components/TravelServiceRail/TravelServiceRail.jsx');
 const serviceRailCss = read('Frontend/src/components/TravelServiceRail/TravelServiceRail.css');
 const ecosystem = read('Frontend/src/components/TravelEcosystemSection/TravelEcosystemSection.jsx');
 const ecosystemCss = read('Frontend/src/components/TravelEcosystemSection/TravelEcosystemSection.css');
@@ -55,9 +56,6 @@ const scanFiles = (directory, output = []) => {
   return output;
 };
 
-// Match only absolute application route literals such as '/services/bus'.
-// Do not confuse relative source imports such as '../services/flightService'
-// with browser routes.
 const deadServiceRouteLiteral = /(['"`])\/services\/[a-z0-9_-]+\1/i;
 for (const base of ['Frontend/src', 'Backend/src']) {
   for (const file of scanFiles(path.join(root, base))) {
@@ -91,6 +89,25 @@ if (!headerPrefs.includes('{!mobile && (')) {
 }
 if (!bookingMenu.includes('const [openGroup, setOpenGroup] = useState(null)')) {
   errors.push('Mobile Booking menu must start collapsed rather than dumping the service catalog into the drawer.');
+}
+if (!bookingMenu.includes('fetchTravelInventoryStatus') || !bookingMenu.includes('state.external && state.bookingUrl')) {
+  errors.push('Booking menu must route provider-ready services to live booking inventory.');
+}
+if (!bookingMenu.includes('rel="noopener noreferrer sponsored"')) {
+  errors.push('External booking menu links must be marked as safe sponsored partner links.');
+}
+if (bookingMenu.includes('booking-service-menu__vi-link')) {
+  errors.push('Booking menu must not duplicate the global Vi entry point.');
+}
+
+if (!serviceRail.includes('state.external && state.bookingUrl') || !serviceRail.includes('data-provider={state.primaryProvider')) {
+  errors.push('Travel service rail must open real provider booking options when inventory is live.');
+}
+if (!serviceRail.includes('rel="noopener noreferrer sponsored"')) {
+  errors.push('Travel service rail external provider links must be safe sponsored links.');
+}
+if (!serviceRail.includes('viRoute(service)')) {
+  errors.push('Travel service rail must keep Vi as fallback only when direct or partner booking is unavailable.');
 }
 
 if (!mainEntry.includes("./styles/mobile-first.css") || !mainEntry.includes("./styles/mobile-hardening.css")) {
@@ -201,4 +218,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`✅ Site/service integrity passed: ${serviceRoutes.length} direct service routes, ${serviceVerticals.length} provider verticals, ${requiredCoreRoutes.length} required public routes, mobile UX guards active.`);
+console.log(`✅ Site/service integrity passed: ${serviceRoutes.length} direct service routes, ${serviceVerticals.length} provider verticals, ${requiredCoreRoutes.length} required public routes, live marketplace routing and mobile UX guards active.`);
