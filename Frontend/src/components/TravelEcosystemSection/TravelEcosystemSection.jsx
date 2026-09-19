@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { TRAVEL_SERVICE_GROUPS } from '../../config/travelServices';
+import { useTranslation } from 'react-i18next';
+import { TRAVEL_SERVICE_GROUPS, getTravelServiceDisplayLabel } from '../../config/travelServices';
+import { getTravelServiceLabels } from '../../config/travelServiceLabels';
 import { fetchTravelInventoryStatus, getInventoryStateForService } from '../../services/travelInventoryService';
 import './TravelEcosystemSection.css';
 
@@ -13,24 +15,68 @@ const GROUP_COPY = {
 
 const statusCopy = state => {
   if (state.direct) return 'Search & book';
+  if (state.external && state.bookingUrl) return 'Open live booking';
   if (state.status === 'partner-ready') return 'Continue to booking';
   return 'See next step';
 };
 
-const serviceRoute = (service, state) => state.direct
-  ? service.route
-  : `/services?service=${encodeURIComponent(service.id)}#${service.group || ''}`;
+const ServiceCard = ({ service, state, groupId, label }) => {
+  const content = (
+    <>
+      <span className="tes__service-icon" aria-hidden="true">
+        <i className={`fa ${service.icon}`} />
+      </span>
+      <span className="tes__service-copy">
+        <strong>{label}</strong>
+        <small>{statusCopy(state)}</small>
+      </span>
+      <i className="fa fa-chevron-right tes__chevron" aria-hidden="true" />
+    </>
+  );
+
+  if (state.direct && service.route) {
+    return <Link to={service.route} className="tes__service">{content}</Link>;
+  }
+
+  if (state.external && state.bookingUrl) {
+    return (
+      <a
+        href={state.bookingUrl}
+        target="_blank"
+        rel="noopener noreferrer sponsored"
+        className="tes__service tes__service--partner"
+        data-provider={state.primaryProvider || undefined}
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <Link
+      to={`/services?service=${encodeURIComponent(service.id)}#${groupId}`}
+      className="tes__service"
+    >
+      {content}
+    </Link>
+  );
+};
 
 const TravelEcosystemSection = () => {
+  const { i18n } = useTranslation();
+  const language = (i18n.language || 'en').split('-')[0];
+  const labels = getTravelServiceLabels(language);
   const [inventory, setInventory] = useState({});
 
   useEffect(() => {
     let active = true;
-    fetchTravelInventoryStatus().then(data => {
+    fetchTravelInventoryStatus({ force: true }).then(data => {
       if (active) setInventory(data);
     });
     return () => { active = false; };
   }, []);
+
+  const serviceLabel = service => getTravelServiceDisplayLabel(service, language, labels);
 
   return (
     <section className="tes" aria-labelledby="tes-title">
@@ -44,7 +90,7 @@ const TravelEcosystemSection = () => {
             </p>
           </div>
           <Link to="/services" className="tes__all-link">
-            Explore all travel services <i className="fa fa-arrow-right" aria-hidden="true" />
+            {labels.all || 'Explore all travel services'} <i className="fa fa-arrow-right" aria-hidden="true" />
           </Link>
         </div>
 
@@ -53,7 +99,7 @@ const TravelEcosystemSection = () => {
             <section className="tes__group" key={group.id} id={`home-services-${group.id}`}>
               <div className="tes__group-head">
                 <div>
-                  <h3>{group.label}</h3>
+                  <h3>{labels[group.id] || group.label}</h3>
                   <p>{GROUP_COPY[group.id] || 'Useful services for your journey.'}</p>
                 </div>
                 <Link to={`/services#${group.id}`} className="tes__group-link" aria-label={`See all ${group.label} services`}>
@@ -64,18 +110,14 @@ const TravelEcosystemSection = () => {
               <div className="tes__service-grid">
                 {group.services.map(service => {
                   const state = getInventoryStateForService(service, inventory);
-                  const route = state.direct ? service.route : `/services?service=${encodeURIComponent(service.id)}#${group.id}`;
                   return (
-                    <Link to={route} className="tes__service" key={service.id}>
-                      <span className="tes__service-icon" aria-hidden="true">
-                        <i className={`fa ${service.icon}`} />
-                      </span>
-                      <span className="tes__service-copy">
-                        <strong>{service.label}</strong>
-                        <small>{statusCopy(state)}</small>
-                      </span>
-                      <i className="fa fa-chevron-right tes__chevron" aria-hidden="true" />
-                    </Link>
+                    <ServiceCard
+                      key={service.id}
+                      service={service}
+                      state={state}
+                      groupId={group.id}
+                      label={serviceLabel(service)}
+                    />
                   );
                 })}
               </div>
@@ -89,7 +131,7 @@ const TravelEcosystemSection = () => {
             <span>Need help planning the whole trip?</span>
             <strong>Use Vi for planning. For a specific booking, choose the service above and OptionTrip will keep you in that flow.</strong>
           </div>
-          <Link to="/travel-buddy?intent=plan-trip" className="tes__vi-button">Plan with Vi</Link>
+          <Link to="/travel-buddy?intent=plan-trip" className="tes__vi-button">{labels.ask || 'Plan with Vi'}</Link>
         </div>
       </div>
     </section>
