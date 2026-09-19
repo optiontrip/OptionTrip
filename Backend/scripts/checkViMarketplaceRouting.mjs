@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { buildMarketplaceSuggestion, detectMarketplaceIntent, formatMarketplaceForViPrompt } from '../src/services/viMarketplaceRouter.js';
 import { buildViConversion, buildViTripContext } from '../src/services/viConversionService.js';
 import { inferConversationLanguage } from '../src/services/chatService.js';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(here, '../..');
+const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 
 const russianBus = buildMarketplaceSuggestion('Мне нужен автобус из Белграда в Сараево');
 assert.equal(russianBus?.vertical, 'bus', 'Russian bus request must resolve the bus vertical');
@@ -92,6 +99,17 @@ assert.equal(transferConversion?.vertical, 'transfers', 'Vi conversion must matc
 assert.match(transferConversion?.href || '', /^\/services\/transfers\?/, 'Transfers must stay on the canonical OptionTrip transfer page');
 assert.match(transferConversion?.href || '', /destinationCode=BEG/, 'Transfer handoff must preserve the known destination code');
 
+const serviceSearchSource = read('Frontend/src/components/ServiceRouteSearch/ServiceRouteSearch.jsx');
+assert.match(serviceSearchSource, /params\.get\('originCode'\)/, 'Canonical service search must consume originCode from handoff URLs');
+assert.match(serviceSearchSource, /params\.get\('destinationCode'\)/, 'Canonical service search must consume destinationCode from handoff URLs');
+assert.match(serviceSearchSource, /setDestination\(\{[\s\S]*resolvedCode: destinationCode/, 'Destination handoffs must preselect the trusted IATA code instead of asking again');
+
+const viBridgeSource = read('Frontend/src/components/ViAssistant/ViRouteIntentBridge.jsx');
+const layoutSource = read('Frontend/src/components/Layout/Layout.jsx');
+assert.match(viBridgeSource, /intent'\) !== 'find-service'/, 'Vi bridge must only auto-open for explicit service fallback intents');
+assert.match(viBridgeSource, /new CustomEvent\('vi:open'/, 'Service fallback intents must open the existing Vi assistant');
+assert.match(layoutSource, /<ViRouteIntentBridge \/>/, 'Global layout must mount the Vi service-intent bridge');
+
 assert.equal(
   inferConversationLanguage('Найди мне билет из Москвы в Стамбул'),
   'ru',
@@ -113,4 +131,4 @@ assert.equal(
   'English travel requests must remain English',
 );
 
-console.log('✅ Vi marketplace routing, structured trip handoff and conversation-language regression checks passed');
+console.log('✅ Vi marketplace routing, structured trip handoff, service fallback bridge and conversation-language regression checks passed');
