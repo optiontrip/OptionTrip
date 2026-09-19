@@ -39,6 +39,16 @@ const GO_CITY_DESTINATIONS = Object.freeze({
   sydney: 'sydney',
 });
 
+// Travelpayouts publishes the exact country labels Kiwitaxi expects in its
+// country deep links. Most match the canonical country name after slugging,
+// while these provider-specific aliases intentionally differ.
+const KIWITAXI_COUNTRY_ALIASES = Object.freeze({
+  'Bosnia and Herzegovina': 'Bosnia',
+  'North Macedonia': 'Macedonia',
+  'United Arab Emirates': 'UAE',
+  'United States': 'USA',
+});
+
 const DESTINATION_AWARE_SERVICES = Object.freeze({
   transfers: { provider: 'kiwitaxi', mode: 'country', label: 'Airport transfer' },
   city_passes: { provider: 'go_city', mode: 'city', label: 'City pass' },
@@ -86,6 +96,11 @@ const resolveEndpoint = code => {
   };
 };
 
+export const getKiwitaxiCountrySlug = country => {
+  const providerCountry = KIWITAXI_COUNTRY_ALIASES[String(country || '').trim()] || String(country || '').trim();
+  return latinSlug(providerCountry);
+};
+
 export const getRouteAwareServiceConfig = serviceId => ROUTE_AWARE_SERVICES[String(serviceId || '').trim()] || null;
 export const isRouteAwareService = serviceId => Boolean(getRouteAwareServiceConfig(serviceId));
 export const getDestinationAwareServiceConfig = serviceId => DESTINATION_AWARE_SERVICES[String(serviceId || '').trim()] || null;
@@ -119,13 +134,15 @@ export const buildDestinationAwarePartnerTarget = ({ serviceId, destinationCode 
   if (!destination) return null;
 
   if (serviceId === 'transfers') {
+    const countrySlug = getKiwitaxiCountrySlug(destination.country);
+    if (!countrySlug) return null;
     return {
       serviceId,
       provider: config.provider,
       mode: config.mode,
       label: config.label,
       destination,
-      sourceUrl: `https://kiwitaxi.com/en/${encodeURIComponent(destination.countrySlug)}`,
+      sourceUrl: `https://kiwitaxi.com/en/${encodeURIComponent(countrySlug)}`,
     };
   }
 
