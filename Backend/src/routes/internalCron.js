@@ -5,6 +5,10 @@ import {
   getTravelNewsRunnerStatus,
   runTravelNewsAutomationWithBudget,
 } from '../jobs/travelNewsRunner.js';
+import {
+  clearTravelNewsFreshnessCache,
+  getTravelNewsFreshness,
+} from '../services/travelNewsFreshness.js';
 
 const router = express.Router();
 
@@ -18,18 +22,30 @@ router.post('/run-sweep', verifyCronSecret, async (req, res) => {
   }
 });
 
-router.get('/news-status', verifyCronSecret, (req, res) => {
+router.get('/news-status', verifyCronSecret, async (req, res) => {
+  const freshness = await getTravelNewsFreshness();
   return res.status(200).json({
     success: true,
-    data: getTravelNewsRunnerStatus(),
+    data: {
+      ...getTravelNewsRunnerStatus(),
+      freshness,
+    },
   });
 });
 
 router.post('/run-news', verifyCronSecret, async (req, res) => {
   try {
     const result = await runTravelNewsAutomationWithBudget({ trigger: 'manual-api' });
+    clearTravelNewsFreshnessCache();
+    const freshness = await getTravelNewsFreshness({ force: true });
     const statusCode = result?.reason === 'missing-configuration' ? 503 : 200;
-    return res.status(statusCode).json({ success: statusCode === 200, data: result });
+    return res.status(statusCode).json({
+      success: statusCode === 200,
+      data: {
+        ...result,
+        freshness,
+      },
+    });
   } catch (err) {
     console.error('run-news error:', err);
     return res.status(500).json({ success: false, message: 'Travel news run failed' });

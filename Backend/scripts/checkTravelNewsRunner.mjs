@@ -57,8 +57,10 @@ try {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const serverSource = readFileSync(join(__dirname, '../src/server.js'), 'utf8');
+const appSource = readFileSync(join(__dirname, '../src/app.js'), 'utf8');
 const internalCronSource = readFileSync(join(__dirname, '../src/routes/internalCron.js'), 'utf8');
 const runnerSource = readFileSync(join(__dirname, '../src/jobs/travelNewsRunner.js'), 'utf8');
+const freshnessSource = readFileSync(join(__dirname, '../src/services/travelNewsFreshness.js'), 'utf8');
 
 assert.match(
   serverSource,
@@ -91,6 +93,41 @@ assert.match(
   'Travel news status endpoint must remain protected by the cron secret',
 );
 assert.match(
+  internalCronSource,
+  /getTravelNewsFreshness/,
+  'Protected news status must include WordPress publication freshness',
+);
+assert.match(
+  internalCronSource,
+  /clearTravelNewsFreshnessCache/,
+  'Manual publication must invalidate the cached freshness snapshot',
+);
+assert.match(
+  appSource,
+  /get\("\/api\/news-health", async/,
+  'Public operations health must expose a dedicated news freshness endpoint',
+);
+assert.match(
+  appSource,
+  /getTravelNewsFreshness\(\)/,
+  'News health endpoint must verify the actual WordPress feed rather than only in-memory runner state',
+);
+assert.match(
+  freshnessSource,
+  /DEFAULT_STALE_HOURS\s*=\s*36/,
+  'News freshness monitor must have a bounded default stale threshold',
+);
+assert.match(
+  freshnessSource,
+  /CACHE_MS\s*=\s*5 \* 60 \* 1000/,
+  'WordPress freshness checks must be cached to avoid hammering the blog',
+);
+assert.match(
+  freshnessSource,
+  /categories: String\(categoryId\)/,
+  'Freshness monitoring must inspect the WordPress News category specifically',
+);
+assert.match(
   runnerSource,
   /NEWS_CATEGORY_SLUG\s*=\s*'news'/,
   'Rolling publication budget must explicitly target the WordPress News category',
@@ -106,4 +143,4 @@ assert.match(
   'Budget checks must retain a conservative all-post fallback if the News category cannot be resolved',
 );
 
-console.log('✅ Travel news runner regression checks passed');
+console.log('✅ Travel news runner and freshness-monitor regression checks passed');
