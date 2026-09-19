@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fetchTravelInventoryStatus } from '../../../services/travelInventoryService';
 import './TravelpayoutsWidget.css';
 
@@ -10,6 +11,17 @@ const FRIENDLY_PROVIDER_NAMES = Object.freeze({
   travelpayouts_esim_widget: 'Live eSIM partner',
 });
 
+// Travelpayouts supports a broad set of ISO language codes. Keep the embedded
+// booking surface in the same language as OptionTrip whenever the provider can
+// honor it, and fall back to English only for unsupported app languages.
+const TRAVELPAYOUTS_LOCALES = new Map([
+  ['ar', 'ar'], ['de', 'de'], ['en', 'en'], ['es', 'es'], ['fr', 'fr'],
+  ['hi', 'hi'], ['hu', 'hu'], ['id', 'id'], ['it', 'it'], ['ja', 'ja'],
+  ['ko', 'ko'], ['pl', 'pl'], ['pt', 'pt'], ['ru', 'ru'], ['sr', 'sr'],
+  ['sv', 'sv'], ['th', 'th'], ['tr', 'tr'], ['uk', 'uk'], ['vi', 'vi'],
+  ['zh', 'zh-Hans'],
+]);
+
 const friendlyProviderName = provider => FRIENDLY_PROVIDER_NAMES[provider]
   || String(provider || '')
     .replace(/^travelpayouts_/, '')
@@ -17,11 +29,25 @@ const friendlyProviderName = provider => FRIENDLY_PROVIDER_NAMES[provider]
     .replaceAll('_', ' ')
     .replace(/\b\w/g, char => char.toUpperCase());
 
+const localizeWidgetUrl = (src, language) => {
+  try {
+    const url = new URL(src);
+    const normalizedLanguage = String(language || 'en').toLowerCase().split('-')[0];
+    const locale = TRAVELPAYOUTS_LOCALES.get(normalizedLanguage) || 'en';
+    url.searchParams.set('locale', locale);
+    return url.toString();
+  } catch {
+    return src;
+  }
+};
+
 const TravelpayoutsWidget = ({ src, title, vertical }) => {
+  const { i18n } = useTranslation();
   const containerRef = useRef(null);
   const [status, setStatus] = useState('loading');
   const [attempt, setAttempt] = useState(0);
   const [inventory, setInventory] = useState(null);
+  const localizedSrc = useMemo(() => localizeWidgetUrl(src, i18n.language), [src, i18n.language]);
 
   useEffect(() => {
     if (!vertical) return undefined;
@@ -40,7 +66,7 @@ const TravelpayoutsWidget = ({ src, title, vertical }) => {
     container.innerHTML = '';
 
     const script = document.createElement('script');
-    script.src = src;
+    script.src = localizedSrc;
     script.async = true;
     script.charset = 'utf-8';
     script.setAttribute('data-optiontrip-widget', 'travelpayouts');
@@ -72,7 +98,7 @@ const TravelpayoutsWidget = ({ src, title, vertical }) => {
       script.removeEventListener('error', markError);
       container.innerHTML = '';
     };
-  }, [src, attempt]);
+  }, [localizedSrc, attempt]);
 
   const providerLabels = useMemo(
     () => (inventory?.providers || []).map(friendlyProviderName),
