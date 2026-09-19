@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchTravelInventoryStatus } from '../../../services/travelInventoryService';
 import './TravelpayoutsWidget.css';
@@ -11,9 +12,6 @@ const FRIENDLY_PROVIDER_NAMES = Object.freeze({
   travelpayouts_esim_widget: 'Live eSIM partner',
 });
 
-// Travelpayouts supports a broad set of ISO language codes. Keep the embedded
-// booking surface in the same language as OptionTrip whenever the provider can
-// honor it, and fall back to English only for unsupported app languages.
 const TRAVELPAYOUTS_LOCALES = new Map([
   ['ar', 'ar'], ['de', 'de'], ['en', 'en'], ['es', 'es'], ['fr', 'fr'],
   ['hi', 'hi'], ['hu', 'hu'], ['id', 'id'], ['it', 'it'], ['ja', 'ja'],
@@ -41,6 +39,15 @@ const localizeWidgetUrl = (src, language) => {
   }
 };
 
+const hasRenderedWidget = container => {
+  if (!container) return false;
+  if (container.querySelector('iframe')) return true;
+  return [...container.children].some(child => {
+    if (child.tagName === 'SCRIPT' || child.tagName === 'STYLE') return false;
+    return child.getBoundingClientRect().height > 0 || child.childElementCount > 0;
+  });
+};
+
 const TravelpayoutsWidget = ({ src, title, vertical }) => {
   const { i18n } = useTranslation();
   const containerRef = useRef(null);
@@ -48,6 +55,7 @@ const TravelpayoutsWidget = ({ src, title, vertical }) => {
   const [attempt, setAttempt] = useState(0);
   const [inventory, setInventory] = useState(null);
   const localizedSrc = useMemo(() => localizeWidgetUrl(src, i18n.language), [src, i18n.language]);
+  const viFallback = `/travel-buddy?service=${encodeURIComponent(vertical || 'travel')}&intent=find-service`;
 
   useEffect(() => {
     if (!vertical) return undefined;
@@ -65,12 +73,6 @@ const TravelpayoutsWidget = ({ src, title, vertical }) => {
     setStatus('loading');
     container.innerHTML = '';
 
-    const script = document.createElement('script');
-    script.src = localizedSrc;
-    script.async = true;
-    script.charset = 'utf-8';
-    script.setAttribute('data-optiontrip-widget', 'travelpayouts');
-
     let settled = false;
     const markReady = () => {
       if (settled) return;
@@ -82,19 +84,33 @@ const TravelpayoutsWidget = ({ src, title, vertical }) => {
       settled = true;
       setStatus('error');
     };
+    const inspect = () => {
+      if (!settled && hasRenderedWidget(container)) markReady();
+    };
 
-    script.addEventListener('load', markReady, { once: true });
+    const observer = new MutationObserver(inspect);
+    observer.observe(container, { childList: true, subtree: true });
+
+    const script = document.createElement('script');
+    script.src = localizedSrc;
+    script.async = true;
+    script.charset = 'utf-8';
+    script.setAttribute('data-optiontrip-widget', 'travelpayouts');
+    script.addEventListener('load', inspect);
     script.addEventListener('error', markError, { once: true });
     container.appendChild(script);
 
+    const followUpId = window.setTimeout(inspect, 800);
     const timeoutId = window.setTimeout(() => {
-      if (!settled && container.childElementCount <= 1) markError();
-      else markReady();
+      inspect();
+      if (!settled) markError();
     }, LOAD_TIMEOUT_MS);
 
     return () => {
+      observer.disconnect();
+      window.clearTimeout(followUpId);
       window.clearTimeout(timeoutId);
-      script.removeEventListener('load', markReady);
+      script.removeEventListener('load', inspect);
       script.removeEventListener('error', markError);
       container.innerHTML = '';
     };
@@ -112,7 +128,7 @@ const TravelpayoutsWidget = ({ src, title, vertical }) => {
       <div className="ot-partner-widget__trust" aria-label="Live booking source status">
         <span className={`ot-partner-widget__live${status === 'error' ? ' ot-partner-widget__live--error' : ''}`}>
           <span className="ot-partner-widget__dot" />
-          {status === 'error' ? 'Partner search unavailable' : 'Live partner search'}
+          {status === 'error' ? 'Partner search unavailable' : status === 'ready' ? 'Live partner search' : 'Connecting to live search'}
         </span>
         {providerLabels.length > 0 && (
           <span className="ot-partner-widget__providers">
@@ -130,21 +146,25 @@ const TravelpayoutsWidget = ({ src, title, vertical }) => {
 
       {status === 'loading' && (
         <div className="cr-tp-widget__state ot-partner-widget__state" role="status">
-          Loading live booking options...
+          <span className="ot-partner-widget__spinner" aria-hidden="true" />
+          <span>Loading live booking options...</span>
         </div>
       )}
 
       {status === 'error' && (
         <div className="cr-tp-widget__state cr-tp-widget__state--error ot-partner-widget__state ot-partner-widget__state--error" role="alert">
           <strong>Booking options did not load.</strong>
-          <span>Check your connection or try again. Your OptionTrip page and trip data are still safe.</span>
-          <button type="button" onClick={() => setAttempt(value => value + 1)}>Try again</button>
+          <span>Check your connection or try again. You can also continue with Vi instead of getting stuck here.</span>
+          <div className="ot-partner-widget__error-actions">
+            <button type="button" onClick={() => setAttempt(value => value + 1)}>Try again</button>
+            <Link to={viFallback}>Ask Vi</Link>
+          </div>
         </div>
       )}
 
       {status === 'ready' && (
         <div className="ot-partner-widget__footnote">
-          Search and refine inside the live provider results. OptionTrip does not show duplicate filters unless the current integration returns normalized filter data we can honor.
+          Search and refine inside the live provider results. OptionTrip only adds its own filters when the integration returns filterable data we can honor.
         </div>
       )}
     </div>
