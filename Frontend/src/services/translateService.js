@@ -37,6 +37,15 @@ const getBoundaryWhitespace = (text) => {
 };
 
 const WORD_CHAR_RE = /[\p{L}\p{N}]/u;
+const LETTER_RE = /\p{L}/u;
+const LOWER_LETTER_RE = /\p{Ll}/u;
+const UPPER_LETTER_RE = /\p{Lu}/u;
+const CAMEL_BRAND_RE = /^\p{Ll}\p{Lu}/u;
+
+const INLINE_CONTEXT_TAGS = new Set([
+  'A', 'ABBR', 'B', 'BDI', 'BDO', 'CITE', 'EM', 'I', 'LABEL', 'MARK',
+  'Q', 'S', 'SMALL', 'SPAN', 'STRONG', 'SUB', 'SUP', 'TIME', 'U',
+]);
 
 const startsWithWordChar = (value) => WORD_CHAR_RE.test(String(value || '').charAt(0));
 const endsWithWordChar = (value) => {
@@ -44,32 +53,82 @@ const endsWithWordChar = (value) => {
   return WORD_CHAR_RE.test(text.charAt(text.length - 1));
 };
 
-const hasWordSiblingBefore = (node) => {
-  if (!node) return false;
-  let sibling = node.previousSibling;
-  while (sibling) {
-    const text = sibling.textContent || '';
-    if (text.trim()) return endsWithWordChar(text.trim());
-    sibling = sibling.previousSibling;
+const getParentNode = node => node?.parentElement || node?.parentNode || null;
+
+// Find meaningful text next to a text node, including across an inline wrapper
+// such as <strong>, <span> or <a>. Do not climb through block containers, so text
+// in separate paragraphs/cards never gets synthetic spacing or case changes.
+const getAdjacentMeaningfulText = (node, direction) => {
+  if (!node) return '';
+  let current = node;
+
+  for (let depth = 0; current && depth < 8; depth += 1) {
+    let sibling = direction === 'before' ? current.previousSibling : current.nextSibling;
+    while (sibling) {
+      const text = String(sibling.textContent || '').trim();
+      if (text) return text;
+      sibling = direction === 'before' ? sibling.previousSibling : sibling.nextSibling;
+    }
+
+    const parent = getParentNode(current);
+    if (!parent) break;
+    const tagName = String(parent.tagName || '').toUpperCase();
+    if (!INLINE_CONTEXT_TAGS.has(tagName)) break;
+    current = parent;
   }
-  return false;
+
+  return '';
 };
 
-const hasWordSiblingAfter = (node) => {
-  if (!node) return false;
-  let sibling = node.nextSibling;
-  while (sibling) {
-    const text = sibling.textContent || '';
-    if (text.trim()) return startsWithWordChar(text.trim());
-    sibling = sibling.nextSibling;
-  }
-  return false;
+const hasWordSiblingBefore = node => endsWithWordChar(getAdjacentMeaningfulText(node, 'before'));
+const hasWordSiblingAfter = node => startsWithWordChar(getAdjacentMeaningfulText(node, 'after'));
+
+const firstLetterIndex = value => String(value || '').search(LETTER_RE);
+
+const lowercaseFirstLetter = (value, locale) => {
+  const text = String(value || '');
+  const index = firstLetterIndex(text);
+  if (index < 0) return text;
+  const char = text.charAt(index);
+  let lowered = char.toLowerCase();
+  try {
+    lowered = char.toLocaleLowerCase(locale || undefined);
+  } catch {}
+  return `${text.slice(0, index)}${lowered}${text.slice(index + char.length)}`;
 };
 
-const restoreBoundaryWhitespace = (original, translated, node = null) => {
+const previousTextEndsSentence = value => /[.!?…][\s"'”’\])}]*$/u.test(String(value || '').trim());
+
+const normalizeContextualCase = (original, translated, node, targetLang) => {
+  if (!node) return translated;
+
+  const originalCore = String(original || '').trim();
+  const translatedCore = String(translated || '').trim();
+  if (!originalCore || !translatedCore || CAMEL_BRAND_RE.test(originalCore)) return translatedCore;
+
+  const originalIndex = firstLetterIndex(originalCore);
+  const translatedIndex = firstLetterIndex(translatedCore);
+  if (originalIndex < 0 || translatedIndex < 0) return translatedCore;
+
+  const originalFirst = originalCore.charAt(originalIndex);
+  const translatedFirst = translatedCore.charAt(translatedIndex);
+  if (!LOWER_LETTER_RE.test(originalFirst) || !UPPER_LETTER_RE.test(translatedFirst)) return translatedCore;
+
+  const previousText = getAdjacentMeaningfulText(node, 'before');
+  if (!previousText || previousTextEndsSentence(previousText)) return translatedCore;
+
+  // Translation engines often capitalize a fragment because they see an inline
+  // text node as a standalone sentence. If the authored English fragment starts
+  // lowercase and the DOM context proves it is mid-sentence, restore natural case.
+  return lowercaseFirstLetter(translatedCore, targetLang);
+};
+
+const restoreBoundaryWhitespace = (original, translated, node = null, targetLang = null) => {
   const { leading, trailing } = getBoundaryWhitespace(original);
-  const translatedCore = String(translated ?? '').trim();
+  let translatedCore = String(translated ?? '').trim();
   if (!translatedCore) return original;
+
+  translatedCore = normalizeContextualCase(original, translatedCore, node, targetLang);
 
   let safeLeading = leading;
   let safeTrailing = trailing;
@@ -90,7 +149,7 @@ const restoreBoundaryWhitespace = (original, translated, node = null) => {
 
 const curatedFor = (text, targetLang, node = null) => {
   const curated = getCuratedTranslation(text, targetLang);
-  return curated ? restoreBoundaryWhitespace(text, curated, node) : null;
+  return curated ? restoreBoundaryWhitespace(text, curated, node, targetLang) : null;
 };
 
 const callGoogle = async (text, source, target) => {
@@ -111,13 +170,13 @@ export const translateText = async (text, targetLang, sourceLang = 'en', node = 
   if (curated) return curated;
 
   const key = `${sourceLang}:${target}:${t}`;
-  if (memCache.has(key)) return restoreBoundaryWhitespace(text, memCache.get(key), node);
+  if (memCache.has(key)) return restoreBoundaryWhitespace(text, memCache.get(key), node, target);
 
   try {
     const translated = await callGoogle(t, sourceLang, target);
     memCache.set(key, translated);
     persistCache();
-    return restoreBoundaryWhitespace(text, translated, node);
+    return restoreBoundaryWhitespace(text, translated, node, target);
   } catch {
     return text;
   }
@@ -141,7 +200,7 @@ export const translateBatch = async (texts, targetLang, sourceLang = 'en') => {
     const { core: t } = getBoundaryWhitespace(texts[i]);
     const key = `${sourceLang}:${target}:${t}`;
     if (memCache.has(key)) {
-      results[i] = restoreBoundaryWhitespace(texts[i], memCache.get(key));
+      results[i] = restoreBoundaryWhitespace(texts[i], memCache.get(key), null, target);
     } else {
       toFetch.push({ idx: i, text: t, original: texts[i] });
     }
@@ -154,7 +213,7 @@ export const translateBatch = async (texts, targetLang, sourceLang = 'en') => {
           const translated = await callGoogle(text, sourceLang, target);
           const key = `${sourceLang}:${target}:${text}`;
           memCache.set(key, translated);
-          results[idx] = restoreBoundaryWhitespace(original, translated);
+          results[idx] = restoreBoundaryWhitespace(original, translated, null, target);
         } catch {
           results[idx] = original;
         }
@@ -175,11 +234,11 @@ export const getCached = (text, targetLang, sourceLang = 'en', node = null) => {
   if (curated) return curated;
 
   const key = `${sourceLang}:${target}:${t}`;
-  return memCache.has(key) ? restoreBoundaryWhitespace(text, memCache.get(key), node) : null;
+  return memCache.has(key) ? restoreBoundaryWhitespace(text, memCache.get(key), node, target) : null;
 };
 
-export const ensureSafeTextBoundary = (original, translated, node) =>
-  restoreBoundaryWhitespace(original, translated, node);
+export const ensureSafeTextBoundary = (original, translated, node, targetLang = null) =>
+  restoreBoundaryWhitespace(original, translated, node, targetLang);
 
 export const isFullyCached = (texts, targetLang, sourceLang = 'en') => {
   const target = (targetLang || 'en').split('-')[0];
