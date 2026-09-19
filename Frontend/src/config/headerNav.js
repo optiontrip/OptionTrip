@@ -1,7 +1,7 @@
 export const PRIMARY_HEADER_NAV = Object.freeze([
-  { id: 'flights', type: 'route', to: '/flights', serviceLabel: 'flights', fallback: 'Flights' },
-  { id: 'stays', type: 'route', to: '/hotels', serviceLabel: 'stays', fallback: 'Hotels' },
-  { id: 'cars', type: 'route', to: '/car-rental', serviceLabel: 'cars', fallback: 'Car rental' },
-  { id: 'tours', type: 'route', to: '/tours', serviceLabel: 'activities', fallback: 'Tours & activities' },
-  { id: 'esim', type: 'route', to: '/esim', serviceLabel: 'esim', fallback: 'eSIM' },
+  { id: 'vi', type: 'route', to: '/travel-buddy', headerLabel: 'travelBuddy', fallback: 'Plan with Vi' },
+  { id: 'explore', type: 'route', to: '/where-can-i-go', headerLabel: 'explore', fallback: 'Explore' },
+  { id: 'trips', type: 'route', to: '/my-trips', headerLabel: 'trips', fallback: 'Trips' },
+  { id: 'deals', type: 'route', to: '/flights/cheap', headerLabel: 'deals', fallback: 'Deals' },
+  { id: 'news', type: 'route', to: '/blog', headerLabel: 'travelNews', fallback: 'Travel News' },
 ]);
