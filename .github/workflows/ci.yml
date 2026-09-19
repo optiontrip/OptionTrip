@@ -39,6 +39,10 @@ jobs:
         working-directory: Backend
         run: npm run test:locations
 
+      - name: Car-rental unified routing checks
+        working-directory: Backend
+        run: npm run test:cars
+
       - name: Vi marketplace routing checks
         working-directory: Backend
         run: npm run test:vi-marketplace
