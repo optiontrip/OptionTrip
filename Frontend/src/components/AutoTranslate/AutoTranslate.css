@@ -1,0 +1,12 @@
+/*
+ * Natural casing for translated OptionTrip copy.
+ *
+ * The legacy theme contains text-transform: capitalize/uppercase rules that are
+ * acceptable for some English template labels but make translated Russian,
+ * Serbian, French, Spanish and other languages look machine-generated. Only
+ * elements that AutoTranslate actually translated are neutralized here, so
+ * airport codes, brand marks and intentional non-translated UI keep their style.
+ */
+html[data-ot-lang]:not([data-ot-lang="en"]) [data-ot-translated="true"] {
+  text-transform: none !important;
+}
