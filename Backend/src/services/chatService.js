@@ -16,17 +16,75 @@ const getOpenAIClient = () => {
 
 const MODEL = process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini';
 
+const detectStrongMessageLanguage = (text = '') => {
+  const value = String(text || '').trim();
+  if (!value) return null;
+  if (/[іїєґ]/i.test(value)) return 'uk';
+  if (/[а-яё]/i.test(value)) return 'ru';
+  if (/[一-鿿]/u.test(value)) return 'zh';
+  if (/[぀-ヿ]/u.test(value)) return 'ja';
+  if (/[가-힯]/u.test(value)) return 'ko';
+  if (/[؀-ۿ]/u.test(value)) return 'ar';
+  if (/[A-Za-z]/.test(value) && /\b(the|and|from|to|flight|hotel|trip|travel|please|need|want|where|when|how|what|book|find|help)\b/i.test(value)) return 'en';
+  return null;
+};
+
+const inferConversationLanguage = (userMessage = '', conversationHistory = []) => {
+  const direct = detectStrongMessageLanguage(userMessage);
+  if (direct) return direct;
+  const prior = [...(conversationHistory || [])].reverse().find(item => item?.role === 'user' && detectStrongMessageLanguage(item?.text));
+  return detectStrongMessageLanguage(prior?.text) || 'en';
+};
+
+const DIRECT_SEARCH_COPY = {
+  en: {
+    origin: 'Which city are you flying from?',
+    destination: 'Which city are you flying to?',
+    hotel: 'Which city are you looking to stay in?',
+    current: 'Use my current location',
+    type: "I'll type it in",
+    foundFlight: count => `Found ${count} flight option${count !== 1 ? 's' : ''} for you!`,
+    foundHotel: count => `Found ${count} hotel option${count !== 1 ? 's' : ''} for you!`,
+    failedFlight: 'Sorry, I could not complete that flight search. Try again in a moment, or open [/flights](/flights).',
+    failedHotel: 'Sorry, I could not complete that hotel search. Try again in a moment, or open [/hotels](/hotels).',
+  },
+  ru: {
+    origin: 'Из какого города вы летите?',
+    destination: 'В какой город вы хотите лететь?',
+    hotel: 'В каком городе вы ищете отель?',
+    current: 'Моё текущее местоположение',
+    type: 'Я введу сам',
+    foundFlight: count => `Нашёл ${count} ${count === 1 ? 'вариант перелёта' : 'варианта перелёта'}.`,
+    foundHotel: count => `Нашёл ${count} ${count === 1 ? 'вариант отеля' : 'варианта отелей'}.`,
+    failedFlight: 'Не удалось завершить поиск авиабилетов. Попробуйте ещё раз или откройте [/flights](/flights).',
+    failedHotel: 'Не удалось завершить поиск отелей. Попробуйте ещё раз или откройте [/hotels](/hotels).',
+  },
+  uk: {
+    origin: 'З якого міста ви летите?',
+    destination: 'До якого міста ви хочете летіти?',
+    hotel: 'У якому місті ви шукаєте готель?',
+    current: 'Моє поточне місцезнаходження',
+    type: 'Я введу сам',
+    foundFlight: count => `Знайшов ${count} ${count === 1 ? 'варіант перельоту' : 'варіанти перельоту'}.`,
+    foundHotel: count => `Знайшов ${count} ${count === 1 ? 'варіант готелю' : 'варіанти готелів'}.`,
+    failedFlight: 'Не вдалося завершити пошук авіаквитків. Спробуйте ще раз або відкрийте [/flights](/flights).',
+    failedHotel: 'Не вдалося завершити пошук готелів. Спробуйте ще раз або відкрийте [/hotels](/hotels).',
+  },
+};
+
+const directCopy = language => DIRECT_SEARCH_COPY[language] || DIRECT_SEARCH_COPY.en;
+
 const FLIGHT_SEARCH_TOOL = {
   type: 'function',
   function: {
     name: 'search_flights',
-    description: 'Search real flight prices and options when the user wants to find/book/search flights and origin+destination are known. Do NOT call this for vague "how do I get to X" questions with no clear origin+destination, or for general flight advice/booking-tips questions. A specific date is NOT required to call this — if the user gave no date at all, omit departureDate entirely and the search will run against a default near-term date; mention that default date in your reply and ask for their real dates.',
+    description: 'Search real flight prices and options when the user wants to find/book/search flights and origin+destination are known. Do NOT call this for vague "how do I get to X" questions with no clear origin+destination, or for general flight advice/booking-tips questions. A specific date is NOT required to call this - if the user gave no date at all, omit departureDate entirely and the search will run against a default near-term date; mention that default date in your reply and ask for their real dates.',
     parameters: {
       type: 'object',
       properties: {
         origin: { type: 'string', description: 'IATA airport code if known (e.g. "JFK"), otherwise the city/place name as the user said it (e.g. "New York")' },
         destination: { type: 'string', description: 'IATA airport code if known, otherwise the city/place name' },
-        departureDate: { type: 'string', description: 'YYYY-MM-DD. Infer a reasonable near-future date if the user gave any hint ("next month" etc.) and say so in your reply. Omit this field entirely if the user gave no date hint whatsoever — do not guess a specific day out of thin air.' },
+        departureDate: { type: 'string', description: 'YYYY-MM-DD. Infer a reasonable near-future date if the user gave any hint ("next month" etc.) and say so in your reply. Omit this field entirely if the user gave no date hint whatsoever - do not guess a specific day out of thin air.' },
         returnDate: { type: 'string', description: 'YYYY-MM-DD, omit entirely for a one-way search' },
         adults: { type: 'integer', description: 'Number of adult passengers, default 1' },
         travelClass: { type: 'string', enum: ['economy', 'premium_economy', 'business', 'first'] }
@@ -40,13 +98,13 @@ const HOTEL_SEARCH_TOOL = {
   type: 'function',
   function: {
     name: 'search_hotels',
-    description: 'Search real hotel prices and options when the user wants to find/book a hotel or place to stay and the destination city is known. Do NOT call this for vague browsing questions with no clear destination, or for general hotel-booking-tips questions. Specific check-in/check-out dates are NOT required to call this — if the user gave no date at all, omit checkIn/checkOut entirely and the search will run against sensible default dates; mention that default in your reply and ask for their real dates.',
+    description: 'Search real hotel prices and options when the user wants to find/book a hotel or place to stay and the destination city is known. Do NOT call this for vague browsing questions with no clear destination, or for general hotel-booking-tips questions. Specific check-in/check-out dates are NOT required to call this - if the user gave no date at all, omit checkIn/checkOut entirely and the search will run against sensible default dates; mention that default in your reply and ask for their real dates.',
     parameters: {
       type: 'object',
       properties: {
         destination: { type: 'string', description: 'City/place name the user wants to stay in, as they said it (e.g. "Paris", "Rome")' },
         checkIn: { type: 'string', description: 'YYYY-MM-DD. Infer a reasonable near-future date if the user gave any hint ("next month" etc.) and say so in your reply. Omit this field entirely if the user gave no date hint whatsoever.' },
-        checkOut: { type: 'string', description: 'YYYY-MM-DD. Omit if unknown — a default of a few nights after check-in will be used.' },
+        checkOut: { type: 'string', description: 'YYYY-MM-DD. Omit if unknown - a default of a few nights after check-in will be used.' },
         adults: { type: 'integer', description: 'Number of adult guests, default 1' },
         rooms: { type: 'integer', description: 'Number of rooms, default 1' }
       },
@@ -123,19 +181,19 @@ const formatItineraryForPrompt = (trip) => {
     null;
   if (!opt?.itinerary?.length) return '';
 
-  const lines = [`\nSELECTED ITINERARY (${opt.title}, ${opt.total_days} days, est. $${opt.estimated_total_cost || '—'}):`];
+  const lines = [`\nSELECTED ITINERARY (${opt.title}, ${opt.total_days} days, est. $${opt.estimated_total_cost || '-'}):`];
   for (const day of opt.itinerary) {
-    lines.push(`\nDay ${day.day_number} — ${day.title}${day.date ? ` (${day.date})` : ''}`);
+    lines.push(`\nDay ${day.day_number} - ${day.title}${day.date ? ` (${day.date})` : ''}`);
     if (day.summary) lines.push(`  ${day.summary}`);
     for (const act of (day.activities || []).slice(0, 8)) {
       const cost = act.cost ? ` ($${act.cost})` : '';
-      lines.push(`  • ${act.time} — ${act.title} @ ${act.place_name}${cost}`);
+      lines.push(`  • ${act.time} - ${act.title} @ ${act.place_name}${cost}`);
     }
   }
   return lines.join('\n');
 };
 
-const buildSystemPrompt = (context) => {
+const buildSystemPrompt = (context, userMessage = '') => {
   const {
     user, currentTrip, tripPhase, allTrips, preferences,
     currentLocation, recentActivities, memoryProfile, serviceSignals, weather
@@ -143,19 +201,27 @@ const buildSystemPrompt = (context) => {
 
   const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-  let prompt = `You are Vi — an expert AI travel assistant for OptionTrip, a trip-planning, flight, hotel, and activity booking platform.
+  let prompt = `You are Vi - an expert AI travel assistant for OptionTrip, a trip-planning, flight, hotel, and activity booking platform.
 
 # Today's date
-${todayStr}. Resolve every relative date ("next Friday", "next month", "in two weeks", "this weekend") against this real date — never guess or default to a date from training data. This matters most for flight search dates, which must always be in the future.
+${todayStr}. Resolve every relative date ("next Friday", "next month", "in two weeks", "this weekend") against this real date - never guess or default to a date from training data. This matters most for flight search dates, which must always be in the future.
+
+# Response language - mandatory
+- Reply in the SAME natural language as the user's latest message. This rule overrides the website/interface language.
+- If the latest message is language-neutral (for example only an IATA code, number, emoji, or a one-word place name), infer the language from the most recent user turns in this conversation.
+- If the user switches languages, switch with them immediately.
+- Keep airport codes, brand names and proper nouns unchanged where appropriate.
+- Never mix languages inside normal prose unless the user explicitly asks for translation or bilingual output.
+- Use natural native travel terminology, not literal machine-translated wording.
 
 # Identity & Personality
 - Warm, friendly, and genuinely enthusiastic about travel.
 - Speak like a savvy, well-traveled friend, not a brochure.
 - Be confident and decisive. Give specific recommendations, not "you could consider X or Y or Z".
-- Genuinely funny in a dry, clever way — at most one light quip per reply, never forced, never at the user's expense. Skip the humor entirely on "emergency"-type replies.
+- Genuinely funny in a dry, clever way - at most one light quip per reply, never forced, never at the user's expense. Skip the humor entirely on "emergency"-type replies.
 - Act like you actually remember this user: weave in facts from their long-term memory profile naturally ("since you're usually budget-first..."), rather than re-asking things you already know.
 - Cooperative and proactive: offer the sensible next step instead of waiting to be asked for it.
-- Use light emojis sparingly — at most 1-2 per reply, only when they add warmth.
+- Use light emojis sparingly - at most 1-2 per reply, only when they add warmth.
 - Never be condescending; never apologize for things outside your control.
 
 # What you can help with
@@ -164,50 +230,50 @@ ${todayStr}. Resolve every relative date ("next Friday", "next month", "in two w
 - Practical: packing, visa & docs, currency, transit, SIM/eSIM, tipping, etiquette, safety
 - Restaurant, café, and bar recommendations by neighborhood and vibe
 - Flight & hotel guidance (search tactics, booking timing, loyalty tips)
-- Searching REAL flights and hotels for the user — see "Flight search tool" and "Hotel search tool" below
+- Searching REAL flights and hotels for the user - see "Flight search tool" and "Hotel search tool" below
 - On-trip help: directions, nearby places, weather expectations, emergencies
-- Steering the user toward the right OptionTrip service at the right moment — see "Contextual service opportunities" below
+- Steering the user toward the right OptionTrip service at the right moment - see "Contextual service opportunities" below
 
 # Flight search tool
-You have a \`search_flights\` tool. Use it the moment the user names or implies both an origin and a destination — including phrasing like "I want to travel from X to Y", "flight to Y", "book me a ticket to Y" combined with a known origin. Never call it for general questions with no real trip in mind ("how do flight prices usually work", "what's the best time to fly somewhere") — answer those with advice as you already would.
+You have a \`search_flights\` tool. Use it the moment the user names or implies both an origin and a destination - including phrasing like "I want to travel from X to Y", "flight to Y", "book me a ticket to Y" combined with a known origin. Never call it for general questions with no real trip in mind ("how do flight prices usually work", "what's the best time to fly somewhere") - answer those with advice as you already would.
 
 **Auto-fill from what you already know before asking anything:**
-- If "Current trip in focus" above has a destination, that IS the destination — don't ask for it.
-- If it has dates, use dates.start_date as departureDate and dates.end_date as returnDate — don't ask for dates you already have.
-- If "Where the user is right now" shows a live location, that's a reasonable default origin for a bare "find me flights" ask — use it and just mention the assumption in your reply instead of turning it into a question.
-- Scan the ENTIRE conversation above, not just the latest message — if the user named an origin or destination in an earlier turn (even several turns back, even via a quick-reply tap), that value still stands. Never ask again for something already given.
-- Call the tool the moment origin + destination are known from ANY combination of context, message, and prior turns — don't hold out for the user to repeat things you already know.
+- If "Current trip in focus" above has a destination, that IS the destination - don't ask for it.
+- If it has dates, use dates.start_date as departureDate and dates.end_date as returnDate - don't ask for dates you already have.
+- If "Where the user is right now" shows a live location, that's a reasonable default origin for a bare "find me flights" ask - use it and just mention the assumption in your reply instead of turning it into a question.
+- Scan the ENTIRE conversation above, not just the latest message - if the user named an origin or destination in an earlier turn (even several turns back, even via a quick-reply tap), that value still stands. Never ask again for something already given.
+- Call the tool the moment origin + destination are known from ANY combination of context, message, and prior turns - don't hold out for the user to repeat things you already know.
 
-**Dates are never a reason to block the search.** If you have a date hint ("next month", "around the 10th"), pass your best-inferred \`departureDate\`. If the user gave NO date hint at all, just omit \`departureDate\` from the tool call entirely and still call the tool — it will search a sensible default near-term date. In your reply, briefly show the results as usual, mention in one clause that you searched a default date (the tool result's \`searchedDate\`), and ask them to share their real dates for accurate pricing. Do not hold the search hostage waiting for a date.
+**Dates are never a reason to block the search.** If you have a date hint ("next month", "around the 10th"), pass your best-inferred \`departureDate\`. If the user gave NO date hint at all, just omit \`departureDate\` from the tool call entirely and still call the tool - it will search a sensible default near-term date. In your reply, briefly show the results as usual, mention in one clause that you searched a default date (the tool result's \`searchedDate\`), and ask them to share their real dates for accurate pricing. Do not hold the search hostage waiting for a date.
 
-**Origin or destination missing** is the only real blocker, and only after you've genuinely checked context and the full conversation history for it. If it's still unknown, ask exactly ONE short question for just what's missing — e.g. "Which city are you flying from?" — never ask about dates as part of that blocking question, and never split missing pieces across several back-and-forth turns. \`quickReplies\` on that turn are NEVER invented city names — a city you make up is indistinguishable from real flight data to the user and is a hard rule violation. Only ever offer a real city that is already visible somewhere above (their live location, a place named earlier in this conversation). If no real city is available to offer, quickReplies must be non-city actions instead: "Use my current location", "I'll type it in" — never a fabricated place.
+**Origin or destination missing** is the only real blocker, and only after you've genuinely checked context and the full conversation history for it. If it's still unknown, ask exactly ONE short question for just what's missing - e.g. "Which city are you flying from?" - never ask about dates as part of that blocking question, and never split missing pieces across several back-and-forth turns. \`quickReplies\` on that turn are NEVER invented city names - a city you make up is indistinguishable from real flight data to the user and is a hard rule violation. Only ever offer a real city that is already visible somewhere above (their live location, a place named earlier in this conversation). If no real city is available to offer, quickReplies must be non-city actions instead: "Use my current location", "I'll type it in" - never a fabricated place.
 
-After a tool call resolves, narrate the results briefly (1-2 sentences, e.g. "Found some good options — cheapest is around $X with [airline], nonstop"). Never re-type every individual price/time/flight number — the app renders the actual result cards below your reply. One extra tip is welcome if genuinely useful (e.g. "the cheapest has a long layover — the next one up is nonstop for $30 more").
-If the tool result contains an error: for a rate limit, suggest [/flights](/flights) directly; for \`could_not_resolve_airport\`, ask specifically about whichever of \`unresolvedOrigin\`/\`unresolvedDestination\` is present in the tool result (not both, unless both are) — ask them to spell it out or give the airport code.
+After a tool call resolves, narrate the results briefly (1-2 sentences, e.g. "Found some good options - cheapest is around $X with [airline], nonstop"). Never re-type every individual price/time/flight number - the app renders the actual result cards below your reply. One extra tip is welcome if genuinely useful (e.g. "the cheapest has a long layover - the next one up is nonstop for $30 more").
+If the tool result contains an error: for a rate limit, suggest [/flights](/flights) directly; for \`could_not_resolve_airport\`, ask specifically about whichever of \`unresolvedOrigin\`/\`unresolvedDestination\` is present in the tool result (not both, unless both are) - ask them to spell it out or give the airport code.
 
 # Hotel search tool
-You have a \`search_hotels\` tool. Use it the moment the user names or implies a destination city to stay in — including "hotel in Y", "somewhere to stay in Y", or a Y already established as the trip destination. Never call it for general questions with no real trip in mind ("what's a good area to stay in general", "how far ahead should I book a hotel") — answer those with advice as you already would.
+You have a \`search_hotels\` tool. Use it the moment the user names or implies a destination city to stay in - including "hotel in Y", "somewhere to stay in Y", or a Y already established as the trip destination. Never call it for general questions with no real trip in mind ("what's a good area to stay in general", "how far ahead should I book a hotel") - answer those with advice as you already would.
 
 **Auto-fill from what you already know before asking anything:**
-- If "Current trip in focus" above has a destination, that IS the destination — don't ask for it.
-- If it has dates, use dates.start_date as checkIn and dates.end_date as checkOut — don't ask for dates you already have.
-- Scan the ENTIRE conversation above, not just the latest message — if the user named a destination in an earlier turn, that value still stands. Never ask again for something already given.
-- Call the tool the moment the destination is known from ANY combination of context, message, and prior turns — don't hold out for the user to repeat things you already know.
+- If "Current trip in focus" above has a destination, that IS the destination - don't ask for it.
+- If it has dates, use dates.start_date as checkIn and dates.end_date as checkOut - don't ask for dates you already have.
+- Scan the ENTIRE conversation above, not just the latest message - if the user named a destination in an earlier turn, that value still stands. Never ask again for something already given.
+- Call the tool the moment the destination is known from ANY combination of context, message, and prior turns - don't hold out for the user to repeat things you already know.
 
-**Dates are never a reason to block the search.** If you have a date hint, pass your best-inferred \`checkIn\`/\`checkOut\`. If the user gave NO date hint at all, omit both fields entirely and still call the tool — it will search sensible default dates. In your reply, briefly show the results as usual, mention in one clause that you searched default dates, and ask them to share their real dates for accurate pricing. Do not hold the search hostage waiting for a date.
+**Dates are never a reason to block the search.** If you have a date hint, pass your best-inferred \`checkIn\`/\`checkOut\`. If the user gave NO date hint at all, omit both fields entirely and still call the tool - it will search sensible default dates. In your reply, briefly show the results as usual, mention in one clause that you searched default dates, and ask them to share their real dates for accurate pricing. Do not hold the search hostage waiting for a date.
 
-**Destination missing** is the only real blocker, and only after you've genuinely checked context and the full conversation history for it. If it's still unknown, ask exactly ONE short question — e.g. "Which city are you looking to stay in?" — never ask about dates as part of that blocking question. \`quickReplies\` on that turn are NEVER invented city names — a city you make up is indistinguishable from real data to the user and is a hard rule violation. Only ever offer a real city that is already visible somewhere above (a place named earlier in this conversation). If no real city is available to offer, quickReplies must be non-city actions instead: "I'll type it in" — never a fabricated place.
+**Destination missing** is the only real blocker, and only after you've genuinely checked context and the full conversation history for it. If it's still unknown, ask exactly ONE short question - e.g. "Which city are you looking to stay in?" - never ask about dates as part of that blocking question. \`quickReplies\` on that turn are NEVER invented city names - a city you make up is indistinguishable from real data to the user and is a hard rule violation. Only ever offer a real city that is already visible somewhere above (a place named earlier in this conversation). If no real city is available to offer, quickReplies must be non-city actions instead: "I'll type it in" - never a fabricated place.
 
-After a tool call resolves, narrate the results briefly (1-2 sentences, e.g. "Found some solid options — cheapest is around $X a night, 4-star"). Never re-type every individual price/rating — the app renders the actual result cards below your reply. One extra tip is welcome if genuinely useful.
+After a tool call resolves, narrate the results briefly (1-2 sentences, e.g. "Found some solid options - cheapest is around $X a night, 4-star"). Never re-type every individual price/rating - the app renders the actual result cards below your reply. One extra tip is welcome if genuinely useful.
 If the tool result contains an error: for a rate limit or a failed search, suggest [/hotels](/hotels) directly.
 
-**One combined question, ever.** If BOTH origin/destination (flight) and hotel destination are missing in the same turn — e.g. the user says "help me plan a trip to Lisbon" with no origin — ask for whatever's missing as ONE single combined question, not one tool's question then the other's on a later turn.
+**One combined question, ever.** If BOTH origin/destination (flight) and hotel destination are missing in the same turn - e.g. the user says "help me plan a trip to Lisbon" with no origin - ask for whatever's missing as ONE single combined question, not one tool's question then the other's on a later turn.
 
 # Formatting rules (apply inside the "message" field of the JSON output)
 - Use clean Markdown: short paragraphs, **bold** for key terms, bullet points (\`-\`) and numbered lists where they help scanability.
-- Always keep a normal space before and after \`**bold**\` markers, e.g. "word **bold** word" — never "word**bold**word". This applies in every language, including Cyrillic and other non-Latin scripts.
+- Always keep a normal space before and after \`**bold**\` markers, e.g. "word **bold** word" - never "word**bold**word". This applies in every language, including Cyrillic and other non-Latin scripts.
 - Headings (\`###\`) only when the answer has clearly distinct sections.
-- Inline links allowed: \`[label](url)\`. Do not invent URLs you aren't sure of — prefer naming the source.
+- Inline links allowed: \`[label](url)\`. Do not invent URLs you aren't sure of - prefer naming the source.
 - Keep replies tight: under ~180 words unless the user explicitly asks for depth.
 - Never wrap the whole reply in a code block. Code blocks are only for code/data.
 
@@ -221,11 +287,11 @@ If the tool result contains an error: for a rate limit or a failed search, sugge
 # Boundaries
 - Do not invent prices, schedules, availability, or facts about specific businesses you don't know.
 - If asked something genuinely ambiguous, ask one short clarifying question.
-- Never claim you booked or can book anything — booking happens in the OptionTrip UI.
-- Never say you are "searching", "checking", "looking into it", or "just a moment" for flights, hotels, or any live data unless you are actually calling the matching tool on this exact turn — this message is only shown after a tool call already resolved, so a promise to search that isn't backed by an actual tool call in this turn will never be followed up on. If you have enough info, call the tool now; if you don't, ask directly instead of pretending to work on it.
+- Never claim you booked or can book anything - booking happens in the OptionTrip UI.
+- Never say you are "searching", "checking", "looking into it", or "just a moment" for flights, hotels, or any live data unless you are actually calling the matching tool on this exact turn - this message is only shown after a tool call already resolved, so a promise to search that isn't backed by an actual tool call in this turn will never be followed up on. If you have enough info, call the tool now; if you don't, ask directly instead of pretending to work on it.
 
 # Linking to OptionTrip services
-When the user asks about car rental, eSIM/data, or tours/activities — for their trip or in general — always give them the direct in-app link, never say "visit our website" or "go to OptionTrip" generically, and never write out a full https://... URL. Use EXACTLY these relative paths as the markdown link target (not the full site URL, not a different label-only phrasing): car rental → [/car-rental](/car-rental), eSIM → [/esim](/esim), tours/activities → [/tours](/tours). The link text itself can read naturally (e.g. "you can [browse tours](/tours) right in the app"), but the URL inside the parentheses must be exactly one of the paths above, verbatim. Weave it into a real, specific answer (recommend what to look for, a tip, etc.) — don't just paste a bare link with no context. Flights and hotels/stays do NOT get this link treatment when the user is actually trying to search — use the \`search_flights\`/\`search_hotels\` tools instead (see above); only fall back to [/flights](/flights) or [/hotels](/hotels) as a plain link when the question isn't a search at all (e.g. baggage policy, booking timing, or a search/rate-limit error).
+When the user asks about car rental, eSIM/data, or tours/activities - for their trip or in general - always give them the direct in-app link, never say "visit our website" or "go to OptionTrip" generically, and never write out a full https://... URL. Use EXACTLY these relative paths as the markdown link target (not the full site URL, not a different label-only phrasing): car rental → [/car-rental](/car-rental), eSIM → [/esim](/esim), tours/activities → [/tours](/tours). The link text itself can read naturally (e.g. "you can [browse tours](/tours) right in the app"), but the URL inside the parentheses must be exactly one of the paths above, verbatim. Weave it into a real, specific answer (recommend what to look for, a tip, etc.) - don't just paste a bare link with no context. Flights and hotels/stays do NOT get this link treatment when the user is actually trying to search - use the \`search_flights\`/\`search_hotels\` tools instead (see above); only fall back to [/flights](/flights) or [/hotels](/hotels) as a plain link when the question isn't a search at all (e.g. baggage policy, booking timing, or a search/rate-limit error).
 
 # Output format
 Respond ONLY with valid JSON, no surrounding prose, in this exact shape:
@@ -281,7 +347,7 @@ Respond ONLY with valid JSON, no surrounding prose, in this exact shape:
     if (currentTrip.notes?.length) {
       prompt += `\n- Trip notes:\n${currentTrip.notes.slice(-5).map(n => `  - ${n.text}`).join('\n')}`;
     }
-    prompt += `\n- Phase: **${tripPhase || 'planning'}** — `;
+    prompt += `\n- Phase: **${tripPhase || 'planning'}** - `;
     prompt += tripPhase === 'before'
       ? 'pre-trip; focus on prep, anticipation, last-minute tweaks.'
       : tripPhase === 'during'
@@ -293,7 +359,7 @@ Respond ONLY with valid JSON, no surrounding prose, in this exact shape:
     const itinSection = formatItineraryForPrompt(currentTrip);
     if (itinSection) prompt += `\n${itinSection}`;
   } else if (allTrips?.length) {
-    prompt += `\n\n# Current trip in focus\nNone selected. The user has ${allTrips.length} saved trip(s) — ask which one they want help with, or treat the message as general travel advice.`;
+    prompt += `\n\n# Current trip in focus\nNone selected. The user has ${allTrips.length} saved trip(s) - ask which one they want help with, or treat the message as general travel advice.`;
   }
 
   if (currentLocation && (currentLocation.lat || currentLocation.city || currentLocation.label)) {
@@ -314,28 +380,28 @@ Respond ONLY with valid JSON, no surrounding prose, in this exact shape:
     const hour = new Date().getHours();
     const timeOfDay = hour < 5 ? 'late night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
     prompt += `\n\n# Live conditions\n- Time of day: ${timeOfDay}`;
-    prompt += `\n- Weather: ${weather.emoji || ''} ${weather.label || 'Unknown'}${typeof weather.temp_now_c === 'number' ? `, ${Math.round(weather.temp_now_c)}°C now` : ''}${typeof weather.temp_max_c === 'number' ? ` (${Math.round(weather.temp_min_c)}–${Math.round(weather.temp_max_c)}°C today)` : ''}`;
+    prompt += `\n- Weather: ${weather.emoji || ''} ${weather.label || 'Unknown'}${typeof weather.temp_now_c === 'number' ? `, ${Math.round(weather.temp_now_c)}°C now` : ''}${typeof weather.temp_max_c === 'number' ? ` (${Math.round(weather.temp_min_c)}-${Math.round(weather.temp_max_c)}°C today)` : ''}`;
     if (weather.precip_prob != null) prompt += `\n- Chance of rain: ${weather.precip_prob}%`;
-    prompt += `\nWeave this in naturally when relevant (what to wear, indoor vs outdoor plans, best time for a walk) — don't just recite the numbers unless asked directly.`;
+    prompt += `\nWeave this in naturally when relevant (what to wear, indoor vs outdoor plans, best time for a walk) - don't just recite the numbers unless asked directly.`;
   }
 
   if (Array.isArray(recentActivities) && recentActivities.length) {
     const formatted = formatActivitiesForPrompt(recentActivities);
     if (formatted) {
       prompt += `\n\n# What the user has been doing on OptionTrip (recent, newest first)\n${formatted}`;
-      prompt += `\nUse this to reason about what they're actively planning. Reference specific actions when natural ("I see you just generated a Plan My Day for X — want me to extend it?"), but don't list everything back to them robotically.`;
+      prompt += `\nUse this to reason about what they're actively planning. Reference specific actions when natural ("I see you just generated a Plan My Day for X - want me to extend it?"), but don't list everything back to them robotically.`;
     }
   }
 
   if (memoryProfile) {
     prompt += `\n\n# Long-term memory (persistent, across all history)\n${memoryProfile}`;
-    prompt += `\nTreat this as things you already know about the user — reference it naturally, don't quote it verbatim or announce that you "have a profile" on them.`;
+    prompt += `\nTreat this as things you already know about the user - reference it naturally, don't quote it verbatim or announce that you "have a profile" on them.`;
   }
 
   if (Array.isArray(serviceSignals) && serviceSignals.length) {
-    const lines = serviceSignals.map(s => `- ${s.service} → [${s.url}] — ${s.reason}`);
+    const lines = serviceSignals.map(s => `- ${s.service} → [${s.url}] - ${s.reason}`);
     prompt += `\n\n# Contextual service opportunities\n${lines.join('\n')}`;
-    prompt += `\nMention AT MOST ONE of these per reply, and only if it fits naturally in context — never force it. Phrase it as a helpful tip, not an ad ("Since your trip's in a week and you haven't sorted data yet, might be worth grabbing an eSIM — [here](/esim)."). Use the exact url given; never invent a different one. Skip entirely if none fit the current message.`;
+    prompt += `\nMention AT MOST ONE of these per reply, and only if it fits naturally in context - never force it. Phrase it as a helpful tip, not an ad ("Since your trip's in a week and you haven't sorted data yet, might be worth grabbing an eSIM - [here](/esim)."). Use the exact url given; never invent a different one. Skip entirely if none fit the current message.`;
   }
 
   return prompt;
@@ -351,7 +417,7 @@ const buildUserPrompt = (userMessage, context) => {
 };
 
 const buildMessages = (userMessage, context, conversationHistory) => {
-  const messages = [{ role: 'system', content: buildSystemPrompt(context) }];
+  const messages = [{ role: 'system', content: buildSystemPrompt(context, userMessage) }];
 
   const history = conversationHistory.slice(0, -1).slice(-20);
   for (const m of history) {
@@ -382,7 +448,7 @@ export const streamViResponse = async (userMessage, context = {}, conversationHi
 export const generateViResponse = async (userMessage, context = {}, conversationHistory = []) => {
   try {
     const client = getOpenAIClient();
-    if (!client) return generateFallbackResponse(userMessage, context);
+    if (!client) return generateFallbackResponse(userMessage, context, conversationHistory);
 
     const messages = buildMessages(userMessage, context, conversationHistory);
 
@@ -398,7 +464,7 @@ export const generateViResponse = async (userMessage, context = {}, conversation
     try {
       parsed = JSON.parse(completion.choices[0].message.content);
     } catch {
-      return generateFallbackResponse(userMessage, context);
+      return generateFallbackResponse(userMessage, context, conversationHistory);
     }
 
     return {
@@ -410,14 +476,10 @@ export const generateViResponse = async (userMessage, context = {}, conversation
     };
   } catch (err) {
     console.error('Vi chat error:', err);
-    return generateFallbackResponse(userMessage, context);
+    return generateFallbackResponse(userMessage, context, conversationHistory);
   }
 };
 
-// A message is "sticky" pending-search state only for exactly one turn: the
-// reply immediately following a clarifying question Vi asked. It lives on the
-// assistant message right before the current user turn in conversationHistory
-// (the current turn's own user message is always last).
 const getPendingSearch = (conversationHistory) => {
   const prev = conversationHistory[conversationHistory.length - 2];
   return prev?.role === 'assistant' && prev.pendingSearch ? prev.pendingSearch : null;
@@ -438,12 +500,6 @@ const cleanPlaceValue = (text) => {
   return t.trim();
 };
 
-// Given a clarifying question Vi already asked (pending) and the user's reply,
-// try to fill the missing slot deterministically instead of hoping the model
-// reconstructs it from raw text. Returns 'complete' (ready to search now),
-// 'unchanged' (still missing something, ask again without losing state), or
-// null (reply doesn't relate to the pending search at all — let the normal
-// flow take over).
 const resolvePendingSlot = (pending, userMessage, context) => {
   if (!pending || !pending.missing) return null;
   const raw = String(userMessage || '').trim();
@@ -483,15 +539,17 @@ const resolvePendingSlot = (pending, userMessage, context) => {
   return { status: 'complete', args: filled };
 };
 
-const buildPendingClarification = (pending, context) => {
+const buildPendingClarification = (pending, context, userMessage = '', conversationHistory = []) => {
+  const language = inferConversationLanguage(userMessage, conversationHistory);
+  const copy = directCopy(language);
   const question = pending.missing === 'origin'
-    ? 'Which city are you flying from?'
+    ? copy.origin
     : pending.type === 'hotel'
-    ? 'Which city are you looking to stay in?'
-    : 'Which city are you flying to?';
+    ? copy.hotel
+    : copy.destination;
   const quickReplies = pending.missing === 'origin'
-    ? ['Use my current location', "I'll type it in"]
-    : ["I'll type it in"];
+    ? [copy.current, copy.type]
+    : [copy.type];
   return {
     text: question,
     type: 'planning',
@@ -503,10 +561,6 @@ const buildPendingClarification = (pending, context) => {
   };
 };
 
-// Single entry point both the non-streaming and streaming chat flows use to
-// decide what happens with a user's turn: resume a search that was waiting on
-// one missing piece, force a search the user's own words already spell out,
-// let the model decide via a real tool call, or fall through to plain chat.
 export const planTurn = async (userMessage, context = {}, conversationHistory = [], options = {}) => {
   const pending = getPendingSearch(conversationHistory);
   if (pending) {
@@ -524,7 +578,7 @@ export const planTurn = async (userMessage, context = {}, conversationHistory = 
       };
     }
     if (resolution?.status === 'unchanged') {
-      return { kind: 'direct', response: buildPendingClarification(resolution.pending, context) };
+      return { kind: 'direct', response: buildPendingClarification(resolution.pending, context, userMessage, conversationHistory) };
     }
   }
 
@@ -536,10 +590,6 @@ export const planTurn = async (userMessage, context = {}, conversationHistory = 
 export const detectToolCall = async (userMessage, context = {}, conversationHistory = []) => {
   const messages = buildMessages(userMessage, context, conversationHistory);
 
-  // Deterministic fast path: when the user's own words spell out a clear route
-  // ("from X to Y") or hotel destination ("hotel in X"), search immediately
-  // instead of trusting the model to notice — this is the single biggest
-  // source of Vi asking questions it doesn't need to ask.
   const routeHint = extractFlightRouteHint(userMessage);
   if (routeHint) {
     return {
@@ -723,11 +773,13 @@ export const resolveToolCall = async (toolCall, messages, context = {}, options 
     ? await executeHotelTool(args, options)
     : await executeFlightTool(args, options);
 
-  const servicePath = isHotel ? '/hotels' : '/flights';
+  const lastUserMessage = [...(messages || [])].reverse().find(item => item?.role === 'user')?.content || '';
+  const language = inferConversationLanguage(lastUserMessage, (messages || []).map(item => ({ role: item.role, text: item.content })));
+  const copy = directCopy(language);
   const noun = isHotel ? 'hotel' : 'flight';
   const fallbackText = results?.length
-    ? `Found ${results.length} ${noun} option${results.length !== 1 ? 's' : ''} for you!`
-    : `Sorry, I couldn't complete that search — try again in a moment, or use [${servicePath}](${servicePath}) directly.`;
+    ? (isHotel ? copy.foundHotel(results.length) : copy.foundFlight(results.length))
+    : (isHotel ? copy.failedHotel : copy.failedFlight);
   const fallbackType = results?.length ? `${noun}_results` : 'error';
 
   const client = getOpenAIClient();
@@ -777,11 +829,42 @@ export const generateViResponseWithTools = async (userMessage, context = {}, con
   return { ...reply, results: null, resultsType: null, providerStatus: null };
 };
 
-const generateFallbackResponse = (userMessage, context) => {
+const generateFallbackResponse = (userMessage, context, conversationHistory = []) => {
+  const language = inferConversationLanguage(userMessage, conversationHistory);
   const lower = (userMessage || '').toLowerCase();
   const { user, currentTrip, tripPhase } = context;
   const userName = user?.name?.split(' ')[0] || '';
   const dest     = currentTrip?.destination?.name || '';
+
+  if (language === 'ru') {
+    if (/(экстр|срочно|помоги|помощ)/i.test(lower)) {
+      return {
+        text: `**Экстренные номера**\n- Международный: **112**\n- США: 911 · Великобритания: 999 · Австралия: 000\n\n${dest ? `Если вы в ${dest}, сохраните номер отеля и контакты ближайшего консульства.` : ''}\n\nЧто произошло? Я помогу с больницей, консульством или полицией.`,
+        type: 'emergency',
+        quickReplies: ['Ближайшее консульство', 'Найти больницу', 'Потерян паспорт']
+      };
+    }
+    return {
+      text: `Помогу${userName ? `, ${userName}` : ''}. Могу спланировать маршрут, подобрать перелёт или отель, помочь с транспортом, документами, местами рядом и подготовкой к поездке. Что делаем сейчас?`,
+      type: 'general',
+      quickReplies: currentTrip ? ['Маршрут поездки', 'Найти перелёт', 'Найти отель', 'Что рядом'] : ['Спланировать поездку', 'Найти перелёт', 'Найти отель']
+    };
+  }
+
+  if (language === 'uk') {
+    if (/(екстр|терміново|допомож|допомог)/i.test(lower)) {
+      return {
+        text: `**Екстрені номери**\n- Міжнародний: **112**\n- США: 911 · Велика Британія: 999 · Австралія: 000\n\n${dest ? `Якщо ви в ${dest}, збережіть номер готелю та контакти найближчого консульства.` : ''}\n\nЩо сталося? Допоможу з лікарнею, консульством або поліцією.`,
+        type: 'emergency',
+        quickReplies: ['Найближче консульство', 'Знайти лікарню', 'Втрачено паспорт']
+      };
+    }
+    return {
+      text: `Допоможу${userName ? `, ${userName}` : ''}. Можу спланувати маршрут, підібрати переліт або готель, допомогти з транспортом, документами, місцями поруч і підготовкою до подорожі. Що робимо зараз?`,
+      type: 'general',
+      quickReplies: currentTrip ? ['Маршрут подорожі', 'Знайти переліт', 'Знайти готель', 'Що поруч'] : ['Спланувати подорож', 'Знайти переліт', 'Знайти готель']
+    };
+  }
 
   if (/^(hi|hello|hey|good (morning|afternoon|evening))/i.test(lower)) {
     return {
@@ -793,7 +876,7 @@ const generateFallbackResponse = (userMessage, context) => {
 
   if (/(emergency|sos|urgent|help me)/.test(lower)) {
     return {
-      text: `**Emergency numbers**\n- International: **112**\n- US: 911 · UK: 999 · AU: 000\n\n${dest ? `In ${dest}, save your accommodation's front desk and nearest embassy contact in your phone.` : ''}\n\nWhat happened — can I help you find a hospital, embassy, or police?`,
+      text: `**Emergency numbers**\n- International: **112**\n- US: 911 · UK: 999 · AU: 000\n\n${dest ? `In ${dest}, save your accommodation's front desk and nearest embassy contact in your phone.` : ''}\n\nWhat happened - can I help you find a hospital, embassy, or police?`,
       type: 'emergency',
       quickReplies: ['Nearest embassy', 'Hospital info', 'Lost passport', 'Local police']
     };
@@ -810,7 +893,7 @@ const generateFallbackResponse = (userMessage, context) => {
 
   if (/(weather|climate|forecast)/.test(lower)) {
     return {
-      text: `For accurate forecasts${dest ? ` in ${dest}` : ''}, check **Weather.com** or **AccuWeather** a few days before you travel — long-range forecasts drift a lot.\n\nGeneral rule: pack one layer warmer than you think and a light rain shell.`,
+      text: `For accurate forecasts${dest ? ` in ${dest}` : ''}, check **Weather.com** or **AccuWeather** a few days before you travel - long-range forecasts drift a lot.\n\nGeneral rule: pack one layer warmer than you think and a light rain shell.`,
       type: 'weather',
       quickReplies: ['Packing tips', 'Best time to visit', 'What to wear']
     };
@@ -818,7 +901,7 @@ const generateFallbackResponse = (userMessage, context) => {
 
   if (/(restaurant|food|eat|cuisine|dinner)/.test(lower)) {
     return {
-      text: `Quick way to eat well${dest ? ` in ${dest}` : ''}:\n\n- Search **Google Maps** with "open now" + rating 4.5+ filter\n- Ask your host or front desk for two picks — pick the smaller one\n- Skip anywhere with a host on the street pulling people in\n- Lunch menus are usually a steal at fine-dining spots\n\nWhat kind of vibe — casual local, romantic, or splurge?`,
+      text: `Quick way to eat well${dest ? ` in ${dest}` : ''}:\n\n- Search **Google Maps** with "open now" + rating 4.5+ filter\n- Ask your host or front desk for two picks - pick the smaller one\n- Skip anywhere with a host on the street pulling people in\n- Lunch menus are usually a steal at fine-dining spots\n\nWhat kind of vibe - casual local, romantic, or splurge?`,
       type: 'recommendation',
       quickReplies: ['Local favorites', 'Budget eats', 'Romantic dinner', 'Brunch spots']
     };
@@ -826,7 +909,7 @@ const generateFallbackResponse = (userMessage, context) => {
 
   if (/(transport|taxi|getting around|metro|subway|uber)/.test(lower)) {
     return {
-      text: `Getting around${dest ? ` ${dest}` : ''}:\n\n- **Public transit** is almost always fastest in cities — grab a day pass\n- **Uber/Bolt/Grab** for late nights or with luggage\n- Avoid airport taxi touts — use the official rank or pre-booked transfer\n- Download offline maps before you land\n\nFlying in soon?`,
+      text: `Getting around${dest ? ` ${dest}` : ''}:\n\n- **Public transit** is almost always fastest in cities - grab a day pass\n- **Uber/Bolt/Grab** for late nights or with luggage\n- Avoid airport taxi touts - use the official rank or pre-booked transfer\n- Download offline maps before you land\n\nFlying in soon?`,
       type: 'transport',
       quickReplies: ['Airport transfer', 'Day pass info', 'Car rental tips']
     };
@@ -877,4 +960,5 @@ const getContextualQuickReplies = (context) => {
   return [...base.slice(0, 3), serviceReply];
 };
 
+export { inferConversationLanguage };
 export default { generateViResponse, generateViResponseWithTools, detectToolCall, resolveToolCall, planTurn };
