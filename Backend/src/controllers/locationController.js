@@ -1,4 +1,5 @@
 import { searchGooglePlace } from '../services/googlePlacesService.js';
+import { findCuratedLandmark } from '../services/landmarkResolverService.js';
 import {
   searchAirportDirectory,
   findAirportsForCity,
@@ -138,26 +139,52 @@ const rankLiveMatches = (matches, keyword) => {
   });
 };
 
+const nearestFromCoordinates = ({ latitude, longitude, requestedPlace, requestedAddress = '', source = 'nearest-airport-resolver', landmark = null }) => {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return [];
+  let nearby = findAirportsNearCoordinates(latitude, longitude, 300, 5);
+  if (nearby.length === 0) nearby = findAirportsNearCoordinates(latitude, longitude, 800, 5);
+
+  return nearby.map(item => ({
+    ...item,
+    name: `${item.name} · Nearest to ${requestedPlace} · ${item.distanceKm} km`,
+    requestedPlace,
+    requestedAddress,
+    nearestLabel: `Nearest to ${requestedPlace} · ${item.distanceKm} km`,
+    entityType: 'nearest-airport',
+    source,
+    ...(landmark ? {
+      landmarkId: landmark.id,
+      landmarkName: landmark.name,
+      landmarkCity: landmark.city,
+      landmarkCountry: landmark.country,
+    } : {}),
+  }));
+};
+
 const resolveNearestAirportsForPlace = async (keyword, locale = 'en') => {
   try {
+    const curated = findCuratedLandmark(keyword);
+    if (curated) {
+      return nearestFromCoordinates({
+        latitude: Number(curated.lat),
+        longitude: Number(curated.lng),
+        requestedPlace: curated.name,
+        requestedAddress: [curated.city, curated.country].filter(Boolean).join(', '),
+        source: 'curated-landmark-nearest-airport',
+        landmark: curated,
+      });
+    }
+
     const place = await searchGooglePlace(keyword, locale);
     if (!place || !Number.isFinite(place.latitude) || !Number.isFinite(place.longitude)) return [];
 
-    let nearby = findAirportsNearCoordinates(place.latitude, place.longitude, 300, 5);
-    if (nearby.length === 0) {
-      nearby = findAirportsNearCoordinates(place.latitude, place.longitude, 800, 5);
-    }
-
-    const requestedPlace = place.displayName || keyword;
-    return nearby.map(item => ({
-      ...item,
-      name: `${item.name} · Nearest to ${requestedPlace} · ${item.distanceKm} km`,
-      requestedPlace,
+    return nearestFromCoordinates({
+      latitude: place.latitude,
+      longitude: place.longitude,
+      requestedPlace: place.displayName || keyword,
       requestedAddress: place.formattedAddress || '',
-      nearestLabel: `Nearest to ${requestedPlace} · ${item.distanceKm} km`,
-      entityType: 'nearest-airport',
-      source: 'nearest-airport-resolver',
-    }));
+      source: 'google-place-nearest-airport',
+    });
   } catch (error) {
     console.warn('⚠️ Nearest-airport resolution failed:', error?.message || error);
     return [];
@@ -183,13 +210,16 @@ export const getLocations = async (req, res) => {
     const exactCityMatches = liveMatches.filter(item => item.entityType === 'city' && normalize(item.cityName) === needle);
     const exactCityWithAirports = exactCityMatches.filter(item => item.cityAirports?.length > 0);
     const exactCityWithoutAirport = exactCityMatches.find(item => !item.cityAirports?.length) || null;
+    const curatedLandmark = findCuratedLandmark(keyword);
 
-    const shouldResolveNearest = !countryEntry
+    const shouldResolveNearest = Boolean(curatedLandmark) || (
+      !countryEntry
       && liveCountryMatches.length === 0
       && keyword.length >= 3
       && !exactLocalIata
       && exactLocalCityAirports.length === 0
-      && (Boolean(exactCityWithoutAirport) || exactCityMatches.length === 0);
+      && (Boolean(exactCityWithoutAirport) || exactCityMatches.length === 0)
+    );
 
     const nearest = shouldResolveNearest
       ? await resolveNearestAirportsForPlace(keyword, locale)
@@ -223,6 +253,14 @@ export const getLocations = async (req, res) => {
         includesCountries: locations.some(item => item.entityType === 'country' || item.isCountry),
         includesCityAllAirports: locations.some(item => item.entityType === 'city'),
         includesNearestAirports: nearest.length > 0,
+        matchedLandmark: curatedLandmark
+          ? {
+            id: curatedLandmark.id,
+            name: curatedLandmark.name,
+            city: curatedLandmark.city,
+            country: curatedLandmark.country,
+          }
+          : null,
         matchedCityWithoutAirport: exactCityWithoutAirport
           ? {
             cityName: exactCityWithoutAirport.cityName,
