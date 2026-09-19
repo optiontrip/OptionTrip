@@ -40,6 +40,52 @@ const TravelServiceRail = () => {
     if (next) setCurrency(next);
   };
 
+  const renderServiceItem = (service) => {
+    const state = getInventoryStateForService(service, inventory);
+    const isActive = service.route && location.pathname === service.route;
+    const badge = state.direct ? null : state.external && state.bookingUrl ? 'Live' : 'Vi';
+    const label = getTravelServiceDisplayLabel(service, language, serviceLabels);
+    const content = (
+      <>
+        <i className={`fa ${service.icon}`} aria-hidden="true" />
+        <span>{label}</span>
+        {badge && <em>{badge}</em>}
+      </>
+    );
+    const className = `tsr__item${isActive ? ' tsr__item--active' : ''}`;
+
+    if (state.direct && service.route) {
+      return (
+        <Link role="listitem" key={service.id} to={service.route} className={className} title={label}>
+          {content}
+        </Link>
+      );
+    }
+
+    if (state.external && state.bookingUrl) {
+      return (
+        <a
+          role="listitem"
+          key={service.id}
+          href={state.bookingUrl}
+          target="_blank"
+          rel="noopener noreferrer sponsored"
+          className={`${className} tsr__item--partner`}
+          title={`${label} - live booking`}
+          data-provider={state.primaryProvider || undefined}
+        >
+          {content}
+        </a>
+      );
+    }
+
+    return (
+      <Link role="listitem" key={service.id} to={viRoute(service)} className={className} title={label}>
+        {content}
+      </Link>
+    );
+  };
+
   return (
     <nav className="tsr" aria-label={serviceLabels.all || 'Travel services'}>
       <div className="container tsr__inner">
@@ -52,26 +98,7 @@ const TravelServiceRail = () => {
         </Link>
 
         <div className="tsr__scroll" role="list">
-          {services.map(service => {
-            const state = getInventoryStateForService(service, inventory);
-            const to = state.direct ? service.route : viRoute(service);
-            const isActive = service.route && location.pathname === service.route;
-            const badge = state.direct ? null : state.status === 'partner-ready' ? 'Live' : 'Vi';
-            const label = getTravelServiceDisplayLabel(service, language, serviceLabels);
-            return (
-              <Link
-                role="listitem"
-                key={service.id}
-                to={to}
-                className={`tsr__item${isActive ? ' tsr__item--active' : ''}`}
-                title={label}
-              >
-                <i className={`fa ${service.icon}`} aria-hidden="true" />
-                <span>{label}</span>
-                {badge && <em>{badge}</em>}
-              </Link>
-            );
-          })}
+          {services.map(renderServiceItem)}
         </div>
 
         <div className="tsr__actions">
