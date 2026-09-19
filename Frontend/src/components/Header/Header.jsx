@@ -208,7 +208,7 @@ const Header = () => {
       <div className="navbar-collapse1 d-flex align-items-center"><ul className="nav navbar-nav" id="responsive-menu">
         {renderNavItem(navItems[0])}
         <li ref={bookingRef} className={`dropdown submenu nav-bookings ${isBookingOpen ? 'nav-bookings--open' : ''}`} onMouseEnter={() => setIsBookingOpen(true)} onMouseLeave={() => setIsBookingOpen(false)}>
-          <button type="button" className="dropdown-toggle nav-bookings__toggle" onClick={() => setIsBookingOpen(open => !open)} aria-haspopup="true" aria-expanded={isBookingOpen}>{serviceLabels.booking}<i className={`icon-arrow-down nav-bookings__arrow ${isBookingOpen ? 'open' : ''}`} /></button>
+          <button type="button" className="dropdown-toggle nav-bookings__toggle" onClick={() => setIsBookingOpen(open => !open)} aria-haspopup="true" aria-expanded={isBookingOpen}>{serviceLabels.all}<i className={`icon-arrow-down nav-bookings__arrow ${isBookingOpen ? 'open' : ''}`} /></button>
           {isBookingOpen && <div className="nav-bookings__mega"><BookingServiceMenu onNavigate={() => setIsBookingOpen(false)} /></div>}
         </li>
         {navItems.slice(1).map(item => renderNavItem(item))}
@@ -222,7 +222,6 @@ const Header = () => {
           </button>
           {isAuthDropdownOpen && <div className="auth-dropdown-menu" role="menu">{isAuthenticated ? <><Link to="/profile" className="auth-dropdown-item" onClick={closeAuthDropdownImmediately} role="menuitem">{uiLabels.myProfile}</Link><Link to="/my-trips" className="auth-dropdown-item" onClick={closeAuthDropdownImmediately} role="menuitem">{uiLabels.myTrips}</Link><button className="auth-dropdown-item logout-item" onClick={handleLogout} role="menuitem">{uiLabels.logout}</button></> : <><Link to="/login" className="auth-dropdown-item" onClick={closeAuthDropdownImmediately} role="menuitem">{uiLabels.login}</Link><Link to="/signup" className="auth-dropdown-item" onClick={closeAuthDropdownImmediately} role="menuitem">{uiLabels.signUp}</Link></>}</div>}
         </div>
-        <Link to="/contact" className="nir-btn white">{uiLabels.contact}</Link>
       </div>
       <button ref={hamburgerRef} className={`hamburger ${isMenuOpen ? 'hamburger--open' : ''}`} onClick={() => setIsMenuOpen(open => !open)} aria-label={uiLabels.menu} aria-expanded={isMenuOpen} aria-controls="mobile-site-navigation"><span /><span /><span /></button>
     </div></div></nav></div>
@@ -239,11 +238,9 @@ const Header = () => {
     >
       <div className="mobile-drawer__header"><Link to="/" onClick={closeMenu}><img src="/images/newLogo.png" alt="OptionTrip" /></Link><button ref={drawerCloseRef} className="mobile-drawer__close" onClick={closeMenu} aria-label={uiLabels.close}><i className="fa fa-times" /></button></div>
       <nav className="mobile-drawer__nav"><ul>
-        {renderNavItem(navItems[0], true)}
+        {navItems.map(item => renderNavItem(item, true))}
         <li className="mobile-drawer__search"><a href="#search1" onClick={closeMenu}><i className="fa fa-search" aria-hidden="true" /><span>{uiLabels.search}</span></a></li>
-        <li className="mobile-drawer__booking"><div className="mobile-drawer__section-title">{serviceLabels.booking}</div><BookingServiceMenu mobile onNavigate={closeMenu} /></li>
-        {navItems.slice(1).map(item => renderNavItem(item, true))}
-        <li className={isActive('/contact')}><Link to="/contact" onClick={closeMenu}>{uiLabels.contact}</Link></li>
+        <li className="mobile-drawer__booking"><div className="mobile-drawer__section-title">{serviceLabels.all}</div><BookingServiceMenu mobile onNavigate={closeMenu} /></li>
       </ul></nav>
       <HeaderTravelPreferences
         mobile
