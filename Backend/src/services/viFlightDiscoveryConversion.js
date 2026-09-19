@@ -29,6 +29,8 @@ const FLIGHT_TERMS = [
   'let', 'letovi', 'avionsk', 'авион', 'летови',
 ];
 
+const AMBIGUOUS_CODE_TOKENS = new Set(['TO', 'IN', 'AT', 'BY', 'AS', 'ON', 'OR']);
+
 const normalize = value => String(value || '')
   .normalize('NFKC')
   .toLowerCase()
@@ -79,8 +81,9 @@ const countryMentions = message => {
       const parts = rawTokens.slice(start, start + width);
       const phrase = parts.join(' ');
       const compactLength = phrase.replace(/\s+/g, '').length;
-      const exactShortCode = width === 1 && /^[A-Z]{2}$/.test(parts[0]);
+      const exactShortCode = width === 1 && /^[A-Z]{2}$/.test(parts[0]) && !AMBIGUOUS_CODE_TOKENS.has(parts[0]);
       if (compactLength < 3 && !exactShortCode) continue;
+      if (width === 1 && /^[A-Z]{2}$/.test(parts[0]) && AMBIGUOUS_CODE_TOKENS.has(parts[0])) continue;
 
       const code = resolveCountryPhrase(phrase);
       if (!code) continue;
