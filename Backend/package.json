@@ -13,6 +13,7 @@
     "test:vi-conversion": "node scripts/checkViLiveConversion.mjs",
     "test:partner-routing": "node scripts/checkPartnerBookingRouting.mjs",
     "test:partner-links": "node scripts/checkTravelpayoutsPartnerLinks.mjs",
+    "test:widget-fallbacks": "node scripts/checkWidgetFallbacks.mjs",
     "test:news-runner": "node scripts/checkTravelNewsRunner.mjs",
     "test:site-services": "node scripts/checkSiteServiceIntegrity.mjs",
     "test:flight-country-matrix": "node scripts/checkCheapFlightCountryMatrix.mjs",
