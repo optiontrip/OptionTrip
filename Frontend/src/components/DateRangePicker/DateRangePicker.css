@@ -31,7 +31,6 @@
   border-color: #F30F89;
 }
 
-
 .date-range-picker-dropdown {
   position: fixed;
   z-index: 1000;
@@ -42,7 +41,6 @@
   overflow: hidden;
   max-width: calc(100vw - 32px);
 }
-
 
 .date-range-picker-dropdown .rdrCalendarWrapper {
   background: transparent;
@@ -125,7 +123,6 @@
   background-color: #0A539D;
 }
 
-
 .date-range-picker-dropdown .rdrNextPrevButton {
   background: transparent;
   border-radius: 8px;
@@ -143,15 +140,26 @@
   border-color: transparent transparent transparent #0A539D;
 }
 
-
 @media (max-width: 767px) {
-  
   .date-range-picker-dropdown {
-    max-width: 90vw;
+    top: max(12px, env(safe-area-inset-top)) !important;
+    left: 12px !important;
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .date-range-picker-dropdown .rdrCalendarWrapper,
+  .date-range-picker-dropdown .rdrDateRangePickerWrapper {
+    width: 100%;
   }
 
   .date-range-picker-dropdown .rdrMonth {
-    padding: 15px;
+    width: 100%;
+    padding: 15px 12px 20px;
   }
 
   .date-range-display-input {

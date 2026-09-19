@@ -21,6 +21,45 @@ const airports = [
 
 const normalize = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
+// Provider/source datasets still use a few legacy English country names.
+// Explicit canonical overrides also win when historical codes share a modern name.
+const COUNTRY_CODE_OVERRIDES = new Map([
+  ['serbia', 'RS'],
+  ['czech republic', 'CZ'],
+  ['south korea', 'KR'],
+  ['north korea', 'KP'],
+  ['turkey', 'TR'],
+]);
+
+const buildCountryCodeIndex = () => {
+  const index = new Map(COUNTRY_CODE_OVERRIDES);
+
+  try {
+    const displayNames = new Intl.DisplayNames(['en'], { type: 'region' });
+    for (let first = 65; first <= 90; first += 1) {
+      for (let second = 65; second <= 90; second += 1) {
+        const code = `${String.fromCharCode(first)}${String.fromCharCode(second)}`;
+        const name = displayNames.of(code);
+        if (!name || name === code || name === 'Unknown Region') continue;
+        const normalizedName = normalize(name);
+        if (!index.has(normalizedName)) index.set(normalizedName, code);
+      }
+    }
+  } catch (error) {
+    console.warn('Intl region names unavailable; using country-code overrides only:', error?.message || error);
+  }
+
+  return index;
+};
+
+const countryCodeIndex = buildCountryCodeIndex();
+
+export const resolveCountryCode = (countryName) => {
+  const needle = normalize(countryName);
+  if (!needle) return null;
+  return COUNTRY_CODE_OVERRIDES.get(needle) || countryCodeIndex.get(needle) || null;
+};
+
 const airportIndex = new Map(airports.map(a => [a.iata.toUpperCase(), a]));
 const countries = [...new Set(airports.map(a => a.country).filter(Boolean))].sort();
 
@@ -52,6 +91,7 @@ const toLocation = (airport, extra = {}) => ({
   name: airport.name,
   cityName: airport.city,
   countryName: airport.country,
+  countryCode: resolveCountryCode(airport.country),
   latitude: airport.lat,
   longitude: airport.lng,
   entityType: 'airport',
@@ -102,6 +142,16 @@ export const findAirportsForCity = (cityName, countryName = '', limit = 20) => {
     .map(airport => toLocation(airport));
 };
 
+export const findAirportsForCountryCode = (countryCode, limit = 20) => {
+  const code = String(countryCode || '').trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code)) return [];
+
+  return airports
+    .filter(airport => resolveCountryCode(airport.country) === code)
+    .slice(0, Math.max(1, limit))
+    .map(airport => toLocation(airport));
+};
+
 export const findCountryDirectoryMatch = (query, limit = 12) => {
   const needle = normalize(query);
   if (needle.length < 2) return null;
@@ -110,20 +160,11 @@ export const findCountryDirectoryMatch = (query, limit = 12) => {
   const prefix = exact || countries.find(country => normalize(country).startsWith(needle));
   if (!prefix) return null;
 
-  const countryAirports = airports
-    .filter(airport => airport.country === prefix)
-    .slice(0, Math.max(1, limit))
-    .map(airport => ({
-      iataCode: airport.iata,
-      cityName: airport.city,
-      name: airport.name,
-      countryName: airport.country,
-      latitude: airport.lat,
-      longitude: airport.lng,
-    }));
+  const countryAirports = findAirportsForCountryCode(resolveCountryCode(prefix), limit);
 
   return {
     countryName: prefix,
+    countryCode: resolveCountryCode(prefix),
     countryAirports,
   };
 };
@@ -198,4 +239,4 @@ export const findAirportByCityName = (name) => {
   return match || null;
 };
 
-console.log(`✅ Nearby airports service loaded: ${airports.length} airports indexed`);
+console.log(`Nearby airports service loaded: ${airports.length} airports indexed`);
