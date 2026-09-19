@@ -16,7 +16,7 @@ const GO_CITY_DESTINATIONS = Object.freeze({
   dubai: 'dubai',
   dublin: 'dublin',
   gothenburg: 'gothenburg',
-  'hong kong': 'hong-kong',
+  hong_kong: 'hong-kong',
   honolulu: 'oahu',
   las_vegas: 'las-vegas',
   london: 'london',
