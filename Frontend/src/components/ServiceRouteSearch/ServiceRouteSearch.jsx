@@ -160,7 +160,7 @@ export default function ServiceRouteSearch({ serviceId, language = 'en' }) {
 
   const supported = SUPPORTED.has(serviceId);
   const sameRoute = origin?.resolvedCode && destination?.resolvedCode && origin.resolvedCode === destination.resolvedCode;
-  const canSearch = Boolean(origin?.resolvedCode && destination?.resolvedCode && !sameRoute && !loading);
+  const canSearch = Boolean(origin?.resolvedCode && destination?.resolvedCode && !loading);
 
   const routeLabel = useMemo(() => {
     if (!result?.origin?.city || !result?.destination?.city) return '';
