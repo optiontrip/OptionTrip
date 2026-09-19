@@ -8,13 +8,22 @@ if (!raw) {
 }
 
 const data = JSON.parse(raw);
-const wanted = new Set(['rail', 'bus', 'ferries', 'transfers', 'city_passes', 'activities']);
+const verticals = [...(data.verticals || [])]
+  .filter(item => item?.vertical)
+  .sort((a, b) => String(a.vertical).localeCompare(String(b.vertical)));
 
-for (const item of data.verticals || []) {
-  if (!wanted.has(item.vertical)) continue;
-  const options = (item.bookingOptions || [])
+if (!verticals.length) {
+  console.log('affiliate-status inventory: no verticals');
+  process.exit(0);
+}
+
+for (const item of verticals) {
+  const bookingProviders = (item.bookingOptions || [])
     .map(option => option.provider)
     .filter(Boolean)
     .join(',') || 'none';
-  console.log(`affiliate-status ${item.vertical}: live=${Boolean(item.live)} bookingProviders=${options}`);
+  const liveProviders = (item.providers || []).filter(Boolean).join(',') || 'none';
+  console.log(
+    `affiliate-status ${item.vertical}: live=${Boolean(item.live)} liveProviders=${liveProviders} bookingProviders=${bookingProviders}`
+  );
 }

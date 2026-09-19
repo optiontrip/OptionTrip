@@ -10,6 +10,7 @@
     "test:partner-routing": "node scripts/checkPartnerBookingRouting.mjs",
     "test:partner-links": "node scripts/checkTravelpayoutsPartnerLinks.mjs",
     "test:news-runner": "node scripts/checkTravelNewsRunner.mjs",
+    "test:site-services": "node scripts/checkSiteServiceIntegrity.mjs",
     "dev": "nodemon src/server.js",
     "start": "node src/server.js"
   },
