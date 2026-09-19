@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { searchAirports } from '../../services/flightService';
+import { buildWholeMonthExplorerUrl } from '../../utils/wholeMonthFlightSearch';
 import TripDatePicker from '../TripDatePicker/TripDatePicker';
 import PassengerSelector from '../PassengerSelector/PassengerSelector';
 import './FlightSearchForm.css';
@@ -295,17 +296,6 @@ const FlightSearchForm = ({ onSearch, isLoading, prefillDest, prefillOrigin, ori
     adults: Number(adults), children: Number(children), includeNearby, includeHotels, tripType,
   });
 
-  const getSearchableAirports = (locationData, code) => {
-    const candidates = locationData?.countryAirports?.length
-      ? locationData.countryAirports
-      : locationData?.cityAirports?.length
-        ? locationData.cityAirports
-        : [];
-    const codes = candidates.map(item => item.iataCode).filter(Boolean);
-    if (codes.length > 0) return [...new Set(codes)];
-    return /^[A-Z]{3}$/i.test(code || '') ? [code.toUpperCase()] : [];
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     const errs = validate();
@@ -313,23 +303,28 @@ const FlightSearchForm = ({ onSearch, isLoading, prefillDest, prefillOrigin, ori
     const searchParams = buildParams();
 
     if (dateSearchMode === 'month') {
-      const originAirports = getSearchableAirports(originCountryData, originCode);
-      const destinationAirports = isExploreAnywhere ? [] : getSearchableAirports(destCountryData, destCode);
+      const explorer = buildWholeMonthExplorerUrl({
+        originCode,
+        originDisplay,
+        originLocationData: originCountryData,
+        destinationCode: destCode,
+        destinationDisplay: destDisplay,
+        destinationLocationData: destCountryData,
+        month: travelMonth,
+        returnMonth,
+        anywhere: isExploreAnywhere,
+      });
 
-      if (!originAirports.length || (!isExploreAnywhere && !destinationAirports.length)) {
-        setErrors(p => ({ ...p, origin: !originAirports.length ? 'Select a departure place with supported airports' : p.origin, destination: !isExploreAnywhere && !destinationAirports.length ? 'Select a destination with supported airports' : p.destination }));
+      if (!explorer.url) {
+        setErrors(p => ({
+          ...p,
+          origin: !explorer.origins.length ? 'Select a departure place with supported airports' : p.origin,
+          destination: !isExploreAnywhere && !explorer.destinations.length ? 'Select a destination with supported airports' : p.destination,
+        }));
         return;
       }
 
-      const query = new URLSearchParams({
-        origins: originAirports.join(','),
-        destinations: isExploreAnywhere ? 'ANYWHERE' : destinationAirports.join(','),
-        month: travelMonth,
-        originLabel: originDisplay || originCode,
-        destinationLabel: isExploreAnywhere ? 'Anywhere' : (destDisplay || destCode),
-      });
-      if (returnMonth) query.set('returnMonth', returnMonth);
-      window.location.assign(`/flights/cheap?${query.toString()}`);
+      window.location.assign(explorer.url);
       return;
     }
 

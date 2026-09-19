@@ -63,6 +63,10 @@ jobs:
         working-directory: Backend
         run: npm run test:flight-country-matrix
 
+      - name: Whole Month URL contract checks
+        working-directory: Backend
+        run: npm run test:whole-month-contract
+
       - name: Site and travel-service integrity checks
         working-directory: Backend
         run: npm run test:site-services
