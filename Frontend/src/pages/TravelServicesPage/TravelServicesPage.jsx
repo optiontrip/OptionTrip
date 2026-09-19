@@ -59,6 +59,7 @@ export default function TravelServicesPage() {
 
   const selectedId = useMemo(() => new URLSearchParams(location.search).get('service'), [location.search]);
   const selectedService = TRAVEL_SERVICES.find(service => service.id === selectedId);
+  const [openMobileGroups, setOpenMobileGroups] = useState(() => new Set(['book']));
 
   useEffect(() => {
     let active = true;
@@ -69,6 +70,11 @@ export default function TravelServicesPage() {
   }, []);
 
   useEffect(() => {
+    const requestedGroup = selectedService?.group || (location.hash ? location.hash.slice(1) : null);
+    if (requestedGroup && TRAVEL_SERVICE_GROUPS.some(group => group.id === requestedGroup)) {
+      setOpenMobileGroups(current => new Set([...current, requestedGroup]));
+    }
+
     if (selectedService) {
       setTimeout(() => document.getElementById('selected-travel-service')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
       return;
@@ -81,6 +87,14 @@ export default function TravelServicesPage() {
 
   const selectedState = selectedService ? getInventoryStateForService(selectedService, inventory) : null;
   const serviceLabel = service => getTravelServiceDisplayLabel(service, language, labels);
+  const toggleMobileGroup = groupId => {
+    setOpenMobileGroups(current => {
+      const next = new Set(current);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
 
   return (
     <main className="travel-services-page">
@@ -123,30 +137,50 @@ export default function TravelServicesPage() {
       )}
 
       <div id="all-services" className="container travel-services-groups">
-        {TRAVEL_SERVICE_GROUPS.map(group => (
-          <section className="travel-services-group" id={group.id} key={group.id} aria-labelledby={`services-${group.id}`}>
-            <h2 id={`services-${group.id}`}>{labels[group.id] || group.label}</h2>
-            <div className="travel-services-grid">
-              {group.services.map(service => {
-                const state = getInventoryStateForService(service, inventory);
-                const fallbackRoute = `/services?service=${encodeURIComponent(service.id)}#${group.id}`;
-                return (
-                  <InternalOrPartnerLink
-                    key={service.id}
-                    service={service}
-                    state={state}
-                    fallbackRoute={fallbackRoute}
-                    className={`travel-service-card${selectedId === service.id ? ' travel-service-card--selected' : ''}`}
-                  >
-                    <span className="travel-service-icon" aria-hidden="true"><i className={`fa ${service.icon}`} /></span>
-                    <span className="travel-service-copy"><strong>{serviceLabel(service)}</strong></span>
-                    <span className="travel-service-status">{statusLabel(state, copy)} <i className="fa fa-arrow-right" aria-hidden="true" /></span>
-                  </InternalOrPartnerLink>
-                );
-              })}
-            </div>
-          </section>
-        ))}
+        {TRAVEL_SERVICE_GROUPS.map(group => {
+          const isOpenMobile = openMobileGroups.has(group.id);
+          return (
+            <section
+              className={`travel-services-group ${isOpenMobile ? 'travel-services-group--mobile-open' : 'travel-services-group--mobile-collapsed'}`}
+              id={group.id}
+              key={group.id}
+              aria-labelledby={`services-${group.id}`}
+            >
+              <h2 id={`services-${group.id}`} className="travel-services-group__desktop-title">{labels[group.id] || group.label}</h2>
+              <button
+                type="button"
+                className="travel-services-group__mobile-toggle"
+                aria-expanded={isOpenMobile}
+                aria-controls={`services-grid-${group.id}`}
+                onClick={() => toggleMobileGroup(group.id)}
+              >
+                <span>{labels[group.id] || group.label}</span>
+                <span className="travel-services-group__count">{group.services.length}</span>
+                <i className={`fa fa-chevron-down ${isOpenMobile ? 'is-open' : ''}`} aria-hidden="true" />
+              </button>
+
+              <div className="travel-services-grid" id={`services-grid-${group.id}`}>
+                {group.services.map(service => {
+                  const state = getInventoryStateForService(service, inventory);
+                  const fallbackRoute = `/services?service=${encodeURIComponent(service.id)}#${group.id}`;
+                  return (
+                    <InternalOrPartnerLink
+                      key={service.id}
+                      service={service}
+                      state={state}
+                      fallbackRoute={fallbackRoute}
+                      className={`travel-service-card${selectedId === service.id ? ' travel-service-card--selected' : ''}`}
+                    >
+                      <span className="travel-service-icon" aria-hidden="true"><i className={`fa ${service.icon}`} /></span>
+                      <span className="travel-service-copy"><strong>{serviceLabel(service)}</strong></span>
+                      <span className="travel-service-status">{statusLabel(state, copy)} <i className="fa fa-arrow-right" aria-hidden="true" /></span>
+                    </InternalOrPartnerLink>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
       </div>
 
       <section className="container travel-services-trust">
