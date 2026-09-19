@@ -56,6 +56,12 @@ grep -q 'yyyy-MM' "$PICKER" || fail 'shared date picker no longer preserves mont
 grep -q 'monthSummaries' "$PICKER" || fail 'whole-month picker lost month-level fare summaries'
 grep -q 'cheapestMonthKey' "$PICKER" || fail 'whole-month picker lost cheapest-month highlighting'
 grep -q 'fetchMonthlyPrices' "$PICKER" || fail 'whole-month picker no longer uses real monthly fare data'
+grep -q 'PriceCalendar' "$PICKER" || fail 'whole-month picker lost daily price drill-down'
+grep -q 'Search the whole' "$PICKER" || fail 'whole-month picker no longer offers month-only search from the daily-price view'
+grep -q "mode === 'single' && flexView === 'calendar'" "$PICKER" || fail 'one-way Whole Month no longer opens the daily price calendar before forcing a date'
+if grep -q '>Flexible dates<' "$PICKER"; then
+  fail 'duplicate Flexible dates tab returned instead of the unified Whole Month flow'
+fi
 grep -q "window.addEventListener('scroll'" "$PICKER" || fail 'date picker no longer repositions during scrolling'
 grep -q 'visualViewport' "$PICKER" || fail 'date picker lost viewport-aware positioning'
 
@@ -70,4 +76,4 @@ if grep -q 'type="date"' "$PLANNED"; then
   fail 'native date-only input returned to Planned Trip flight search'
 fi
 
-echo 'Flight whole-month pricing, viewport positioning, location metadata, provider richness, and 365-day date guards passed.'
+echo 'Flight Whole Month pricing, daily price drill-down, viewport positioning, location metadata, provider richness, and 365-day date guards passed.'
