@@ -43,6 +43,10 @@ jobs:
         working-directory: Backend
         run: npm run test:landmarks
 
+      - name: Selected-language location search checks
+        working-directory: Backend
+        run: npm run test:localized-locations
+
       - name: Car-rental unified routing checks
         working-directory: Backend
         run: npm run test:cars
