@@ -2,12 +2,29 @@ import cron from "node-cron";
 import app from "./app.js";
 import { runScheduledSweep } from "./jobs/scheduledSweep.js";
 import { runTravelNewsAutomationWithBudget } from "./jobs/travelNewsRunner.js";
+import { primeTravelpayoutsPartnerLinks } from "./services/travelpayoutsPartnerLinks.js";
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
+
+// Warm real affiliate targets after boot and refresh them periodically. Static
+// partner URLs from environment still take priority; this path exists so 12Go,
+// Go City and other subscribed Travelpayouts programs can become live without
+// manually copying a separate affiliate URL into deployment configuration.
+const affiliateWarmupTimer = setTimeout(() => {
+  primeTravelpayoutsPartnerLinks({ trigger: 'startup' })
+    .catch(err => console.error('Travelpayouts partner-link warmup failed:', err.message));
+}, 2500);
+affiliateWarmupTimer.unref?.();
+
+cron.schedule('17 */6 * * *', () => {
+  primeTravelpayoutsPartnerLinks({ trigger: 'scheduled-refresh', force: true })
+    .catch(err => console.error('Travelpayouts partner-link refresh failed:', err.message));
+}, { timezone: 'UTC' });
+console.log('🔗 Travelpayouts partner-link refresh scheduled every 6 hours');
 
 if (process.env.ENABLE_IN_PROCESS_CRON !== 'false') {
   cron.schedule('*/20 * * * *', () => {
