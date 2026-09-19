@@ -184,6 +184,100 @@ h6 {
     display: none !important;
   }
 
+  /* Legacy content pages still use the original desktop banner utility. Keep
+     those pages useful on the first phone viewport instead of spending most
+     of it on decorative vertical padding. */
+  .banner.pt-10.pb-0,
+  .banner.pt-8.pb-7 {
+    min-height: 0 !important;
+    padding-top: 34px !important;
+    padding-bottom: 22px !important;
+    background-position: center !important;
+    background-size: cover !important;
+  }
+
+  .banner.pt-10.pb-0 .banner-in,
+  .banner.pt-8.pb-7 .banner-in {
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+
+  .banner.pt-10.pb-0 .banner-content,
+  .banner.pt-8.pb-7 .banner-content {
+    width: 100% !important;
+    max-width: 680px;
+    margin-inline: auto;
+    padding: 0 2px !important;
+  }
+
+  .banner.pt-10.pb-0 .banner-content h1,
+  .banner.pt-8.pb-7 .banner-content h1 {
+    margin: 6px auto 9px !important;
+    font-size: clamp(29px, 8.6vw, 38px) !important;
+    line-height: 1.08 !important;
+  }
+
+  .banner.pt-10.pb-0 .banner-content h4,
+  .banner.pt-8.pb-7 .banner-content h4 {
+    margin-bottom: 5px !important;
+    font-size: 12px !important;
+  }
+
+  .banner.pt-10.pb-0 .banner-content p,
+  .banner.pt-8.pb-7 .banner-content p {
+    margin: 0 auto !important;
+    font-size: 14px !important;
+    line-height: 1.48 !important;
+  }
+
+  .banner.pt-10.pb-0 .mb-4,
+  .banner.pt-8.pb-7 .mb-4 {
+    margin-bottom: 0 !important;
+  }
+
+  /* Search verticals were carrying 200px desktop hero padding. */
+  .flight-hero,
+  .hotel-search-hero {
+    padding: 38px 0 42px !important;
+  }
+
+  .flight-hero__content h1,
+  .hotel-search-hero h1 {
+    font-size: clamp(30px, 8.7vw, 38px) !important;
+    line-height: 1.08 !important;
+  }
+
+  .flight-hero__subtitle,
+  .hotel-search-hero__sub,
+  .crs-hero__sub {
+    font-size: 14px !important;
+    line-height: 1.48 !important;
+  }
+
+  .crs-hero {
+    padding: 36px 0 30px !important;
+  }
+
+  .crs-hero h1 {
+    font-size: clamp(29px, 8.4vw, 36px) !important;
+    line-height: 1.08 !important;
+  }
+
+  .hotel-search-form-section {
+    padding: 18px 0 16px !important;
+  }
+
+  .hotel-search-form-section .hs-form {
+    padding: 16px 14px !important;
+    border-radius: 15px !important;
+  }
+
+  .flight-results-section,
+  .hotel-search-results {
+    padding-top: 24px !important;
+    padding-bottom: 42px !important;
+  }
+
   /* Prevent large legacy content blocks from creating accidental sideways
      scrolling on service, results and editorial pages. */
   img,
