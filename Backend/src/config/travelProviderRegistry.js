@@ -1,3 +1,5 @@
+import { getCachedTravelpayoutsPartnerLink } from '../services/travelpayoutsPartnerLinks.js';
+
 const hasEnv = (...names) => names.every(name => Boolean(process.env[name]));
 
 const normalizePublicBookingUrl = value => {
@@ -74,8 +76,9 @@ export const TRAVEL_PROVIDER_REGISTRY = Object.freeze({
   hotelbeds: provider({ verticals: ['hotels'], credentialEnv: ['HOTELBEDS_API_KEY', 'HOTELBEDS_SECRET'], access: 'approval_and_credentials' }),
 
   // Travelpayouts programs confirmed from the OptionTrip account screenshots.
-  // An affiliate provider becomes live only after its real HTTPS booking URL is
-  // configured in the deployment environment. This prevents dead partner buttons.
+  // A static HTTPS affiliate URL can still be supplied by environment. If it is
+  // absent, the server now attempts to create a real project-specific partner
+  // link through the official Travelpayouts Partner Links API and caches it.
   aviasales: affiliate({ verticals: ['flights'], directUrlEnv: 'TRAVELPAYOUTS_AVIASALES_AFFILIATE_URL' }),
   trip_com: affiliate({ verticals: ['hotels', 'flights', 'rail', 'activities'], directUrlEnv: 'TRAVELPAYOUTS_TRIP_COM_AFFILIATE_URL' }),
   twelve_go: affiliate({ verticals: ['rail', 'bus', 'ferries', 'transfers'], directUrlEnv: 'TRAVELPAYOUTS_12GO_AFFILIATE_URL' }),
@@ -120,16 +123,23 @@ export const TRAVEL_PROVIDER_REGISTRY = Object.freeze({
 const filtersForProvider = providerName => PROVIDER_FILTER_CAPABILITIES[providerName] || {};
 
 const readinessFor = (providerName, config) => {
-  const bookingUrl = config.bookingUrl?.() || null;
+  const staticBookingUrl = config.bookingUrl?.() || null;
+  const generatedBookingUrl = config.integration === 'affiliate'
+    ? getCachedTravelpayoutsPartnerLink(providerName)
+    : null;
+  const bookingUrl = staticBookingUrl || generatedBookingUrl;
+  const configured = config.enabled() || Boolean(generatedBookingUrl);
+
   return {
     provider: providerName,
     verticals: [...config.verticals],
-    configured: config.enabled(),
+    configured,
     available: true,
     access: config.access,
     integration: config.integration,
     filters: filtersForProvider(providerName),
     bookingUrl,
+    bookingUrlSource: staticBookingUrl ? 'environment' : (generatedBookingUrl ? 'travelpayouts_api' : null),
     missingCredentials: config.credentialEnv.filter(name => !process.env[name]),
     missingDirectUrl: Boolean(config.directUrlEnv && !bookingUrl),
     notes: config.notes,
@@ -156,4 +166,4 @@ export const getProviderReadiness = providerName => {
   return config ? readinessFor(providerName, config) : null;
 };
 
-export const isProviderConfigured = providerName => Boolean(TRAVEL_PROVIDER_REGISTRY[providerName]?.enabled());
+export const isProviderConfigured = providerName => Boolean(getProviderReadiness(providerName)?.configured);
