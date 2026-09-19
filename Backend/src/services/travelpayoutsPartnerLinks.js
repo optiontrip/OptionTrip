@@ -74,12 +74,15 @@ const normalizeProviderTarget = (providerName, value) => {
     const targetUrl = new URL(normalized);
     const baseHost = canonicalUrl.hostname.toLowerCase();
     const targetHost = targetUrl.hostname.toLowerCase();
-    const sameBrandHost = targetHost === baseHost || targetHost.endsWith(`.${baseHost}`) || baseHost.endsWith(`.${targetHost}`);
+    const sameBrandHost = targetHost === baseHost || targetHost.endsWith(`.${baseHost}`);
     return sameBrandHost ? targetUrl.toString() : null;
   } catch {
     return null;
   }
 };
+
+export const isAllowedTravelpayoutsProviderTarget = (providerName, value) =>
+  Boolean(normalizeProviderTarget(String(providerName || '').trim(), value));
 
 export const getTravelpayoutsProjectIdentity = () => ({
   trs: positiveInteger(process.env.TRAVELPAYOUTS_TRS, DEFAULT_OPTIONTRIP_TRS),
