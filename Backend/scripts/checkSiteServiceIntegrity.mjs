@@ -13,6 +13,10 @@ const footer = read('Frontend/src/components/Footer/Footer.jsx');
 const footerMobile = read('Frontend/src/components/Footer/Footer.mobile.css');
 const headerPrefs = read('Frontend/src/components/Header/HeaderTravelPreferences.jsx');
 const home = read('Frontend/src/pages/Home.jsx');
+const mainEntry = read('Frontend/src/main.jsx');
+const mobileUx = read('Frontend/src/styles/mobile-first.css');
+const serviceRailCss = read('Frontend/src/components/TravelServiceRail/TravelServiceRail.css');
+const layout = read('Frontend/src/components/Layout/Layout.jsx');
 
 const errors = [];
 const unique = values => [...new Set(values)];
@@ -57,13 +61,30 @@ for (const base of ['Frontend/src', 'Backend/src']) {
 }
 
 if (!footer.includes('footer-locale-item--currency')) {
-  errors.push('Footer currency control is missing its responsive deduplication class.');
+  errors.push('Footer locale markup must keep a stable currency class for desktop preferences.');
 }
-if (!/\.footer-locale-item--currency\s*\{[^}]*display:\s*none/s.test(footerMobile)) {
-  errors.push('Mobile footer must hide the duplicate currency selector.');
+
+const hidesWholeMobileLocale = /\.footer-locale-section\s*\{[^}]*display:\s*none/s.test(footerMobile);
+const hidesMobileCurrencyOnly = /\.footer-locale-item--currency\s*\{[^}]*display:\s*none/s.test(footerMobile);
+if (!hidesWholeMobileLocale && !hidesMobileCurrencyOnly) {
+  errors.push('Mobile footer must not repeat the currency selector.');
 }
+
 if (!headerPrefs.includes('{!mobile && (')) {
   errors.push('Mobile drawer must not render a duplicate currency selector.');
+}
+
+if (!mainEntry.includes("./styles/mobile-first.css")) {
+  errors.push('Global mobile-first guardrails must be loaded by the frontend entrypoint.');
+}
+if (!mobileUx.includes('.vi-mobile-suppressed .vi-button')) {
+  errors.push('Booking/search surfaces must suppress the floating Vi launcher on mobile.');
+}
+if (!layout.includes('MOBILE_SEARCH_SURFACES') || !layout.includes('vi-mobile-suppressed')) {
+  errors.push('Layout must mark mobile search surfaces so Vi cannot cover booking controls.');
+}
+if (!/@media\s*\(max-width:\s*767px\)[\s\S]*?\.tsr__scroll\s*\{\s*display:\s*none/s.test(serviceRailCss)) {
+  errors.push('Mobile travel-service rail must not render the clipped desktop carousel.');
 }
 
 if (!home.includes('data-season={season}') || !home.includes('home-seasonal-hero--${season}')) {
@@ -98,4 +119,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`✅ Site/service integrity passed: ${serviceRoutes.length} direct service routes, ${serviceVerticals.length} provider verticals, ${requiredCoreRoutes.length} required public routes.`);
+console.log(`✅ Site/service integrity passed: ${serviceRoutes.length} direct service routes, ${serviceVerticals.length} provider verticals, ${requiredCoreRoutes.length} required public routes, mobile UX guards active.`);
