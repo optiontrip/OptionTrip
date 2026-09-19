@@ -47,6 +47,10 @@ jobs:
         working-directory: Backend
         run: npm run test:vi-marketplace
 
+      - name: Vi live conversion handoff checks
+        working-directory: Backend
+        run: npm run test:vi-conversion
+
       - name: Direct partner booking routing checks
         working-directory: Backend
         run: npm run test:partner-routing
