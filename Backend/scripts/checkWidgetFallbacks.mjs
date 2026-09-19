@@ -9,6 +9,7 @@ const read = relative => readFileSync(join(root, relative), 'utf8');
 
 const widget = read('Frontend/src/pages/PlannedTripPage/sections/TravelpayoutsWidget.jsx');
 const css = read('Frontend/src/pages/PlannedTripPage/sections/TravelpayoutsWidget.css');
+const toursLanding = read('Frontend/src/pages/Tours.jsx');
 const tours = read('Frontend/src/pages/PlannedTripPage/sections/ToursTab.jsx');
 const inventoryClient = read('Frontend/src/services/travelInventoryService.js');
 const inventoryServer = read('Backend/src/services/travelInventoryService.js');
@@ -31,4 +32,18 @@ assert.match(css, /@media \(max-width: 640px\)[\s\S]*?\.ot-partner-widget__fallb
 assert.match(inventoryClient, /refreshPartners/, 'Frontend inventory client must support on-demand Partner Links refresh');
 assert.match(inventoryServer, /bookingOptions/, 'Public travel inventory must expose safe configured booking alternatives');
 
-console.log('✅ Shared Travelpayouts widget failover, partner refresh and mobile fallback checks passed');
+assert.match(toursLanding, /useSearchParams/, 'Tours landing page must read destination context from canonical handoff URLs');
+assert.match(toursLanding, /searchParams\.get\('destination'\)/, 'Tours landing page must accept the Vi destination parameter');
+assert.match(toursLanding, /searchParams\.get\('destinationCode'\)/, 'Tours landing page must accept the Vi destination IATA parameter');
+assert.match(toursLanding, /\^\[A-Z\]\{3\}\$/, 'Tours landing page must validate destination IATA codes before using them');
+assert.match(toursLanding, /<ToursTab tripData=\{handoffTripData\}/, 'Tours landing page must pass normalized handoff context into the existing ToursTab');
+assert.match(tours, /destinationCode/, 'ToursTab must preserve destination IATA context from Vi or Planned Trip');
+assert.match(tours, /context=\{bookingContext\}/, 'ToursTab must pass normalized destination context into the shared widget/fallback component');
+assert.match(widget, /context = null/, 'Shared widget must expose a generic optional booking context contract');
+assert.match(widget, /query\.set\('destination', destination\)/, 'Vi fallback must retain the selected destination name');
+assert.match(widget, /query\.set\('destinationCode', destinationCode\)/, 'Vi fallback must retain the selected destination IATA code');
+assert.match(widget, /Keeping your destination:/, 'Partner widget must visibly confirm preserved destination context');
+assert.match(css, /\.ot-partner-widget__context/, 'Destination context must have responsive shared widget styling');
+assert.doesNotMatch(widget, /localizedSrc[\s\S]{0,180}destination/i, 'Do not invent an unverified destination parameter on the external Travelpayouts widget URL');
+
+console.log('✅ Shared Travelpayouts widget failover and destination-aware tours handoff checks passed');
