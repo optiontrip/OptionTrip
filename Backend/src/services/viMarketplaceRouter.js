@@ -55,6 +55,8 @@ export const buildMarketplaceSuggestion = message => {
     mode: service.mode,
     live: service.live,
     route,
+    bookingUrl: service.bookingUrl || null,
+    bookingProvider: service.bookingProvider || null,
     primaryProvider: service.primaryProvider,
     executableProviders: service.executableProviders,
   };
@@ -63,5 +65,10 @@ export const buildMarketplaceSuggestion = message => {
 export const formatMarketplaceForViPrompt = message => {
   const suggestion = buildMarketplaceSuggestion(message);
   if (!suggestion) return '';
-  return `\nMARKETPLACE MATCH: The user's message matches OptionTrip service "${suggestion.label}" (${suggestion.vertical}). Current mode: ${suggestion.mode}. Live: ${suggestion.live ? 'yes' : 'no'}. Route: ${suggestion.route}. ${suggestion.live ? 'Proactively offer this OptionTrip service and preserve known trip context.' : 'Do not claim live booking; explain that this service is being connected and continue helping conversationally.'}`;
+
+  const partnerInstruction = suggestion.bookingUrl
+    ? ` A verified partner booking target is available from ${suggestion.bookingProvider || suggestion.primaryProvider || 'a configured partner'}: ${suggestion.bookingUrl}. You may offer this booking target directly while preserving the OptionTrip service route ${suggestion.route}.`
+    : '';
+
+  return `\nMARKETPLACE MATCH: The user's message matches OptionTrip service "${suggestion.label}" (${suggestion.vertical}). Current mode: ${suggestion.mode}. Live: ${suggestion.live ? 'yes' : 'no'}. Route: ${suggestion.route}.${partnerInstruction} ${suggestion.live ? 'Proactively offer this OptionTrip service and preserve known trip context.' : 'Do not claim live booking; explain that this service is being connected and continue helping conversationally.'}`;
 };
