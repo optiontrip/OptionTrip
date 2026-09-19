@@ -171,6 +171,7 @@ function App() {
                     <Route path="/car-rental" element={<CarRentalSearch />} />
                     <Route path="/esim" element={<EsimSearch />} />
                     <Route path="/services" element={<TravelServicesPage />} />
+                    <Route path="/services/:serviceId" element={<TravelServicesPage />} />
                     <Route path="/plan-my-day" element={<PlanMyDay />} />
                     <Route path="/where-can-i-go" element={<WhereCanIGo />} />
                     <Route path="/help-center" element={<HelpCenterPage />} />

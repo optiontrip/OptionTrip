@@ -37,8 +37,9 @@ try {
   assert.equal(busSuggestion?.bookingAvailable, true, 'Vi may know that a verified final booking handoff exists');
   assert.equal(busSuggestion?.bookingProvider, 'twelve_go', 'Vi may know which provider owns the final handoff');
   assert.equal(busSuggestion?.bookingUrl, undefined, 'Vi marketplace suggestion must not expose the raw affiliate URL');
+  assert.equal(busSuggestion?.route, '/services/bus', 'Bus suggestions must use the canonical OptionTrip service page');
   const busPrompt = formatMarketplaceForViPrompt('Нужен автобус из Белграда');
-  assert.match(busPrompt, /OptionTrip route: \/services\?service=bus/, 'Vi must route bus requests into the OptionTrip service hub first');
+  assert.match(busPrompt, /OptionTrip route: \/services\/bus/, 'Vi must route bus requests into the canonical OptionTrip service page first');
   assert.doesNotMatch(busPrompt, /https:\/\//i, 'Vi prompt must not contain a raw partner URL');
 
   process.env.TRAVELPAYOUTS_GO_CITY_AFFILIATE_URL = 'https://example.com/go-city-pass';
@@ -53,8 +54,9 @@ try {
   assert.equal(cityPassSuggestion?.vertical, 'city_passes', 'Vi must detect city-pass intent');
   assert.equal(cityPassSuggestion?.bookingAvailable, true, 'Vi must know a verified city-pass handoff exists');
   assert.equal(cityPassSuggestion?.bookingUrl, undefined, 'Vi must not receive the verified Go City URL directly');
+  assert.equal(cityPassSuggestion?.route, '/services/city_passes', 'City-pass suggestions must use the canonical OptionTrip service page');
 
-  console.log('✅ Partner booking registry, OptionTrip comparison and Vi handoff regression checks passed');
+  console.log('✅ Partner booking registry, canonical OptionTrip comparison and Vi handoff regression checks passed');
 } finally {
   envKeys.forEach(key => {
     if (previous[key] === undefined) delete process.env[key];

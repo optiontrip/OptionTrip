@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PRIMARY_HEADER_NAV } from '../../config/headerNav';
-import { TRAVEL_SERVICES, getTravelServiceDisplayLabel } from '../../config/travelServices';
+import { TRAVEL_SERVICES, getTravelServiceDisplayLabel, getTravelServiceRoute } from '../../config/travelServices';
 import { getHeaderUiLabels } from '../../config/headerUiLabels';
 import { getTravelServiceLabels } from '../../config/travelServiceLabels';
 import './SearchPopup.css';
@@ -54,7 +54,7 @@ const SearchPopup = () => {
     const services = TRAVEL_SERVICES.map(service => ({
       id: service.id,
       label: getTravelServiceDisplayLabel(service, languageCode, serviceLabels),
-      route: service.live && service.route ? service.route : `/services?service=${encodeURIComponent(service.id)}#${service.group}`,
+      route: getTravelServiceRoute(service, service.group),
       icon: service.icon,
       external: false,
       keywords: KEYWORDS[service.id] || [],

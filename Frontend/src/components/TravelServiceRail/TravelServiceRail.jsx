@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { TRAVEL_SERVICES, getTravelServiceDisplayLabel } from '../../config/travelServices';
+import { TRAVEL_SERVICES, getTravelServiceDisplayLabel, getTravelServiceRoute } from '../../config/travelServices';
 import { getTravelServiceLabels } from '../../config/travelServiceLabels';
 import { getHeaderUiLabels } from '../../config/headerUiLabels';
 import { fetchTravelInventoryStatus, getInventoryStateForService } from '../../services/travelInventoryService';
 import { useLocale } from '../../contexts/LocaleContext';
 import './TravelServiceRail.css';
-
-const viRoute = service => `/travel-buddy?service=${encodeURIComponent(service.id)}&intent=find-service`;
-const serviceHubRoute = service => `/services?service=${encodeURIComponent(service.id)}#${service.group || ''}`;
 
 const PRIORITY_IDS = [
   'flights', 'stays', 'cars', 'activities', 'rail', 'bus', 'transfers',
@@ -43,9 +40,9 @@ const TravelServiceRail = () => {
 
   const renderServiceItem = (service) => {
     const state = getInventoryStateForService(service, inventory);
-    const isActive = service.route
-      ? location.pathname === service.route
-      : location.pathname === '/services' && new URLSearchParams(location.search).get('service') === service.id;
+    const target = getTravelServiceRoute(service);
+    const isActive = location.pathname === target.split('#')[0]
+      || (location.pathname === '/services' && new URLSearchParams(location.search).get('service') === service.id);
     const badge = state.direct
       ? null
       : state.external && state.bookingUrl
@@ -59,32 +56,16 @@ const TravelServiceRail = () => {
         {badge && <em>{badge}</em>}
       </>
     );
-    const className = `tsr__item${isActive ? ' tsr__item--active' : ''}`;
-
-    if (state.direct && service.route) {
-      return (
-        <Link role="listitem" key={service.id} to={service.route} className={className} title={label}>
-          {content}
-        </Link>
-      );
-    }
-
-    if (state.external && state.bookingUrl) {
-      return (
-        <Link
-          role="listitem"
-          key={service.id}
-          to={serviceHubRoute(service)}
-          className={`${className} tsr__item--partner`}
-          title={`${label} - ${serviceLabels.open || 'compare booking options'}`}
-        >
-          {content}
-        </Link>
-      );
-    }
+    const className = `tsr__item${isActive ? ' tsr__item--active' : ''}${state.external && state.bookingUrl ? ' tsr__item--partner' : ''}`;
 
     return (
-      <Link role="listitem" key={service.id} to={viRoute(service)} className={className} title={label}>
+      <Link
+        role="listitem"
+        key={service.id}
+        to={target}
+        className={className}
+        title={state.external && state.bookingUrl ? `${label} - ${serviceLabels.open || 'compare booking options'}` : label}
+      >
         {content}
       </Link>
     );

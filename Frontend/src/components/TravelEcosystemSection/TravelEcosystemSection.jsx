@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { TRAVEL_SERVICE_GROUPS, getTravelServiceDisplayLabel } from '../../config/travelServices';
+import { TRAVEL_SERVICE_GROUPS, getTravelServiceDisplayLabel, getTravelServiceRoute } from '../../config/travelServices';
 import { getTravelServiceLabels } from '../../config/travelServiceLabels';
 import { fetchTravelInventoryStatus, getInventoryStateForService } from '../../services/travelInventoryService';
 import './TravelEcosystemSection.css';
@@ -77,9 +77,6 @@ const statusCopy = (state, copy) => {
   return copy.guided;
 };
 
-const serviceHubRoute = (service, groupId) =>
-  `/services?service=${encodeURIComponent(service.id)}#${groupId}`;
-
 const ServiceCard = ({ service, state, groupId, label, copy }) => {
   const content = (
     <>
@@ -98,12 +95,9 @@ const ServiceCard = ({ service, state, groupId, label, copy }) => {
     return <Link to={service.route} className="tes__service">{content}</Link>;
   }
 
-  // Partner-backed services stay inside OptionTrip first. The service hub shows
-  // every currently configured booking provider, so the traveler can compare
-  // the real handoff options instead of being thrown to the first affiliate.
   return (
     <Link
-      to={serviceHubRoute(service, groupId)}
+      to={getTravelServiceRoute(service, groupId)}
       className={`tes__service${state.bookingOptionCount > 0 ? ' tes__service--partner' : ''}`}
       data-provider={state.primaryProvider || undefined}
       data-provider-count={state.liveProviderCount || undefined}

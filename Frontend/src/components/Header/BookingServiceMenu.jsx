@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { TRAVEL_SERVICE_GROUPS, getTravelServiceDisplayLabel } from '../../config/travelServices';
+import { TRAVEL_SERVICE_GROUPS, getTravelServiceDisplayLabel, getTravelServiceRoute } from '../../config/travelServices';
 import { getTravelServiceLabels } from '../../config/travelServiceLabels';
 import { fetchTravelInventoryStatus, getInventoryStateForService } from '../../services/travelInventoryService';
 import './BookingServiceMenu.css';
 
-const serviceRoute = (service, groupId = service.group || '') => service.live && service.route
-  ? service.route
-  : `/services?service=${encodeURIComponent(service.id)}#${groupId}`;
-
+const serviceRoute = (service, groupId = service.group || '') => getTravelServiceRoute(service, groupId);
 const groupRoute = group => `/services#${group.id}`;
 
 const BookingServiceMenu = ({ mobile = false, onNavigate }) => {

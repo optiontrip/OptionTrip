@@ -1,14 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PageMeta from '../../hooks/usePageMeta';
-import { TRAVEL_SERVICE_GROUPS, TRAVEL_SERVICES, getTravelServiceDisplayLabel } from '../../config/travelServices';
+import { TRAVEL_SERVICE_GROUPS, TRAVEL_SERVICES, getTravelServiceDisplayLabel, getTravelServiceRoute } from '../../config/travelServices';
 import { getTravelServiceLabels } from '../../config/travelServiceLabels';
 import { fetchTravelInventoryStatus, getInventoryStateForService } from '../../services/travelInventoryService';
 import './TravelServicesPage.css';
 
-const viRoute = service => `/travel-buddy?service=${encodeURIComponent(service.id)}&intent=find-service&returnTo=${encodeURIComponent(`/services?service=${service.id}`)}`;
-const serviceHubRoute = (service, groupId = service?.group || '') => `/services?service=${encodeURIComponent(service?.id || '')}#${groupId}`;
+const viRoute = service => {
+  const returnTo = getTravelServiceRoute(service);
+  return `/travel-buddy?service=${encodeURIComponent(service.id)}&intent=find-service&returnTo=${encodeURIComponent(returnTo)}`;
+};
+const serviceHubRoute = (service, groupId = service?.group || '') => getTravelServiceRoute(service, groupId);
 
 const COPY = {
   en: {
@@ -83,13 +86,17 @@ const safeBookingOptions = vertical => Array.isArray(vertical?.bookingOptions)
 export default function TravelServicesPage() {
   const { i18n } = useTranslation();
   const location = useLocation();
+  const { serviceId: routeServiceId } = useParams();
   const language = (i18n.language || 'en').split('-')[0];
   const labels = getTravelServiceLabels(language);
   const copy = COPY[language] || COPY.en;
   const [inventory, setInventory] = useState({});
   const [inventoryLoading, setInventoryLoading] = useState(true);
 
-  const selectedId = useMemo(() => new URLSearchParams(location.search).get('service'), [location.search]);
+  const selectedId = useMemo(
+    () => routeServiceId || new URLSearchParams(location.search).get('service'),
+    [routeServiceId, location.search],
+  );
   const selectedService = TRAVEL_SERVICES.find(service => service.id === selectedId);
   const [openMobileGroups, setOpenMobileGroups] = useState(() => new Set(['book']));
 
@@ -125,6 +132,15 @@ export default function TravelServicesPage() {
   const selectedBookingOptions = safeBookingOptions(selectedVertical);
   const selectedNeedsInventory = Boolean(selectedService?.inventoryVertical && !selectedState?.direct);
   const serviceLabel = service => getTravelServiceDisplayLabel(service, language, labels);
+  const selectedLabel = selectedService ? serviceLabel(selectedService) : null;
+  const canonicalPath = selectedService ? getTravelServiceRoute(selectedService).split('#')[0] : '/services';
+  const metaTitle = selectedLabel
+    ? `${selectedLabel} - Compare Travel Options | OptionTrip`
+    : 'Travel Services - Flights, Hotels, Cars, Tours and More';
+  const metaDescription = selectedLabel
+    ? `Compare available ${selectedLabel} booking options inside OptionTrip and continue to a verified provider only for the final booking step.`
+    : 'Explore OptionTrip travel services for flights, stays, car rental, tours, eSIM, trains, buses, transfers, insurance, luggage storage, dining and more with Travel Partner Vi.';
+
   const toggleMobileGroup = groupId => {
     setOpenMobileGroups(current => {
       const next = new Set(current);
@@ -137,16 +153,16 @@ export default function TravelServicesPage() {
   return (
     <main className="travel-services-page">
       <PageMeta
-        title="Travel Services - Flights, Hotels, Cars, Tours and More"
-        description="Explore OptionTrip travel services for flights, stays, car rental, tours, eSIM, trains, buses, transfers, insurance, luggage storage, dining and more with Travel Partner Vi."
+        title={metaTitle}
+        description={metaDescription}
         keywords="travel services, flights, hotels, car rental, tours, esim, trains, buses, airport transfers, travel insurance, dining, OptionTrip"
-        path="/services"
+        path={canonicalPath}
       />
 
       <section className="travel-services-hero">
         <div className="container">
           <span className="travel-services-eyebrow">{copy.eyebrow}</span>
-          <h1>{copy.title}</h1>
+          <h1>{selectedLabel || copy.title}</h1>
           <p>{copy.intro}</p>
           <div className="travel-services-actions">
             <Link className="nir-btn" to="/travel-buddy?intent=plan-trip">{copy.plan}</Link>
@@ -160,7 +176,7 @@ export default function TravelServicesPage() {
           <div className="travel-services-selected__icon"><i className={`fa ${selectedService.icon}`} aria-hidden="true" /></div>
           <div className="travel-services-selected__copy">
             <span>{copy.selected}</span>
-            <h2>{serviceLabel(selectedService)}</h2>
+            <h2>{selectedLabel}</h2>
             <p>{copy.selectedIntro}</p>
           </div>
 
