@@ -46,7 +46,11 @@ const TravelServiceRail = () => {
     const isActive = service.route
       ? location.pathname === service.route
       : location.pathname === '/services' && new URLSearchParams(location.search).get('service') === service.id;
-    const badge = state.direct ? null : state.external && state.bookingUrl ? 'Live' : 'Vi';
+    const badge = state.direct
+      ? null
+      : state.external && state.bookingUrl
+        ? (serviceLabels.open || 'Open')
+        : 'Vi';
     const label = getTravelServiceDisplayLabel(service, language, serviceLabels);
     const content = (
       <>
@@ -72,7 +76,7 @@ const TravelServiceRail = () => {
           key={service.id}
           to={serviceHubRoute(service)}
           className={`${className} tsr__item--partner`}
-          title={`${label} - compare live booking partners`}
+          title={`${label} - ${serviceLabels.open || 'compare booking options'}`}
         >
           {content}
         </Link>
@@ -120,11 +124,6 @@ const TravelServiceRail = () => {
               ))}
             </select>
           </label>
-
-          <Link to="/travel-buddy" className="tsr__vi" aria-label={serviceLabels.ask || 'Ask Vi'}>
-            <i className="fa fa-comments" aria-hidden="true" />
-            <span>{serviceLabels.ask || 'Ask Vi'}</span>
-          </Link>
         </div>
       </div>
     </nav>
