@@ -39,6 +39,14 @@ jobs:
         working-directory: Backend
         run: npm run test:locations
 
+      - name: Vi marketplace routing checks
+        working-directory: Backend
+        run: npm run test:vi-marketplace
+
+      - name: Direct partner booking routing checks
+        working-directory: Backend
+        run: npm run test:partner-routing
+
       - name: Flight whole-month regression guard
         run: bash scripts/check-flight-search-integrity.sh
 
