@@ -182,7 +182,10 @@
 
 .tsr__vi:hover { color: #fff; background: #074683; }
 
-@media (max-width: 767px) {
+/* Keep this breakpoint aligned with the Header hamburger breakpoint. Wide
+   phones in landscape and small tablets must not fall into a half-mobile,
+   half-desktop navigation state. */
+@media (max-width: 991px) {
   .tsr {
     box-shadow: none;
     background: rgba(255,255,255,.99);
@@ -198,8 +201,8 @@
     padding-bottom: 4px;
   }
 
-  /* Mobile gets a compact quick-tools bar. The full service catalog remains
-     in the drawer and on /services instead of a clipped horizontal carousel. */
+  /* Compact navigation gets a quick-tools bar. The full service catalog
+     remains in the drawer and on /services instead of a clipped carousel. */
   .tsr__scroll { display: none; }
 
   .tsr__brand {
