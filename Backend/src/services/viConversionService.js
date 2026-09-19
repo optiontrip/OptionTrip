@@ -1,21 +1,39 @@
 import { buildMarketplaceSuggestion } from './viMarketplaceRouter.js';
+import { findAirportByCityName, getAirportInfo } from './nearbyAirportsService.js';
 
 const first = (...values) => values.find(value => value !== undefined && value !== null && value !== '');
 
+const placeName = value => {
+  if (!value) return null;
+  if (typeof value === 'string') return value.trim() || null;
+  if (typeof value === 'object') {
+    return first(
+      value.name,
+      value.city,
+      value.cityName,
+      value.label,
+      value.destination,
+      value.origin
+    ) || null;
+  }
+  return null;
+};
+
 const destinationFromTrip = trip => first(
-  trip?.destination,
-  trip?.destination_name,
-  trip?.location?.destination,
-  trip?.route?.destination,
-  trip?.places?.[0]?.name
+  placeName(trip?.destination),
+  placeName(trip?.destination_name),
+  placeName(trip?.location?.destination),
+  placeName(trip?.route?.destination),
+  placeName(trip?.places?.[0])
 );
 
 const originFromContext = context => first(
-  context?.currentTrip?.origin,
-  context?.currentTrip?.origin_name,
-  context?.currentTrip?.route?.origin,
-  context?.currentLocation?.city,
-  context?.currentLocation?.name
+  placeName(context?.currentTrip?.origin),
+  placeName(context?.currentTrip?.origin_name),
+  placeName(context?.currentTrip?.route?.origin),
+  placeName(context?.currentLocation?.city),
+  placeName(context?.currentLocation?.name),
+  placeName(context?.currentLocation?.label)
 );
 
 const datesFromTrip = trip => ({
@@ -23,16 +41,27 @@ const datesFromTrip = trip => ({
   endDate: first(trip?.dates?.end_date, trip?.end_date, trip?.endDate),
 });
 
+const resolveContextIata = place => {
+  const value = String(place || '').trim();
+  if (!value) return null;
+  if (/^[A-Za-z]{3}$/.test(value) && getAirportInfo(value.toUpperCase())) return value.toUpperCase();
+  return findAirportByCityName(value)?.iata || null;
+};
+
 export const buildViTripContext = context => {
   const trip = context?.currentTrip || null;
   const dates = datesFromTrip(trip);
+  const origin = originFromContext(context);
+  const destination = destinationFromTrip(trip);
   return {
-    tripId: first(trip?._id, trip?.id, trip?.trip_id),
-    origin: originFromContext(context),
-    destination: destinationFromTrip(trip),
+    tripId: first(trip?.trip_id, trip?.id, trip?._id),
+    origin,
+    originCode: resolveContextIata(origin),
+    destination,
+    destinationCode: resolveContextIata(destination),
     startDate: dates.startDate,
     endDate: dates.endDate,
-    adults: first(trip?.travelers?.adults, trip?.adults, context?.preferences?.adults),
+    adults: first(trip?.travelers?.adults, trip?.guests?.adults, trip?.adults, context?.preferences?.adults),
     currency: first(context?.preferences?.currency, trip?.currency),
   };
 };
