@@ -177,6 +177,13 @@ h6 {
     scroll-snap-align: start;
   }
 
+  /* This was a developer-facing explanation permanently occupying the main
+     booking form. Whole Month and Flexible Dates should explain themselves
+     in the date flow instead of pushing the search CTA below the fold. */
+  .hbs__date-help {
+    display: none !important;
+  }
+
   /* Prevent large legacy content blocks from creating accidental sideways
      scrolling on service, results and editorial pages. */
   img,
