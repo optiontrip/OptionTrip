@@ -1,6 +1,6 @@
 # OptionTrip Automated Travel News
 
-Goal: publish up to five high-value travel news stories per day to the existing OptionTrip WordPress blog without manual editorial work.
+Goal: publish up to five high-value travel news stories per rolling 24 hours to the existing OptionTrip WordPress blog without manual editorial work.
 
 Pipeline:
 
@@ -8,7 +8,7 @@ SOURCE -> INGEST -> VERIFY -> DEDUP -> SCORE -> TRAVEL IMPACT -> DRAFT -> FACT C
 
 ## Editorial rules
 
-- Publish up to 5 stories per day. Quality beats quota; publish fewer when confidence is low.
+- Publish up to 5 stories per rolling 24 hours. Quality beats quota; publish fewer when confidence is low.
 - Prioritize stories that materially affect travelers: routes, airports, rail, buses, visas, border rules, strikes, disruptions, hotels, tourism openings/closures, weather/travel safety, cruises, major attractions and destination access.
 - Do not copy source articles. Generate an original OptionTrip article from verified facts.
 - Require corroboration from multiple independent sources when practical. Official primary sources may satisfy verification on their own when appropriate.
@@ -19,27 +19,33 @@ SOURCE -> INGEST -> VERIFY -> DEDUP -> SCORE -> TRAVEL IMPACT -> DRAFT -> FACT C
 - Do not use third-party copyrighted images as generated substitutes.
 - Add SEO title, excerpt, slug, alt text and structured-data-compatible metadata.
 
-## Safety gates
+## Production activation
 
-Autopublishing must remain disabled until all of the following are configured and tested:
+The news runner now operates in automatic mode when the required production credentials are present. `NEWS_AUTOPUBLISH_ENABLED=false` remains an emergency kill switch.
 
-- WordPress application credentials stored only as production secrets.
-- OpenAI API key stored only as a production secret.
-- Source ingestion and verification are returning current items.
-- Duplicate protection is confirmed against existing WordPress posts.
-- Image upload and featured-image assignment are confirmed.
-- A dry-run produces acceptable drafts and links.
+Required production configuration:
 
-Suggested runtime flags:
-
-- `NEWS_AUTOPUBLISH_ENABLED=false` by default
-- `NEWS_DAILY_LIMIT=5`
-- `WORDPRESS_API_BASE=https://blog.optiontrip.com/wp-json/wp/v2`
 - `WORDPRESS_USERNAME`
 - `WORDPRESS_APP_PASSWORD`
 - `OPENAI_API_KEY`
-- `OPENAI_NEWS_MODEL`
-- `OPENAI_IMAGE_MODEL`
+- `WORDPRESS_API_BASE=https://blog.optiontrip.com/wp-json/wp/v2` (optional override)
+- `NEWS_DAILY_LIMIT=5` (optional, hard-capped at 5)
+- `NEWS_CRON_SCHEDULE=15 */4 * * *` (optional; default checks every 4 hours)
+- `NEWS_CRON_TIMEZONE=UTC` (optional)
+- `NEWS_STARTUP_DELAY_MS=45000` (optional)
+- `OPENAI_NEWS_MODEL` (optional)
+- `OPENAI_IMAGE_MODEL` (optional)
+
+If any required credential is missing, the runner does not publish and reports the missing configuration through `/api/health` and the protected internal news-status endpoint.
+
+The server performs a catch-up run shortly after startup, then checks for fresh stories throughout the day. The rolling publication budget prevents more than five automated posts in 24 hours.
+
+Protected operational endpoints under `/api/internal/cron`:
+
+- `GET /news-status` - current readiness and last-run status
+- `POST /run-news` - manually trigger the budget-protected automation
+
+Both require the existing cron secret middleware.
 
 ## Revenue linkage
 
