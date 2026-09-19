@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { translateBatch, getCached, ensureSafeTextBoundary } from '../../services/translateService';
+import './AutoTranslate.css';
 
 const CHUNK_SIZE = 40;
 
@@ -78,6 +79,9 @@ const makeDebounced = (fn, delay, maxWait) => {
   };
 };
 
+const markTranslatedNode = node => node?.parentElement?.setAttribute('data-ot-translated', 'true');
+const markTranslatedElement = el => el?.setAttribute?.('data-ot-translated', 'true');
+
 const AutoTranslate = () => {
   const { i18n } = useTranslation();
 
@@ -100,7 +104,8 @@ const AutoTranslate = () => {
       const cached = localCache.current.get(key) ?? getCached(orig, lang);
       if (cached) {
         localCache.current.set(key, cached);
-        const result = ensureSafeTextBoundary(orig, cached, node);
+        const result = ensureSafeTextBoundary(orig, cached, node, lang);
+        markTranslatedNode(node);
         if (result !== node.textContent) node.textContent = result;
       }
     });
@@ -113,6 +118,7 @@ const AutoTranslate = () => {
         const result = localCache.current.get(key) ?? getCached(orig, lang);
         if (result) {
           localCache.current.set(key, result);
+          markTranslatedElement(el);
           if (el.getAttribute(attr) !== result) el.setAttribute(attr, result);
         }
       });
@@ -137,6 +143,9 @@ const AutoTranslate = () => {
           Object.entries(origMap).forEach(([attr, orig]) => {
             if (el.getAttribute(attr) !== orig) el.setAttribute(attr, orig);
           });
+        });
+        document.querySelectorAll('[data-ot-translated="true"]').forEach(el => {
+          el.removeAttribute('data-ot-translated');
         });
         return;
       }
@@ -197,7 +206,8 @@ const AutoTranslate = () => {
         }
         const orig   = nodeOriginals.current.get(node);
         const cached = orig && localCache.current.get(`${lang}:${orig}`);
-        const result = cached && ensureSafeTextBoundary(orig, cached, node);
+        const result = cached && ensureSafeTextBoundary(orig, cached, node, lang);
+        if (result) markTranslatedNode(node);
         if (result && result !== node.textContent) node.textContent = result;
       });
 
@@ -211,6 +221,7 @@ const AutoTranslate = () => {
         Object.keys(origMap).forEach(attr => {
           const orig   = origMap[attr];
           const result = orig && localCache.current.get(`${lang}:${orig}`);
+          if (result) markTranslatedElement(el);
           if (result && el.getAttribute(attr) !== result) el.setAttribute(attr, result);
         });
       });
@@ -244,7 +255,7 @@ const AutoTranslate = () => {
           if (original) {
             const key = `${lang}:${original}`;
             const cached = localCache.current.get(key) ?? getCached(original, lang);
-            const expected = cached && ensureSafeTextBoundary(original, cached, node);
+            const expected = cached && ensureSafeTextBoundary(original, cached, node, lang);
 
             // Ignore the characterData mutation caused by our own translated
             // write. If React reused this text node with genuinely new source
@@ -290,6 +301,8 @@ const AutoTranslate = () => {
     const handleLanguageChange = async (lng) => {
       const lang = (lng || 'en').split('-')[0];
       currentLangRef.current = lang;
+      document.documentElement.lang = lang;
+      document.documentElement.setAttribute('data-ot-lang', lang);
 
       stopObserver();
       clearFollowUps();
