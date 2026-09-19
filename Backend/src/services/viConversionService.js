@@ -69,8 +69,8 @@ export const buildViTripContext = context => {
 
 const compact = object => Object.fromEntries(Object.entries(object).filter(([, value]) => value !== undefined && value !== null && value !== ''));
 
-export const buildViConversion = ({ message, context }) => {
-  const flightDiscovery = buildViCountryMonthFlightConversion({ message, context });
+export const buildViConversion = ({ message, context, now }) => {
+  const flightDiscovery = buildViCountryMonthFlightConversion({ message, context, now: now || new Date() });
   if (flightDiscovery) return flightDiscovery;
 
   const service = buildMarketplaceSuggestion(message);
