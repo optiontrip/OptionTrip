@@ -184,10 +184,17 @@ jobs:
             printf '%s' "$HEALTH_JSON" | grep -q '"status":"healthy"'
             printf '%s' "$HEALTH_JSON" | node ~/OptionTrip/Backend/scripts/printTravelNewsStatus.mjs
 
+            # The default startup catch-up runs after 10 seconds. Wait just long
+            # enough to observe whether it actually started/completed; this is
+            # diagnostic only and will not roll back an otherwise healthy site.
+            sleep 12
+            echo '📰 Re-checking travel news after startup catch-up window...'
+            NEWS_HEALTH_JSON="$(curl -fsS --retry 4 --retry-delay 1 --retry-connrefused --max-time 5 http://127.0.0.1:5000/api/health)"
+            printf '%s' "$NEWS_HEALTH_JSON" | node ~/OptionTrip/Backend/scripts/printTravelNewsStatus.mjs
+
             # Give the startup partner-link warmup time to convert subscribed
             # Travelpayouts brands. This is observational, not a deploy blocker:
             # an unapproved brand must remain safely unavailable.
-            sleep 4
             INVENTORY_JSON="$(curl -fsS --retry 8 --retry-delay 2 --retry-connrefused --max-time 5 http://127.0.0.1:5000/api/travel-inventory)"
             printf '%s' "$INVENTORY_JSON" | grep -q '"verticals"'
             printf '%s' "$INVENTORY_JSON" | node ~/OptionTrip/Backend/scripts/printAffiliateInventory.mjs

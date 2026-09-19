@@ -36,13 +36,16 @@ if (process.env.ENABLE_IN_PROCESS_CRON !== 'false') {
 const newsStatus = getTravelNewsRunnerStatus();
 if (newsStatus.enabled) {
   // Check several times per day so timely travel developments do not wait until
-  // the next calendar day. The runner still enforces the rolling 24h max of 5.
+  // the next calendar day. The runner still enforces the rolling publication budget.
   const newsSchedule = process.env.NEWS_CRON_SCHEDULE || '15 */4 * * *';
   const newsTimezone = process.env.NEWS_CRON_TIMEZONE || 'UTC';
-  const configuredDelay = Number(process.env.NEWS_STARTUP_DELAY_MS || 45000);
+  // A healthy deploy should check the news feed quickly. Ten seconds leaves the
+  // HTTP server and database time to settle while avoiding a long stale window.
+  // Production can still override this with NEWS_STARTUP_DELAY_MS when needed.
+  const configuredDelay = Number(process.env.NEWS_STARTUP_DELAY_MS || 10000);
   const startupDelayMs = Number.isFinite(configuredDelay)
     ? Math.max(5000, Math.min(configuredDelay, 5 * 60 * 1000))
-    : 45000;
+    : 10000;
 
   cron.schedule(newsSchedule, () => {
     runTravelNewsAutomationWithBudget({ trigger: 'cron' })
