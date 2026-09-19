@@ -42,6 +42,13 @@ const reverseGeocode = (lat, lon) =>
     })
     .catch(() => '');
 
+const cleanHandoffIata = value => {
+  const code = String(value || '').trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(code) ? code : '';
+};
+
+const cleanHandoffLabel = (value, fallback) => String(value || fallback || '').trim().slice(0, 180);
+
 const ExploreDestinations = ({ onSelect, originCode, onOriginDetected }) => {
   const { formatPrice } = useCurrency();
   const [prices,    setPrices]    = useState({});
@@ -59,6 +66,8 @@ const ExploreDestinations = ({ onSelect, originCode, onOriginDetected }) => {
   const aiSearched = useRef(false);
 
   const [wishlisted, setWishlisted] = useState({});
+  const [pendingHandoff, setPendingHandoff] = useState(null);
+  const handoffParsed = useRef(false);
 
   const handleWishlist = async (e, dest, imageUrl) => {
     e.stopPropagation();
@@ -103,6 +112,38 @@ const ExploreDestinations = ({ onSelect, originCode, onOriginDetected }) => {
     setOriginObj(result);
     onOriginDetected?.(result);
   };
+
+  useEffect(() => {
+    if (handoffParsed.current || typeof window === 'undefined') return;
+    handoffParsed.current = true;
+
+    const query = new URLSearchParams(window.location.search);
+    const destinationCode = cleanHandoffIata(query.get('destinationCode'));
+    if (!destinationCode) return;
+
+    const originFromQuery = cleanHandoffIata(query.get('originCode'));
+    if (originFromQuery) {
+      applyOrigin({
+        iata: originFromQuery,
+        display: cleanHandoffLabel(query.get('originDisplay') || query.get('origin'), originFromQuery),
+      });
+    }
+
+    setPendingHandoff({
+      iata: destinationCode,
+      city: cleanHandoffLabel(
+        query.get('landmarkName') || query.get('destinationDisplay') || query.get('destination'),
+        destinationCode
+      ),
+      country: '',
+    });
+  }, []); // eslint-disable-line
+
+  useEffect(() => {
+    if (!pendingHandoff) return;
+    onSelect?.(pendingHandoff);
+    setPendingHandoff(null);
+  }, [pendingHandoff, onSelect]);
 
   useEffect(() => {
     if (originCode) { setOrigin(originCode); return; }
