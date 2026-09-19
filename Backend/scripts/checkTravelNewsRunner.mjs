@@ -58,6 +58,7 @@ try {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const serverSource = readFileSync(join(__dirname, '../src/server.js'), 'utf8');
 const internalCronSource = readFileSync(join(__dirname, '../src/routes/internalCron.js'), 'utf8');
+const runnerSource = readFileSync(join(__dirname, '../src/jobs/travelNewsRunner.js'), 'utf8');
 
 assert.match(
   serverSource,
@@ -88,6 +89,21 @@ assert.match(
   internalCronSource,
   /get\('\/news-status', verifyCronSecret/,
   'Travel news status endpoint must remain protected by the cron secret',
+);
+assert.match(
+  runnerSource,
+  /NEWS_CATEGORY_SLUG\s*=\s*'news'/,
+  'Rolling publication budget must explicitly target the WordPress News category',
+);
+assert.match(
+  runnerSource,
+  /params\.set\('categories', String\(newsCategoryId\)\)/,
+  'Recent-post budget checks must filter WordPress posts by the News category when available',
+);
+assert.match(
+  runnerSource,
+  /all-posts-fallback/,
+  'Budget checks must retain a conservative all-post fallback if the News category cannot be resolved',
 );
 
 console.log('✅ Travel news runner regression checks passed');

@@ -118,7 +118,10 @@ app.get("/api/health", (req, res) => {
       running: news.running,
       lastStatus: news.status,
       lastCompletedAt: news.completedAt,
-      dailyLimit: news.dailyLimit
+      dailyLimit: news.dailyLimit,
+      recentPublishedCount: news.recentPublishedCount,
+      remainingBudget: news.remainingBudget,
+      budgetScope: news.budgetScope
     }
   }});
 });

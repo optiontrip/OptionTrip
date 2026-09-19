@@ -33,6 +33,9 @@ console.log([
   `lastStatus=${news.lastStatus || 'none'}`,
   `lastCompletedAt=${news.lastCompletedAt || 'none'}`,
   `dailyLimit=${news.dailyLimit ?? 'unknown'}`,
+  `recentPublished=${news.recentPublishedCount ?? 'unknown'}`,
+  `remainingBudget=${news.remainingBudget ?? 'unknown'}`,
+  `budgetScope=${news.budgetScope || 'unknown'}`,
   `missing=${missing}`,
 ].join(' '));
 
@@ -42,4 +45,7 @@ if (!news.configured) {
   console.log('news-action required: automatic publishing is explicitly disabled');
 } else {
   console.log('news-ready: automatic publishing is configured and enabled');
+  if (Number(news.dailyLimit) === 1) {
+    console.log('news-note: production daily limit is 1; the scheduler can run more often but will publish at most one News item per rolling 24 hours');
+  }
 }
