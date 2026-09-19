@@ -47,6 +47,7 @@ import unifiedTravelRouter from "./routes/unifiedTravel.js";
 import marketplaceCatalogRouter from "./routes/marketplaceCatalog.js";
 import viMarketplaceRouter from "./routes/viMarketplace.js";
 import { getTravelNewsRunnerStatus } from "./jobs/travelNewsRunner.js";
+import { getTravelNewsFreshness } from "./services/travelNewsFreshness.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { corsOptions } from "./middleware/security.js";
 import "./config/passport.js";
@@ -100,7 +101,7 @@ app.get("/", (req, res) => {
     opportunities: "/api/opportunities", travelInventory: "/api/travel-inventory",
     providerHealth: "/api/provider-health", providerExecution: "/api/provider-execution/:vertical",
     unifiedTravel: "/api/travel/:vertical/search", marketplace: "/api/marketplace",
-    viMarketplace: "/api/vi-marketplace/route"
+    viMarketplace: "/api/vi-marketplace/route", newsHealth: "/api/news-health"
   }});
 });
 
@@ -124,6 +125,30 @@ app.get("/api/health", (req, res) => {
       budgetScope: news.budgetScope
     }
   }});
+});
+
+// Keep the core health endpoint fast and independent from WordPress. This
+// dedicated endpoint verifies whether the public Travel News feed itself is
+// actually fresh, with a five-minute cache so monitoring cannot hammer WP.
+app.get("/api/news-health", async (req, res) => {
+  const runner = getTravelNewsRunnerStatus();
+  const freshness = await getTravelNewsFreshness();
+  const healthy = runner.enabled && freshness.stale !== true;
+  res.status(healthy ? 200 : 503).json({
+    success: healthy,
+    status: freshness.status,
+    timestamp: new Date().toISOString(),
+    runner: {
+      enabled: runner.enabled,
+      configured: runner.configured,
+      mode: runner.mode,
+      missing: runner.missing,
+      running: runner.running,
+      lastStatus: runner.status,
+      lastCompletedAt: runner.completedAt,
+    },
+    freshness,
+  });
 });
 
 app.use("/api/auth", authRoutes);
