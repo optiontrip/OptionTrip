@@ -53,3 +53,20 @@ export const searchCheapRoutesByMonth = async ({ origins, destinations, month, r
   if (returnMonth) params.set('returnMonth', returnMonth);
   return fetchCheapData('/api/flights/cheap-routes', params);
 };
+
+export const searchCheapCountryRoutesByMonth = async ({ originCountry, destinationCountry, month, returnMonth = null }) => {
+  const origin = String(originCountry || '').trim().toUpperCase();
+  const destination = String(destinationCountry || '').trim().toUpperCase();
+
+  if (!/^[A-Z]{2}$/.test(origin) || !/^[A-Z]{2}$/.test(destination) || origin === destination || !month) {
+    throw new Error('Select two different supported countries and a month');
+  }
+
+  const params = new URLSearchParams({
+    originCountry: origin,
+    destinationCountry: destination,
+    month,
+  });
+  if (returnMonth) params.set('returnMonth', returnMonth);
+  return fetchCheapData('/api/flights/cheap-country-routes', params);
+};
