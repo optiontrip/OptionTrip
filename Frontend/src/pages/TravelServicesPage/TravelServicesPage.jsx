@@ -8,27 +8,151 @@ import { fetchTravelInventoryStatus, getInventoryStateForService } from '../../s
 import './TravelServicesPage.css';
 
 const viRoute = service => `/travel-buddy?service=${encodeURIComponent(service.id)}&intent=find-service&returnTo=${encodeURIComponent(`/services?service=${service.id}`)}`;
+
 const COPY = {
-  en:{eyebrow:'OPTIONTRIP TRAVEL SERVICES',title:'What do you need for your trip?',intro:'Choose one service and continue from the same place. OptionTrip keeps your selection visible and never makes you start the booking flow again.',plan:'Plan my whole trip with Vi',trips:'My trips',trustTitle:'One choice. One clear next step.',trust:'Direct services open their search. Partner services keep the selected service visible and continue with Vi only when help is actually needed.',direct:'Search & book',partner:'Continue with partner',guided:'Continue with Vi',selected:'You selected',selectedIntro:'Continue with this service. You will not be sent back to the beginning.',change:'Choose another service'},
-  ru:{eyebrow:'Сервисы OptionTrip',title:'Что вам нужно для поездки?',intro:'Выберите один сервис и продолжайте с этого же места. OptionTrip сохраняет ваш выбор и больше не заставляет начинать бронирование заново.',plan:'Спланировать всю поездку с Vi',trips:'Мои поездки',trustTitle:'Один выбор - один понятный следующий шаг.',trust:'Рабочие сервисы сразу открывают поиск. Партнерские сервисы сохраняют выбранную услугу и подключают Vi только тогда, когда помощь действительно нужна.',direct:'Найти и забронировать',partner:'Продолжить с партнером',guided:'Продолжить с Vi',selected:'Вы выбрали',selectedIntro:'Продолжайте с этой услугой. Возвращаться к началу больше не нужно.',change:'Выбрать другую услугу'},
-  uk:{eyebrow:'Сервіси OptionTrip',title:'Що вам потрібно для подорожі?',intro:'Оберіть один сервіс і продовжуйте з цього ж місця. OptionTrip зберігає ваш вибір і не змушує починати бронювання знову.',plan:'Спланувати всю подорож з Vi',trips:'Мої подорожі',trustTitle:'Один вибір - один зрозумілий наступний крок.',trust:'Робочі сервіси одразу відкривають пошук. Партнерські сервіси зберігають обрану послугу та підключають Vi лише коли допомога справді потрібна.',direct:'Знайти й забронювати',partner:'Продовжити з партнером',guided:'Продовжити з Vi',selected:'Ви обрали',selectedIntro:'Продовжуйте з цією послугою. Повертатися на початок більше не потрібно.',change:'Обрати іншу послугу'}
+  en: {
+    eyebrow: 'OPTIONTRIP TRAVEL SERVICES', title: 'What do you need for your trip?', intro: 'Choose one service and continue from the same place. OptionTrip keeps your selection visible and never makes you start the booking flow again.',
+    plan: 'Plan my whole trip with Vi', trips: 'My trips', trustTitle: 'One choice. One clear next step.', trust: 'Direct services open their search. Partner services open only when a real booking link is configured; otherwise Vi keeps helping without sending you to a dead page.',
+    direct: 'Search & book', partner: 'Continue with partner', guided: 'Continue with Vi', selected: 'You selected', selectedIntro: 'Continue with this service. You will not be sent back to the beginning.', change: 'Choose another service',
+  },
+  ru: {
+    eyebrow: 'Сервисы OptionTrip', title: 'Что вам нужно для поездки?', intro: 'Выберите один сервис и продолжайте с этого же места. OptionTrip сохраняет ваш выбор и больше не заставляет начинать бронирование заново.',
+    plan: 'Спланировать всю поездку с Vi', trips: 'Мои поездки', trustTitle: 'Один выбор - один понятный следующий шаг.', trust: 'Рабочие сервисы сразу открывают поиск. Партнерский сервис открывается только когда настроена реальная ссылка бронирования; иначе Vi продолжает помогать без мертвых страниц.',
+    direct: 'Найти и забронировать', partner: 'Продолжить с партнером', guided: 'Продолжить с Vi', selected: 'Вы выбрали', selectedIntro: 'Продолжайте с этой услугой. Возвращаться к началу больше не нужно.', change: 'Выбрать другую услугу',
+  },
+  uk: {
+    eyebrow: 'Сервіси OptionTrip', title: 'Що вам потрібно для подорожі?', intro: 'Оберіть один сервіс і продовжуйте з цього ж місця. OptionTrip зберігає ваш вибір і не змушує починати бронювання знову.',
+    plan: 'Спланувати всю подорож з Vi', trips: 'Мої подорожі', trustTitle: 'Один вибір - один зрозумілий наступний крок.', trust: 'Робочі сервіси одразу відкривають пошук. Партнерський сервіс відкривається лише коли налаштоване реальне посилання бронювання; інакше Vi продовжує допомагати без мертвих сторінок.',
+    direct: 'Знайти й забронювати', partner: 'Продовжити з партнером', guided: 'Продовжити з Vi', selected: 'Ви обрали', selectedIntro: 'Продовжуйте з цією послугою. Повертатися на початок більше не потрібно.', change: 'Обрати іншу послугу',
+  },
 };
 
-export default function TravelServicesPage(){
- const {i18n}=useTranslation(); const location=useLocation(); const language=(i18n.language||'en').split('-')[0]; const labels=getTravelServiceLabels(language); const copy=COPY[language]||COPY.en; const [inventory,setInventory]=useState({});
- const selectedId=useMemo(()=>new URLSearchParams(location.search).get('service'),[location.search]);
- const selectedService=TRAVEL_SERVICES.find(service=>service.id===selectedId);
- useEffect(()=>{let active=true;fetchTravelInventoryStatus().then(data=>{if(active)setInventory(data)});return()=>{active=false}},[]);
- useEffect(()=>{if(selectedService){setTimeout(()=>document.getElementById('selected-travel-service')?.scrollIntoView({behavior:'smooth',block:'center'}),0);return}if(location.hash){const el=document.getElementById(location.hash.slice(1));if(el)setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'start'}),0)}},[location.hash,selectedService]);
- const statusLabel=state=>state.direct?copy.direct:state.status==='partner-ready'?copy.partner:copy.guided;
- const routeFor=(service,state)=>state.direct?service.route:viRoute(service);
- const selectedState=selectedService?getInventoryStateForService(selectedService,inventory):null;
- const serviceLabel=service=>getTravelServiceDisplayLabel(service,language,labels);
- return <main className="travel-services-page">
-  <PageMeta title="Travel Services - Flights, Hotels, Cars, Tours and More" description="Explore OptionTrip travel services for flights, stays, car rental, tours, eSIM, trains, buses, transfers, insurance, luggage storage, dining and more with Travel Partner Vi." keywords="travel services, flights, hotels, car rental, tours, esim, trains, buses, airport transfers, travel insurance, dining, OptionTrip" path="/services" />
-  <section className="travel-services-hero"><div className="container"><span className="travel-services-eyebrow">{copy.eyebrow}</span><h1>{copy.title}</h1><p>{copy.intro}</p><div className="travel-services-actions"><Link className="nir-btn" to="/travel-buddy?intent=plan-trip">{copy.plan}</Link><Link className="travel-services-secondary" to="/my-trips">{copy.trips}</Link></div></div></section>
-  {selectedService&&<section id="selected-travel-service" className="container travel-services-selected" aria-live="polite"><div className="travel-services-selected__icon"><i className={`fa ${selectedService.icon}`} aria-hidden="true"/></div><div className="travel-services-selected__copy"><span>{copy.selected}</span><h2>{serviceLabel(selectedService)}</h2><p>{copy.selectedIntro}</p></div><Link className="nir-btn travel-services-selected__cta" to={routeFor(selectedService,selectedState)}>{statusLabel(selectedState)} <i className="fa fa-arrow-right" aria-hidden="true"/></Link><a className="travel-services-selected__change" href="#all-services">{copy.change}</a></section>}
-  <div id="all-services" className="container travel-services-groups">{TRAVEL_SERVICE_GROUPS.map(group=><section className="travel-services-group" id={group.id} key={group.id} aria-labelledby={`services-${group.id}`}><h2 id={`services-${group.id}`}>{labels[group.id]||group.label}</h2><div className="travel-services-grid">{group.services.map(service=>{const state=getInventoryStateForService(service,inventory);const route=state.direct?service.route:`/services?service=${encodeURIComponent(service.id)}#${group.id}`;return <Link className={`travel-service-card${selectedId===service.id?' travel-service-card--selected':''}`} to={route} key={service.id}><span className="travel-service-icon" aria-hidden="true"><i className={`fa ${service.icon}`}/></span><span className="travel-service-copy"><strong>{serviceLabel(service)}</strong></span><span className="travel-service-status">{statusLabel(state)} <i className="fa fa-arrow-right" aria-hidden="true"/></span></Link>})}</div></section>)}</div>
-  <section className="container travel-services-trust"><strong>{copy.trustTitle}</strong><span>{copy.trust}</span></section>
- </main>;
+const statusLabel = (state, copy) => {
+  if (state?.direct) return copy.direct;
+  if (state?.external && state?.bookingUrl) return copy.partner;
+  return copy.guided;
+};
+
+const InternalOrPartnerLink = ({ service, state, className, children, fallbackRoute }) => {
+  if (state?.direct && service?.route) {
+    return <Link className={className} to={service.route}>{children}</Link>;
+  }
+
+  if (state?.external && state?.bookingUrl) {
+    return (
+      <a className={className} href={state.bookingUrl} target="_blank" rel="noopener noreferrer sponsored">
+        {children}
+      </a>
+    );
+  }
+
+  return <Link className={className} to={fallbackRoute || viRoute(service)}>{children}</Link>;
+};
+
+export default function TravelServicesPage() {
+  const { i18n } = useTranslation();
+  const location = useLocation();
+  const language = (i18n.language || 'en').split('-')[0];
+  const labels = getTravelServiceLabels(language);
+  const copy = COPY[language] || COPY.en;
+  const [inventory, setInventory] = useState({});
+
+  const selectedId = useMemo(() => new URLSearchParams(location.search).get('service'), [location.search]);
+  const selectedService = TRAVEL_SERVICES.find(service => service.id === selectedId);
+
+  useEffect(() => {
+    let active = true;
+    fetchTravelInventoryStatus({ force: true }).then(data => {
+      if (active) setInventory(data);
+    });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (selectedService) {
+      setTimeout(() => document.getElementById('selected-travel-service')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
+      return;
+    }
+    if (location.hash) {
+      const el = document.getElementById(location.hash.slice(1));
+      if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+    }
+  }, [location.hash, selectedService]);
+
+  const selectedState = selectedService ? getInventoryStateForService(selectedService, inventory) : null;
+  const serviceLabel = service => getTravelServiceDisplayLabel(service, language, labels);
+
+  return (
+    <main className="travel-services-page">
+      <PageMeta
+        title="Travel Services - Flights, Hotels, Cars, Tours and More"
+        description="Explore OptionTrip travel services for flights, stays, car rental, tours, eSIM, trains, buses, transfers, insurance, luggage storage, dining and more with Travel Partner Vi."
+        keywords="travel services, flights, hotels, car rental, tours, esim, trains, buses, airport transfers, travel insurance, dining, OptionTrip"
+        path="/services"
+      />
+
+      <section className="travel-services-hero">
+        <div className="container">
+          <span className="travel-services-eyebrow">{copy.eyebrow}</span>
+          <h1>{copy.title}</h1>
+          <p>{copy.intro}</p>
+          <div className="travel-services-actions">
+            <Link className="nir-btn" to="/travel-buddy?intent=plan-trip">{copy.plan}</Link>
+            <Link className="travel-services-secondary" to="/my-trips">{copy.trips}</Link>
+          </div>
+        </div>
+      </section>
+
+      {selectedService && (
+        <section id="selected-travel-service" className="container travel-services-selected" aria-live="polite">
+          <div className="travel-services-selected__icon"><i className={`fa ${selectedService.icon}`} aria-hidden="true" /></div>
+          <div className="travel-services-selected__copy">
+            <span>{copy.selected}</span>
+            <h2>{serviceLabel(selectedService)}</h2>
+            <p>{copy.selectedIntro}</p>
+          </div>
+          <InternalOrPartnerLink
+            service={selectedService}
+            state={selectedState}
+            className="nir-btn travel-services-selected__cta"
+          >
+            {statusLabel(selectedState, copy)} <i className="fa fa-arrow-right" aria-hidden="true" />
+          </InternalOrPartnerLink>
+          <a className="travel-services-selected__change" href="#all-services">{copy.change}</a>
+        </section>
+      )}
+
+      <div id="all-services" className="container travel-services-groups">
+        {TRAVEL_SERVICE_GROUPS.map(group => (
+          <section className="travel-services-group" id={group.id} key={group.id} aria-labelledby={`services-${group.id}`}>
+            <h2 id={`services-${group.id}`}>{labels[group.id] || group.label}</h2>
+            <div className="travel-services-grid">
+              {group.services.map(service => {
+                const state = getInventoryStateForService(service, inventory);
+                const fallbackRoute = `/services?service=${encodeURIComponent(service.id)}#${group.id}`;
+                return (
+                  <InternalOrPartnerLink
+                    key={service.id}
+                    service={service}
+                    state={state}
+                    fallbackRoute={fallbackRoute}
+                    className={`travel-service-card${selectedId === service.id ? ' travel-service-card--selected' : ''}`}
+                  >
+                    <span className="travel-service-icon" aria-hidden="true"><i className={`fa ${service.icon}`} /></span>
+                    <span className="travel-service-copy"><strong>{serviceLabel(service)}</strong></span>
+                    <span className="travel-service-status">{statusLabel(state, copy)} <i className="fa fa-arrow-right" aria-hidden="true" /></span>
+                  </InternalOrPartnerLink>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
+
+      <section className="container travel-services-trust">
+        <strong>{copy.trustTitle}</strong>
+        <span>{copy.trust}</span>
+      </section>
+    </main>
+  );
 }
