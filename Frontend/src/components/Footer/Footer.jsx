@@ -23,11 +23,12 @@ const FOOTER_GROUPS = [
     id: 'travel',
     title: 'Travel',
     items: [
+      { to: '/services', label: 'All Travel Services' },
       { to: '/destinations', label: 'Explore Destinations' },
+      { to: '/plan-my-day', label: 'Plan My Day' },
+      { to: '/where-can-i-go', label: 'Where Can I Go?' },
       { to: '/trip-ideas', label: 'Trip Ideas' },
       { to: '/travel-map', label: 'Travel Map' },
-      { to: '/popular-routes', label: 'Popular Routes' },
-      { to: '/travel-tips', label: 'Travel Tips' },
     ],
   },
   {
