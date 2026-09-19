@@ -170,6 +170,12 @@
     width: 100%;
   }
 
+  /* Currency is already available in the persistent mobile header. Avoid
+     repeating the same preference in three different mobile locations. */
+  .footer-locale-item--currency {
+    display: none;
+  }
+
   .footer-bottom {
     padding-top: 18px;
     padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
